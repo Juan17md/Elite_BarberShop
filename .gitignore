@@ -22,11 +22,14 @@
 /dist/
 
 # ------------------------------
-# Cobertura y reportes
+# Cobertura y reportes / Linters
 # ------------------------------
 /coverage
 *.lcov
 .nyc_output/
+eslint_report.json
+*_report.json
+
 
 # ------------------------------
 # Logs y depuración
@@ -97,13 +100,15 @@ tmp/
 temp/
 
 # ------------------------------
-# Herramientas de IA / asistentes / contexto local
-# Se ignoran datos locales, sesiones, cachés y configuraciones
-# privadas de herramientas de IA.
+# Herramientas de IA, Asistentes, Skills y Reglas de Agente
+# Se ignoran datos locales, sesiones, cachés, habilidades (skills)
+# y archivos de reglas de desarrollo local.
 # ------------------------------
 .claude/
 .cursor/
 .cursor-tutor/
+.cursorrules
+.cursorrules.md
 .windsurf/
 .copilot/
 .github/
@@ -120,14 +125,22 @@ temp/
 .sessions/
 .context/
 .contexts/
+.gemini/
+skills/
+
+# Archivos de configuración de agentes
+AGENTS.md
+AGENT.md
+CLAUDE.md
 
 # ------------------------------
-# Otros
+# Scripts locales, Utilidades y Bóveda Obsidian
 # ------------------------------
 *.pid
 *.seed
 createAdmin.js
 resetDatabase.js
-CLAUDE.md
-AGENT.md
 documentacion.txt
+docs-obsidian
+
+
