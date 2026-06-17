@@ -74,8 +74,8 @@ export default function Sidebar({ collapsed, isOpen, onToggleCollapse, onClose }
       {/* Logo */}
       <div className="h-24 flex items-center justify-center border-b border-white/5 w-full">
         <img 
-          src="https://ik.imagekit.io/h5w0cdkit/the_doctor_barber_shop/loogo1.png" 
-          alt="The Doctor Barber Shop Logo" 
+          src="https://ik.imagekit.io/h5w0cdkit/elite_barber_shop/loogo1.png" 
+          alt="Elite BarberShop Logo" 
           className={`transition-all duration-300 object-contain drop-shadow-[0_0_15px_rgba(255,255,255,0.1)] ${collapsed ? "w-10 h-10" : "h-16 lg:h-14 w-auto max-w-[80%]"}`}
         />
       </div>

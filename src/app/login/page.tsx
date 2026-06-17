@@ -79,8 +79,8 @@ export default function LoginPage() {
             {/* Logo */}
             <div className="mb-20">
               <img 
-                src="https://ik.imagekit.io/h5w0cdkit/the_doctor_barber_shop/loogo1.png" 
-                alt="The Doctor Barber Shop Logo" 
+                src="https://ik.imagekit.io/h5w0cdkit/elite_barber_shop/loogo1.png" 
+                alt="Elite BarberShop Logo" 
                 className="h-28 max-w-full object-contain drop-shadow-[0_0_20px_rgba(255,255,255,0.15)] transition-transform hover:scale-105 duration-500"
               />
             </div>
@@ -139,8 +139,8 @@ export default function LoginPage() {
           {/* Mobile Logo */}
           <div className="lg:hidden flex flex-col items-center mb-12">
             <img 
-              src="https://ik.imagekit.io/h5w0cdkit/the_doctor_barber_shop/loogo1.png" 
-              alt="The Doctor Barber Shop Logo" 
+              src="https://ik.imagekit.io/h5w0cdkit/elite_barber_shop/loogo1.png" 
+              alt="Elite BarberShop Logo" 
               className="h-24 w-auto object-contain drop-shadow-[0_0_20px_rgba(255,255,255,0.15)]"
             />
           </div>
@@ -231,7 +231,7 @@ export default function LoginPage() {
           {/* Footer */}
           <div className="mt-8 pt-6 border-t border-white/5">
             <p className="text-center text-xs text-text-muted">
-              © 2026 The Doctor Barber Shop
+              © 2026 Elite BarberShop
             </p>
             <p className="text-center text-xs text-text-muted/60 mt-2 flex items-center justify-center gap-1">
               Designed by <span className="text-primary font-medium">Juan17md</span>

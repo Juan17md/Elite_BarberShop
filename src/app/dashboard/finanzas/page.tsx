@@ -318,7 +318,7 @@ export default function FinanzasPage() {
       } else {
         await setDoc(barberiaBankRef, {
           userId: "barbershop",
-          userName: "The Doctor Barber Shop",
+          userName: "Elite BarberShop",
           balance: barberiaShareAmount,
           totalEarned: barberiaShareAmount,
           totalPaid: 0,
@@ -329,7 +329,7 @@ export default function FinanzasPage() {
       // 5. Agregar transacción al historial de la barbería
       await addDoc(collection(db, "bank_transactions"), {
         userId: "barbershop",
-        userName: "The Doctor Barber Shop",
+        userName: "Elite BarberShop",
         type: "earning",
         amount: barberiaShareAmount,
         description: `Servicio: ${service.name} (${finalBarber.name})`,
@@ -432,7 +432,7 @@ export default function FinanzasPage() {
       // 4. Transacción de reversión de barbería
       await addDoc(collection(db, "bank_transactions"), {
         userId: "barbershop",
-        userName: "The Doctor Barber Shop",
+        userName: "Elite BarberShop",
         type: "deduction",
         amount: record.barberiaShare,
         description: `Eliminación/Reversión: ${record.serviceName} (${record.barberName})`,
@@ -545,7 +545,7 @@ export default function FinanzasPage() {
         }
         await addDoc(collection(db, "bank_transactions"), { 
           userId: "barbershop", 
-          userName: "The Doctor Barber Shop", 
+          userName: "Elite BarberShop", 
           type: "deduction", 
           amount: recordToEdit.barberiaShare, 
           description: `Ajuste (Edición): Reversión ${recordToEdit.serviceName} (${recordToEdit.barberName})`, 
@@ -574,7 +574,7 @@ export default function FinanzasPage() {
         await updateDoc(oldBarberiaBankRef, { balance: increment(newBarberiaShare), totalEarned: increment(newBarberiaShare) });
         await addDoc(collection(db, "bank_transactions"), { 
           userId: "barbershop", 
-          userName: "The Doctor Barber Shop", 
+          userName: "Elite BarberShop", 
           type: "earning", 
           amount: newBarberiaShare, 
           description: `Ajuste (Nuevo): ${selService.name} (${finalBarberName})`, 

@@ -1,11 +1,11 @@
-# 💈 The Doctor Barber Shop | Ecosistema de Gestión Interna
+# 💈 Elite BarberShop | Ecosistema de Gestión Interna
 
 [![Next.js](https://img.shields.io/badge/Next.js-16-black?style=for-the-badge&logo=next.js)](https://nextjs.org/)
 [![React](https://img.shields.io/badge/React-19-blue?style=for-the-badge&logo=react)](https://reactjs.org/)
 [![Tailwind CSS](https://img.shields.io/badge/Tailwind_CSS-4.0-38B2AC?style=for-the-badge&logo=tailwind-css)](https://tailwindcss.com/)
 [![Firebase](https://img.shields.io/badge/Firebase-Auth_&_Store-FFCA28?style=for-the-badge&logo=firebase)](https://firebase.google.com/)
 
-**The Doctor Barber Shop Gestión** es una plataforma administrativa de alto rendimiento diseñada bajo la estética *Surgical Edge*. Centraliza la operación completa de una barbería moderna, permitiendo un control milimétrico sobre las finanzas, el personal y la experiencia del cliente en un entorno robusto y escalable.
+**Elite BarberShop Gestión** es una plataforma administrativa de alto rendimiento diseñada bajo la estética *Surgical Edge*. Centraliza la operación completa de una barbería moderna, permitiendo un control milimétrico sobre las finanzas, el personal y la experiencia del cliente en un entorno robusto y escalable.
 
 ## 🎯 Vista General
 
@@ -124,7 +124,7 @@ Ofrece una experiencia centrada en la operación individual:
 ### 1. Clonar el repositorio
 ```bash
 git clone <TU_REPOSITORIO>
-cd the_doctor_barber_gestion
+cd elite_barber_shop_gestion
 ```
 
 ### 2. Instalar dependencias
@@ -172,4 +172,4 @@ Proyecto en desarrollo activo bajo los más altos estándares de calidad UI/UX (
 Desarrollado con dedicación por **[Juan17md](https://github.com/Juan17md)**.
 
 ---
-*The Doctor Barber Shop - Engineering for Excellence.*
+*Elite BarberShop - Engineering for Excellence.*

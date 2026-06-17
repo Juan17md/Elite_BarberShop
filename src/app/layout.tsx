@@ -12,8 +12,8 @@ export const viewport: Viewport = {
 };
 
 export const metadata: Metadata = {
-  title: "The Doctor | Barbería Premium",
-  description: "Sistema interno de gestión para The Doctor Barber Shop",
+  title: "Elite BarberShop | Gestión Premium",
+  description: "Sistema interno de gestión para Elite BarberShop",
   robots: "noindex, nofollow",
   manifest: "/manifest.json",
   icons: {

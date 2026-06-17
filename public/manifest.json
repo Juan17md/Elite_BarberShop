@@ -1,7 +1,7 @@
 {
-  "name": "The Doctor | Barbería Premium",
-  "short_name": "The Doctor",
-  "description": "Sistema interno de gestión para The Doctor Barber Shop",
+  "name": "Elite BarberShop | Gestión Premium",
+  "short_name": "Elite BarberShop",
+  "description": "Sistema interno de gestión para Elite BarberShop",
   "start_url": "/",
   "display": "standalone",
   "background_color": "#000000",
