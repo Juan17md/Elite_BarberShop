@@ -4,7 +4,6 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { 
   LayoutDashboard, 
-  CalendarDays,
   FileText,
   Wallet, 
   LogOut,
@@ -42,7 +41,6 @@ export default function Sidebar({ collapsed, isOpen, onToggleCollapse, onClose }
 
   const navItems = [
     { name: "Resumen", path: "/dashboard", icon: LayoutDashboard, roles: ["admin", "barber"] },
-    { name: "Reservas", path: "/dashboard/reservas", icon: CalendarDays, roles: ["admin", "barber"] },
     { name: "Servicios", path: "/dashboard/servicios", icon: Scissors, roles: ["admin", "barber"] },
     { name: "Inventario", path: "/dashboard/inventario", icon: Package, roles: ["admin"] },
     { name: "Finanzas", path: "/dashboard/finanzas", icon: Wallet, roles: ["admin", "barber"] },
@@ -74,9 +72,9 @@ export default function Sidebar({ collapsed, isOpen, onToggleCollapse, onClose }
       {/* Logo */}
       <div className="h-24 flex items-center justify-center border-b border-white/5 w-full">
         <img 
-          src="https://ik.imagekit.io/h5w0cdkit/elite_barber_shop/loogo1.png" 
+          src="https://ik.imagekit.io/h5w0cdkit/elite_barber_shop/elite_logo.png" 
           alt="Elite BarberShop Logo" 
-          className={`transition-all duration-300 object-contain drop-shadow-[0_0_15px_rgba(255,255,255,0.1)] ${collapsed ? "w-10 h-10" : "h-16 lg:h-14 w-auto max-w-[80%]"}`}
+          className={`transition-all duration-300 object-contain drop-shadow-[0_0_15px_rgba(255,255,255,0.1)] ${collapsed ? "w-12 h-12" : "h-20 lg:h-18 w-auto max-w-[85%]"}`}
         />
       </div>
 

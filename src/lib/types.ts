@@ -11,7 +11,8 @@ export type UserRole = 'admin' | 'barber';
 export interface Service {
   id: string;
   name: string;
-  price: number;
+  price: number;       // precio en BCV (bolívares a tasa BCV)
+  priceDivisa?: number; // precio en divisa física / USDT (promoción)
   duration: number; // minutos
   description?: string;
 }
@@ -57,61 +58,10 @@ export interface Objective {
   createdByName?: string;
 }
 
-export interface Appointment {
-  id: string;
-  clientId: string;
-  clientName: string;
-  serviceId: string;
-  serviceName: string;
-  barberId: string;
-  barberName: string;
-  date: string; // YYYY-MM-DD
-  time: string; // HH:MM
-  status: 'pending' | 'completed' | 'cancelled';
-  totalPrice: number;
-  createdAt: Date;
-}
-
-export type ReservaEstado = 'pendiente' | 'confirmada' | 'completada' | 'cancelada';
-
-export interface Reserva {
-  id: string;
-  barberId: string;
-  barberName: string;
-  serviceId: string;
-  serviceName: string;
-  fecha: string;
-  hora: string;
-  clienteNombre: string;
-  clienteTelefono: string;
-  estado: ReservaEstado;
-  notas?: string;
-  creadoAt: string;
-  actualizadoAt: string;
-  creadoPorUid: string;
-  creadoPorRol: UserRole;
-  barbero?: string;
-  servicio?: string;
-  cliente_nombre?: string;
-  cliente_telefono?: string;
-}
-
-export interface ReservaPayload {
-  barberId: string;
-  barberName: string;
-  serviceId: string;
-  serviceName: string;
-  fecha: string;
-  hora: string;
-  clienteNombre: string;
-  clienteTelefono: string;
-  estado: ReservaEstado;
-  notas?: string;
-}
+export type PaymentMethod = "bcv" | "divisa";
 
 export interface FinancialRecord {
   id: string;
-  appointmentId: string;
   serviceId: string;
   serviceName: string;
   barberId: string;
@@ -122,6 +72,8 @@ export interface FinancialRecord {
   barberiaShare: number; // 40%
   date: string;
   createdAt: Date;
+  paymentMethod?: PaymentMethod; // método de pago: bcv (bolívares) o divisa (físico/USDT)
+  bcvRate?: number; // tasa BCV al momento del pago (solo si paymentMethod = "bcv")
 }
 
 export interface BankAccount {
@@ -154,10 +106,14 @@ export interface DailyStats {
 }
 
 export const SERVICES: Service[] = [
-  { id: '1', name: 'Corte de Cabello Simple', price: 7, duration: 45 },
-  { id: '2', name: 'Corte de Cabello Completo', price: 8, duration: 45 },
-  { id: '3', name: 'Barba', price: 4, duration: 45 },
-  { id: '4', name: 'Corte de Cabello + Barba', price: 10, duration: 45 },
+  { id: '1', name: 'Corte de Cabello', price: 7, priceDivisa: 5, duration: 45 },
+  { id: '2', name: 'Barba', price: 4, priceDivisa: 2, duration: 45 },
+  { id: '3', name: 'Corte de Cabello + Barba', price: 10, priceDivisa: 8, duration: 45 },
+];
+
+export const PAYMENT_METHODS: { value: PaymentMethod; label: string }[] = [
+  { value: "bcv", label: "BCV (Bolívares)" },
+  { value: "divisa", label: "Divisa ($ / USDT)" },
 ];
 
 export const BARBERS = [

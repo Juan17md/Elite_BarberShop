@@ -1,16 +1,20 @@
 "use client";
 
 import { usePathname } from "next/navigation";
-import { Menu } from "lucide-react";
+import { Menu, DollarSign } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
+import { useState, useEffect } from "react";
+import { doc, onSnapshot } from "firebase/firestore";
+import { db } from "@/lib/firebase";
 
 interface HeaderProps {
   onOpenSidebar: () => void;
 }
 
+const SEIS_HORAS = 6 * 60 * 60 * 1000;
+
 const navItems = [
   { name: "Resumen", path: "/dashboard" },
-  { name: "Reservas", path: "/dashboard/reservas" },
   { name: "Servicios", path: "/dashboard/servicios" },
   { name: "Inventario", path: "/dashboard/inventario" },
   { name: "Finanzas", path: "/dashboard/finanzas" },
@@ -26,6 +30,38 @@ export default function Header({ onOpenSidebar }: HeaderProps) {
   const { userRole } = useAuth();
   const isAdmin = userRole?.role === "admin";
 
+  const [bcvRate, setBcvRate] = useState<number | null>(null);
+
+  useEffect(() => {
+    const unsub = onSnapshot(doc(db, "settings", "bcv"), (snap) => {
+      if (snap.exists()) {
+        setBcvRate(snap.data().rate as number);
+      }
+    });
+    return () => unsub();
+  }, []);
+
+  useEffect(() => {
+    let mounted = true;
+    const fetchAndSet = async () => {
+      try {
+        const res = await fetch("/api/bcv-rate");
+        const data = await res.json();
+        if (mounted && data.rate != null) {
+          setBcvRate(Number(data.rate));
+        }
+      } catch (e) {
+        console.error("Error fetching BCV rate:", e);
+      }
+    };
+    fetchAndSet();
+    const interval = setInterval(fetchAndSet, SEIS_HORAS);
+    return () => {
+      mounted = false;
+      clearInterval(interval);
+    };
+  }, []);
+
   const getHeaderInfo = () => {
     switch (pathname) {
       case "/dashboard":
@@ -38,11 +74,6 @@ export default function Header({ onOpenSidebar }: HeaderProps) {
         return {
           title: <>HOLA, <span className="text-primary">{userRole?.name?.toUpperCase() || ""}</span></>,
           desc: "Este es tu resumen de ganancias y rendimiento."
-        };
-      case "/dashboard/citas":
-        return {
-          title: <>CI<span className="text-primary">TAS</span></>,
-          desc: "Gestiona tu calendario y horarios bloqueados"
         };
       case "/dashboard/clientes":
         return {
@@ -90,12 +121,6 @@ export default function Header({ onOpenSidebar }: HeaderProps) {
           title: <>MI <span className="text-primary">PERFIL</span></>,
           desc: "Ajustes y configuración"
         };
-      case "/dashboard/reservas":
-      case "/dashboard/reservas/agenda":
-        return {
-          title: <>CALENDARIO DE <span className="text-primary">CITAS</span></>,
-          desc: "Gestiona las reservas y el calendario de la barbería"
-        };
       case "/dashboard/objetivos":
         return {
           title: <>OBJETI<span className="text-primary">VOS</span></>,
@@ -130,13 +155,24 @@ export default function Header({ onOpenSidebar }: HeaderProps) {
         </div>
       </div>
 
-      <div className="flex items-center gap-8">
+      <div className="flex items-center gap-3 md:gap-4">
         <button 
           onClick={onOpenSidebar}
           className="lg:hidden p-3 rounded-xl bg-surface-high text-text-muted hover:text-white transition-all border border-white/5 shadow-md"
         >
           <Menu size={20} />
         </button>
+
+        <div className="hidden md:flex items-center gap-2 border border-blue-500/20 rounded-lg px-3 py-1.5 bg-blue-500/5 min-w-[90px]">
+          <DollarSign size={14} className="text-blue-400 shrink-0" />
+          <div className="flex items-baseline gap-1">
+            <span className="text-[9px] text-text-muted uppercase tracking-widest font-bold">BCV</span>
+            <span className="text-sm text-white font-display tracking-wider">
+              {bcvRate != null ? bcvRate.toFixed(2) : <span className="text-text-muted/50 animate-pulse">--</span>}
+            </span>
+          </div>
+        </div>
+
         <div className="hidden lg:flex flex-col items-end">
           <p className="text-[10px] text-text-muted uppercase tracking-[0.2em] font-bold">
             {new Date().toLocaleDateString('es-ES', { weekday: 'long' })}

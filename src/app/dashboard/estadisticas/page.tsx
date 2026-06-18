@@ -15,7 +15,7 @@ import {
 import { db } from "@/lib/firebase";
 import { TrendingUp, Scissors, DollarSign, Activity, CalendarDays, ChevronLeft, ChevronRight } from "lucide-react";
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from "@/components/ui";
-import { getWeekRangeFromOffset } from "@/lib/utils";
+import { getPeriodFromPosition } from "@/lib/utils";
 
 
 export default function EstadisticasPage() {
@@ -24,13 +24,12 @@ export default function EstadisticasPage() {
   const [records, setRecords] = useState<FinancialRecord[]>([]);
   const [barbersList, setBarbersList] = useState<{uid: string, name: string}[]>([]);
 
-  // Navegación semanal
-  const [semanaOffset, setSemanaOffset] = useState(0);
-  const rangoSemana = useMemo(
-    () => getWeekRangeFromOffset(semanaOffset),
-    [semanaOffset]
+  const [position, setPosition] = useState(0);
+  const periodo = useMemo(
+    () => getPeriodFromPosition(position),
+    [position]
   );
-  const esSemanaActual = semanaOffset === 0;
+  const esPosicionActual = position === 0;
 
 
   useEffect(() => {
@@ -82,8 +81,8 @@ export default function EstadisticasPage() {
 
   // Registros filtrados por semana seleccionada
   const filteredRecords = useMemo(() => {
-    return records.filter((r) => r.date >= rangoSemana.inicio && r.date <= rangoSemana.fin);
-  }, [records, rangoSemana]);
+    return records.filter((r) => r.date >= periodo.inicio && r.date <= periodo.fin);
+  }, [records, periodo]);
 
   const totalServices = filteredRecords.length;
   const totalRevenue = filteredRecords.reduce((sum, r) => sum + r.totalAmount, 0);
@@ -154,21 +153,21 @@ export default function EstadisticasPage() {
                 Vista general
               </p>
               <h2 className="font-display text-2xl sm:text-3xl text-white tracking-[0.05em] uppercase">
-                Rendimiento semanal
+                Rendimiento{periodo.isSunday ? " del domingo" : " semanal"}
               </h2>
             </div>
 
             <div className="flex items-center">
-              {esSemanaActual ? (
+              {esPosicionActual ? (
                 <span className="px-3 py-1.5 rounded-full text-[10px] font-bold uppercase tracking-widest bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 shadow-[0_0_15px_rgba(16,185,129,0.1)]">
-                  Semana actual
+                  {periodo.isSunday ? "Domingo actual" : "Semana actual"}
                 </span>
               ) : (
                 <button
-                  onClick={() => setSemanaOffset(0)}
+                  onClick={() => setPosition(0)}
                   className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[10px] font-bold uppercase tracking-widest text-text-muted hover:text-white border border-white/10 hover:border-primary/30 hover:bg-primary/10 active:scale-95 transition-all"
                 >
-                  Ir a semana actual
+                  Ir a actual
                   <ChevronRight size={12} />
                 </button>
               )}
@@ -177,9 +176,9 @@ export default function EstadisticasPage() {
 
           <div className="flex items-center gap-2 sm:gap-3 w-full sm:w-auto font-display">
             <button
-              onClick={() => setSemanaOffset((prev) => prev - 1)}
+              onClick={() => setPosition((prev) => prev + 1)}
               className="p-2.5 rounded-lg border border-white/10 text-text-muted hover:text-white hover:border-white/20 hover:bg-white/5 active:scale-95 transition-all"
-              aria-label="Semana anterior"
+              aria-label="Anterior"
             >
               <ChevronLeft size={18} />
             </button>
@@ -187,15 +186,15 @@ export default function EstadisticasPage() {
             <div className="flex-1 sm:flex-none flex items-center justify-center gap-2.5 px-4 py-2.5 bg-void/60 rounded-lg border border-white/5 min-w-0 sm:min-w-[240px]">
               <CalendarDays size={16} className="text-primary shrink-0" />
               <span className="text-white text-xs sm:text-sm tracking-wider whitespace-nowrap">
-                {rangoSemana.label}
+                {periodo.label}
               </span>
             </div>
 
             <button
-              onClick={() => setSemanaOffset((prev) => prev + 1)}
-              disabled={esSemanaActual}
+              onClick={() => setPosition((prev) => Math.max(0, prev - 1))}
+              disabled={esPosicionActual}
               className="p-2.5 rounded-lg border border-white/10 text-text-muted hover:text-white hover:border-white/20 hover:bg-white/5 active:scale-95 disabled:opacity-30 disabled:cursor-not-allowed transition-all"
-              aria-label="Semana siguiente"
+              aria-label="Siguiente"
             >
               <ChevronRight size={18} />
             </button>

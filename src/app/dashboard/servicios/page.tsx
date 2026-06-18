@@ -26,7 +26,7 @@ export default function ServiciosPage() {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [deletingId, setDeletingId] = useState<string | null>(null);
-  const [formData, setFormData] = useState({ name: "", price: "", duration: 45, description: "" });
+  const [formData, setFormData] = useState({ name: "", price: "", priceDivisa: "", duration: 45, description: "" });
 
   useEffect(() => {
     const q = query(collection(db, "services"), orderBy("name"));
@@ -53,11 +53,14 @@ export default function ServiciosPage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    const datosServicio = {
+    const datosServicio: Record<string, unknown> = {
       ...formData,
       name: formatearNombreServicio(formData.name),
       price: Number(formData.price),
     };
+    if (formData.priceDivisa) {
+      datosServicio.priceDivisa = Number(formData.priceDivisa);
+    }
 
     if (editingId) {
       await updateDoc(doc(db, "services", editingId), datosServicio);
@@ -66,11 +69,11 @@ export default function ServiciosPage() {
     }
     setIsModalOpen(false);
     setEditingId(null);
-    setFormData({ name: "", price: "", duration: 45, description: "" });
+    setFormData({ name: "", price: "", priceDivisa: "", duration: 45, description: "" });
   };
 
   const handleEdit = (servicio: Service) => {
-    setFormData({ name: servicio.name, price: String(servicio.price), duration: servicio.duration, description: servicio.description || "" });
+    setFormData({ name: servicio.name, price: String(servicio.price), priceDivisa: servicio.priceDivisa != null ? String(servicio.priceDivisa) : "", duration: servicio.duration, description: servicio.description || "" });
     setEditingId(servicio.id);
     setIsModalOpen(true);
   };
@@ -91,7 +94,7 @@ export default function ServiciosPage() {
       <div className="flex items-center justify-end mb-8 animate-fade-in-up w-full">
         {puedeGestionarServicios && (
           <button 
-            onClick={() => { setIsModalOpen(true); setEditingId(null); setFormData({ name: "", price: "", duration: 45, description: "" }); }}
+            onClick={() => { setIsModalOpen(true); setEditingId(null); setFormData({ name: "", price: "", priceDivisa: "", duration: 45, description: "" }); }}
             className="btn-primary w-full sm:w-auto flex items-center justify-center gap-2 text-sm py-3 sm:py-2.5 px-6"
           >
             <Plus size={18} /> Nuevo Servicio
@@ -149,10 +152,15 @@ export default function ServiciosPage() {
                     )}
                   </div>
 
-                  <div className="flex shrink-0 flex-col items-end">
+                  <div className="flex shrink-0 flex-col items-end gap-1">
                     <p className="font-display text-3xl leading-none tracking-wide text-emerald-400 text-right">
                       ${servicio.price}
                     </p>
+                    {servicio.priceDivisa != null && (
+                      <p className="text-xs text-amber-400 font-bold tracking-wide">
+                        Div: ${servicio.priceDivisa}
+                      </p>
+                    )}
                   </div>
                 </div>
               </div>
@@ -185,7 +193,7 @@ export default function ServiciosPage() {
 
               <div>
                 <label className="block text-[10px] font-bold text-text-muted uppercase tracking-[0.2em] mb-2">
-                  Precio ($)
+                  Precio BCV ($)
                 </label>
                 <input
                   type="number"
@@ -196,6 +204,21 @@ export default function ServiciosPage() {
                   step="0.01"
                   className="w-full bg-void/50 border border-white/10 rounded-md px-4 py-3 text-white focus:border-primary/50 focus:ring-1 focus:ring-primary/20 transition-all outline-none placeholder:text-text-muted/50"
                   required
+                />
+              </div>
+
+              <div>
+                <label className="block text-[10px] font-bold text-text-muted uppercase tracking-[0.2em] mb-2">
+                  Precio Divisa / USDT (opcional)
+                </label>
+                <input
+                  type="number"
+                  placeholder="5"
+                  value={formData.priceDivisa}
+                  onChange={(e) => setFormData({ ...formData, priceDivisa: e.target.value })}
+                  min="0"
+                  step="0.01"
+                  className="w-full bg-void/50 border border-white/10 rounded-md px-4 py-3 text-white focus:border-primary/50 focus:ring-1 focus:ring-primary/20 transition-all outline-none placeholder:text-text-muted/50"
                 />
               </div>
 

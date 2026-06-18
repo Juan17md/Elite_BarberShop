@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useMemo } from "react";
 import { useAuth } from "@/context/AuthContext";
-import { type FinancialRecord, SERVICES, type Service } from "@/lib/types";
+import { type FinancialRecord, SERVICES, type Service, type PaymentMethod, PAYMENT_METHODS } from "@/lib/types";
 import { 
   collection, 
   addDoc, 
@@ -36,7 +36,7 @@ import {
   RotateCcw
 } from "lucide-react";
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell, Select } from "@/components/ui";
-import { getLocalDateString, getWeekRangeFromOffset } from "@/lib/utils";
+import { getLocalDateString, getPeriodFromPosition, type Period } from "@/lib/utils";
 
 interface Transaccion {
   id: string;
@@ -56,14 +56,14 @@ export default function FinanzasPage() {
   const [transacciones, setTransacciones] = useState<Transaccion[]>([]);
   const [serviciosDisponibles, setServiciosDisponibles] = useState<Service[]>(SERVICES);
   const [barbers, setBarbers] = useState<any[]>([]);
-  const [semanaOffset, setSemanaOffset] = useState(0);
-  const esSemanaActual = semanaOffset === 0;
-  const rangoSemana = useMemo(() => getWeekRangeFromOffset(semanaOffset), [semanaOffset]);
+  const [position, setPosition] = useState(0);
+  const esPosicionActual = position === 0;
+  const periodo = useMemo(() => getPeriodFromPosition(position), [position]);
   const [paginaActual, setPaginaActual] = useState(1);
   const REGISTROS_POR_PAGINA = 10;
 
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [formData, setFormData] = useState({ serviceId: "", clientName: "", barberId: "" });
+  const [formData, setFormData] = useState({ serviceId: "", clientName: "", barberId: "", paymentMethod: "bcv" as PaymentMethod, bcvRate: "" });
   const [isSubmitting, setIsSubmitting] = useState(false);
   
   // Estado para Eliminación
@@ -155,8 +155,8 @@ export default function FinanzasPage() {
   }, [isAdmin]);
 
   const filteredRecords = useMemo(() => {
-    return records.filter(r => r.date >= rangoSemana.inicio && r.date <= rangoSemana.fin);
-  }, [records, rangoSemana]);
+    return records.filter(r => r.date >= periodo.inicio && r.date <= periodo.fin);
+  }, [records, periodo]);
 
   const totalRevenue = filteredRecords.reduce((sum: number, r: FinancialRecord) => sum + r.totalAmount, 0);
   const barberShare = filteredRecords.reduce((sum: number, r: FinancialRecord) => sum + r.barberShare, 0);
@@ -185,9 +185,9 @@ export default function FinanzasPage() {
         return false;
       }
       const txDateStr = getLocalDateString(txDate);
-      return txDateStr >= rangoSemana.inicio && txDateStr <= rangoSemana.fin;
+      return txDateStr >= periodo.inicio && txDateStr <= periodo.fin;
     });
-  }, [transacciones, rangoSemana]);
+  }, [transacciones, periodo]);
 
   const ingresos = filteredTransacciones
     .filter((t) => t.tipo === "acta")
@@ -234,7 +234,7 @@ export default function FinanzasPage() {
 
   useEffect(() => {
     setPaginaActual(1);
-  }, [semanaOffset, filteredRecords.length]);
+  }, [position, filteredRecords.length]);
 
   const handleRegisterService = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -256,10 +256,14 @@ export default function FinanzasPage() {
 
     setIsSubmitting(true);
     try {
-      const totalAmount = service.price;
+      const paymentMethod = formData.paymentMethod || "bcv";
+      const totalAmount = paymentMethod === "divisa" && service.priceDivisa != null 
+        ? service.priceDivisa 
+        : service.price;
       const barberShareAmount = totalAmount * 0.6;
       const barberiaShareAmount = totalAmount * 0.4;
       const date = getLocalDateString();
+      const bcvRate = paymentMethod === "bcv" && formData.bcvRate ? Number(formData.bcvRate) : null;
 
       // 1. Crear registro financiero
       await addDoc(collection(db, "finances"), {
@@ -272,7 +276,9 @@ export default function FinanzasPage() {
         barberShare: barberShareAmount,
         barberiaShare: barberiaShareAmount,
         date,
-        createdAt: new Date()
+        createdAt: new Date(),
+        paymentMethod,
+        ...(bcvRate != null ? { bcvRate } : {}),
       });
 
       // 2. Actualizar banco del barbero
@@ -381,7 +387,7 @@ export default function FinanzasPage() {
       // Siempre cerrar el modal y limpiar el form al final, incluso si hay error
       setIsSubmitting(false);
       setIsModalOpen(false);
-      setFormData({ serviceId: "", clientName: "", barberId: "" });
+      setFormData({ serviceId: "", clientName: "", barberId: "", paymentMethod: "bcv", bcvRate: "" });
     }
   };
 
@@ -482,7 +488,9 @@ export default function FinanzasPage() {
     setFormData({
       serviceId: record.serviceId,
       clientName: record.clientName,
-      barberId: record.barberId
+      barberId: record.barberId,
+      paymentMethod: (record.paymentMethod || "bcv") as PaymentMethod,
+      bcvRate: record.bcvRate != null ? String(record.bcvRate) : "",
     });
     setIsEditModalOpen(true);
   };
@@ -509,7 +517,10 @@ export default function FinanzasPage() {
     
     const finalBarberName = finalBarber.name;
 
-    const newTotalAmount = selService.price;
+    const paymentMethod = formData.paymentMethod || "bcv";
+    const newTotalAmount = paymentMethod === "divisa" && selService.priceDivisa != null
+      ? selService.priceDivisa
+      : selService.price;
     const newBarberShare = newTotalAmount * 0.6;
     const newBarberiaShare = newTotalAmount * 0.4;
     
@@ -630,6 +641,7 @@ export default function FinanzasPage() {
       }
 
       // --- 4. ACTUALIZAR FINANCE RECORD ---
+      const bcvRate = paymentMethod === "bcv" && formData.bcvRate ? Number(formData.bcvRate) : null;
       await updateDoc(doc(db, "finances", recordToEdit.id), {
         serviceId: selService.id,
         serviceName: selService.name,
@@ -639,11 +651,13 @@ export default function FinanzasPage() {
         totalAmount: newTotalAmount,
         barberShare: newBarberShare,
         barberiaShare: newBarberiaShare,
+        paymentMethod,
+        ...(bcvRate != null ? { bcvRate } : {}),
       });
 
       setIsEditModalOpen(false);
       setRecordToEdit(null);
-      setFormData({ serviceId: "", clientName: "", barberId: "" });
+      setFormData({ serviceId: "", clientName: "", barberId: "", paymentMethod: "bcv", bcvRate: "" });
 
     } catch (err) {
       console.error("Error al actualizar:", err);
@@ -679,45 +693,50 @@ export default function FinanzasPage() {
         </button>
       </div>
 
-      {/* Navegador semanal */}
+      {/* Navegador de periodo */}
       <div className="card-premium p-4 sm:p-5">
         <div className="flex items-center justify-between gap-4">
           <button
-            onClick={() => setSemanaOffset((prev) => prev - 1)}
+            onClick={() => setPosition((prev) => prev + 1)}
             className="p-2.5 rounded-lg border border-white/10 text-text-muted hover:text-white hover:border-white/20 hover:bg-white/5 active:scale-95 transition-all"
-            aria-label="Semana anterior"
+            aria-label="Anterior"
           >
             <ChevronLeft size={18} />
           </button>
 
           <div className="flex flex-col items-center gap-1.5 min-w-0">
-            {esSemanaActual && (
+            {esPosicionActual && (
               <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-[10px] font-bold uppercase tracking-[0.15em] shadow-[0_0_12px_rgba(16,185,129,0.15)]">
                 <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
-                Semana actual
+                {periodo.isSunday ? "Domingo actual" : "Semana actual"}
+              </span>
+            )}
+            {periodo.isSunday && !esPosicionActual && (
+              <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-amber-500/10 border border-amber-500/20 text-amber-400 text-[10px] font-bold uppercase tracking-[0.15em]">
+                Domingo
               </span>
             )}
             <span className="font-display text-sm sm:text-base text-white tracking-widest uppercase text-center">
-              {rangoSemana.label}
+              {periodo.label}
             </span>
           </div>
 
           <div className="flex items-center gap-2">
-            {!esSemanaActual && (
+            {!esPosicionActual && (
               <button
-                onClick={() => setSemanaOffset(0)}
+                onClick={() => setPosition(0)}
                 className="p-2.5 rounded-lg border border-emerald-500/20 text-emerald-400 hover:bg-emerald-500/10 active:scale-95 transition-all"
-                aria-label="Ir a semana actual"
-                title="Ir a semana actual"
+                aria-label="Ir a actual"
+                title="Ir a actual"
               >
                 <RotateCcw size={16} />
               </button>
             )}
             <button
-              onClick={() => setSemanaOffset((prev) => prev + 1)}
-              disabled={esSemanaActual}
+              onClick={() => setPosition((prev) => Math.max(0, prev - 1))}
+              disabled={esPosicionActual}
               className="p-2.5 rounded-lg border border-white/10 text-text-muted hover:text-white hover:border-white/20 hover:bg-white/5 active:scale-95 disabled:opacity-30 disabled:cursor-not-allowed transition-all"
-              aria-label="Semana siguiente"
+              aria-label="Siguiente"
             >
               <ChevronRight size={18} />
             </button>
@@ -894,6 +913,7 @@ export default function FinanzasPage() {
                 {isAdmin && <TableHead>Barbero</TableHead>}
                 <TableHead>Servicio</TableHead>
                 <TableHead>Cliente</TableHead>
+                <TableHead align="center">Pago</TableHead>
                 <TableHead align="right">Total</TableHead>
                 <TableHead align="right">{isAdmin ? "Barbero (60%)" : "Tu Parte"}</TableHead>
                 <TableHead align="right">Barbería (40%)</TableHead>
@@ -907,6 +927,13 @@ export default function FinanzasPage() {
                   {isAdmin && <TableCell className="text-white text-sm font-medium">{record.barberName}</TableCell>}
                   <TableCell className="text-white text-sm font-medium">{record.serviceName}</TableCell>
                   <TableCell className="text-text-secondary text-sm">{record.clientName}</TableCell>
+                  <TableCell className="text-center">
+                    <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider ${
+                      record.paymentMethod === "divisa" ? "bg-amber-500/10 text-amber-400 border border-amber-500/20" : "bg-blue-500/10 text-blue-400 border border-blue-500/20"
+                    }`}>
+                      {record.paymentMethod === "divisa" ? "Divisa" : "BCV"}
+                    </span>
+                  </TableCell>
                   <TableCell className="text-white text-right font-display tracking-widest">${record.totalAmount.toFixed(2)}</TableCell>
                   <TableCell className="text-emerald-400 text-right font-display tracking-widest">${record.barberShare.toFixed(2)}</TableCell>
                   <TableCell className="text-blue-400 text-right font-display tracking-widest">${record.barberiaShare.toFixed(2)}</TableCell>
@@ -943,6 +970,11 @@ export default function FinanzasPage() {
                   <div className="flex items-center gap-2">
                     <p className="text-white font-medium text-base tracking-wide">{record.clientName}</p>
                     <span className="text-[10px] text-text-muted opacity-50 px-2 py-0.5 border border-white/10 rounded uppercase">{record.date}</span>
+                    <span className={`text-[10px] px-2 py-0.5 border rounded uppercase font-bold ${
+                      record.paymentMethod === "divisa" ? "text-amber-400 border-amber-500/20 bg-amber-500/10" : "text-blue-400 border-blue-500/20 bg-blue-500/10"
+                    }`}>
+                      {record.paymentMethod === "divisa" ? "Divisa" : "BCV"}
+                    </span>
                   </div>
                   <p className="text-primary text-[10px] sm:text-xs uppercase tracking-[0.15em] font-bold">{record.serviceName}</p>
                 </div>
@@ -1049,13 +1081,74 @@ export default function FinanzasPage() {
               <div>
                 <label className="block text-[10px] font-bold text-text-muted uppercase tracking-[0.2em] mb-2">Servicio</label>
                 <Select
-                  options={serviciosDisponibles.map(s => ({ value: s.id, label: `$${s.price.toFixed(2)} - ${s.name}` }))}
+                  options={serviciosDisponibles.map(s => {
+                    const precioBase = `$${s.price.toFixed(2)}`;
+                    const precioDivisa = s.priceDivisa != null ? ` / $${s.priceDivisa.toFixed(2)} Div` : "";
+                    return { value: s.id, label: `${precioBase}${precioDivisa} - ${s.name}` };
+                  })}
                   value={formData.serviceId}
                   onChange={(val: string) => setFormData({ ...formData, serviceId: val })}
                   placeholder="Seleccionar servicio..."
                   className="bg-void/50 border-white/10 rounded-md"
                 />
               </div>
+              <div>
+                <label className="block text-[10px] font-bold text-text-muted uppercase tracking-[0.2em] mb-2">Método de Pago</label>
+                <div className="grid grid-cols-2 gap-3">
+                  {PAYMENT_METHODS.map((m) => (
+                    <button
+                      key={m.value}
+                      type="button"
+                      onClick={() => setFormData({ ...formData, paymentMethod: m.value })}
+                      className={`px-4 py-3 rounded-md text-xs font-bold uppercase tracking-wider transition-all border ${
+                        formData.paymentMethod === m.value
+                          ? "bg-primary/20 border-primary text-white shadow-red-glow"
+                          : "bg-void/50 border-white/10 text-text-muted hover:text-white hover:border-white/20"
+                      }`}
+                    >
+                      {m.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+              {formData.paymentMethod === "bcv" && (
+                <div>
+                  <label className="block text-[10px] font-bold text-text-muted uppercase tracking-[0.2em] mb-2">Tasa BCV (Bs/USD)</label>
+                  <input
+                    type="number"
+                    placeholder="Ej: 65.50"
+                    value={formData.bcvRate}
+                    onChange={(e) => setFormData({ ...formData, bcvRate: e.target.value })}
+                    min="0"
+                    step="0.01"
+                    className="w-full bg-void/50 border border-white/10 rounded-md px-4 py-3 text-white focus:border-primary/50 focus:ring-1 focus:ring-primary/20 transition-all outline-none placeholder:text-text-muted/50"
+                  />
+                </div>
+              )}
+              {formData.serviceId && (() => {
+                const selectedService = serviciosDisponibles.find(s => s.id === formData.serviceId);
+                if (!selectedService) return null;
+                const precio = formData.paymentMethod === "divisa" && selectedService.priceDivisa != null
+                  ? selectedService.priceDivisa
+                  : selectedService.price;
+                return (
+                  <div className="bg-primary/5 border border-primary/10 rounded-md p-4">
+                    <p className="text-[10px] font-bold text-text-muted uppercase tracking-[0.2em] mb-1">Precio a Cobrar</p>
+                    <p className="font-display text-3xl text-white tracking-wider">
+                      ${precio.toFixed(2)}
+                      {formData.paymentMethod === "bcv" && formData.bcvRate && (
+                        <span className="text-base text-text-muted ml-2">
+                          (Bs {(precio * Number(formData.bcvRate)).toFixed(2)})
+                        </span>
+                      )}
+                    </p>
+                    <div className="flex gap-4 mt-2 text-xs">
+                      <span className="text-emerald-400">Barbero 60%: ${(precio * 0.6).toFixed(2)}</span>
+                      <span className="text-blue-400">Barbería 40%: ${(precio * 0.4).toFixed(2)}</span>
+                    </div>
+                  </div>
+                );
+              })()}
               <div>
                 <label className="block text-[10px] font-bold text-text-muted uppercase tracking-[0.2em] mb-2">Cliente (opcional)</label>
                 <input 
@@ -1069,7 +1162,7 @@ export default function FinanzasPage() {
               <div className="flex gap-4 mt-8 pt-4 border-t border-white/5">
                 <button 
                   type="button" 
-                  onClick={() => { setIsModalOpen(false); setFormData({ serviceId: "", clientName: "", barberId: "" }); }}
+                  onClick={() => { setIsModalOpen(false); setFormData({ serviceId: "", clientName: "", barberId: "", paymentMethod: "bcv", bcvRate: "" }); }}
                   className="flex-1 px-4 py-3 rounded-md text-[10px] font-bold uppercase tracking-widest text-text-muted hover:text-white transition-colors border border-white/5 bg-white/5"
                 >
                   Cancelar
@@ -1111,13 +1204,69 @@ export default function FinanzasPage() {
               <div>
                 <label className="block text-[10px] font-bold text-text-muted uppercase tracking-[0.2em] mb-2">Servicio</label>
                 <Select
-                  options={serviciosDisponibles.map(s => ({ value: s.id, label: `$${s.price.toFixed(2)} - ${s.name}` }))}
+                  options={serviciosDisponibles.map(s => {
+                    const precioBase = `$${s.price.toFixed(2)}`;
+                    const precioDivisa = s.priceDivisa != null ? ` / $${s.priceDivisa.toFixed(2)} Div` : "";
+                    return { value: s.id, label: `${precioBase}${precioDivisa} - ${s.name}` };
+                  })}
                   value={formData.serviceId}
                   onChange={(val: string) => setFormData({ ...formData, serviceId: val })}
                   placeholder="Seleccionar servicio..."
                   className="bg-void/50 border-white/10 rounded-md"
                 />
               </div>
+              <div>
+                <label className="block text-[10px] font-bold text-text-muted uppercase tracking-[0.2em] mb-2">Método de Pago</label>
+                <div className="grid grid-cols-2 gap-3">
+                  {PAYMENT_METHODS.map((m) => (
+                    <button
+                      key={m.value}
+                      type="button"
+                      onClick={() => setFormData({ ...formData, paymentMethod: m.value })}
+                      className={`px-4 py-3 rounded-md text-xs font-bold uppercase tracking-wider transition-all border ${
+                        formData.paymentMethod === m.value
+                          ? "bg-primary/20 border-primary text-white shadow-red-glow"
+                          : "bg-void/50 border-white/10 text-text-muted hover:text-white hover:border-white/20"
+                      }`}
+                    >
+                      {m.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+              {formData.paymentMethod === "bcv" && (
+                <div>
+                  <label className="block text-[10px] font-bold text-text-muted uppercase tracking-[0.2em] mb-2">Tasa BCV (Bs/USD)</label>
+                  <input
+                    type="number"
+                    placeholder="Ej: 65.50"
+                    value={formData.bcvRate}
+                    onChange={(e) => setFormData({ ...formData, bcvRate: e.target.value })}
+                    min="0"
+                    step="0.01"
+                    className="w-full bg-void/50 border border-white/10 rounded-md px-4 py-3 text-white focus:border-primary/50 focus:ring-1 focus:ring-primary/20 transition-all outline-none placeholder:text-text-muted/50"
+                  />
+                </div>
+              )}
+              {formData.serviceId && (() => {
+                const selectedService = serviciosDisponibles.find(s => s.id === formData.serviceId);
+                if (!selectedService) return null;
+                const precio = formData.paymentMethod === "divisa" && selectedService.priceDivisa != null
+                  ? selectedService.priceDivisa
+                  : selectedService.price;
+                return (
+                  <div className="bg-primary/5 border border-primary/10 rounded-md p-4">
+                    <p className="text-[10px] font-bold text-text-muted uppercase tracking-[0.2em] mb-1">Precio a Cobrar</p>
+                    <p className="font-display text-3xl text-white tracking-wider">
+                      ${precio.toFixed(2)}
+                    </p>
+                    <div className="flex gap-4 mt-2 text-xs">
+                      <span className="text-emerald-400">Barbero 60%: ${(precio * 0.6).toFixed(2)}</span>
+                      <span className="text-blue-400">Barbería 40%: ${(precio * 0.4).toFixed(2)}</span>
+                    </div>
+                  </div>
+                );
+              })()}
               <div>
                 <label className="block text-[10px] font-bold text-text-muted uppercase tracking-[0.2em] mb-2">Cliente (opcional)</label>
                 <input 
@@ -1131,7 +1280,7 @@ export default function FinanzasPage() {
               <div className="flex gap-4 mt-8 pt-4 border-t border-white/5">
                 <button 
                   type="button" 
-                  onClick={() => { setIsEditModalOpen(false); setRecordToEdit(null); setFormData({ serviceId: "", clientName: "", barberId: "" }); }}
+                  onClick={() => { setIsEditModalOpen(false); setRecordToEdit(null); setFormData({ serviceId: "", clientName: "", barberId: "", paymentMethod: "bcv", bcvRate: "" }); }}
                   className="flex-1 px-4 py-3 rounded-md text-[10px] font-bold uppercase tracking-widest text-text-muted hover:text-white transition-colors border border-white/5 bg-white/5"
                 >
                   Cancelar

@@ -35,56 +35,71 @@ export function getStartOfMonthString(date: Date = new Date()): string {
   return `${result.substring(0, 7)}-01`;
 }
 
-export function getWeekRangeFromOffset(offset: number = 0): {
+export interface Period {
   inicio: string;
   fin: string;
   label: string;
-} {
-  const ahora = new Date();
-  const fechaCaracas = new Date(
-    ahora.toLocaleString("en-US", { timeZone: "America/Caracas" })
+  isSunday: boolean;
+}
+
+
+
+function formatFecha(date: Date): string {
+  const d = Number(
+    new Intl.DateTimeFormat("en-US", {
+      timeZone: "America/Caracas",
+      day: "2-digit",
+    }).format(date)
   );
-
-  // Calcular el domingo de la semana actual y aplicar offset
-  const diaSemana = fechaCaracas.getDay(); // 0 = Domingo
-  const domingo = new Date(fechaCaracas);
-  domingo.setDate(fechaCaracas.getDate() - diaSemana + offset * 7);
-
-  const sabado = new Date(domingo);
-  sabado.setDate(domingo.getDate() + 6);
-
-  const inicio = getLocalDateString(domingo);
-  const fin = getLocalDateString(sabado);
-
-  // Formatear label: "06 Abr – 12 Abr 2026"
-  const meses = [
-    "Ene", "Feb", "Mar", "Abr", "May", "Jun",
-    "Jul", "Ago", "Sep", "Oct", "Nov", "Dic",
-  ];
-
-  const partesInicio = new Intl.DateTimeFormat("en-US", {
+  const m = new Intl.DateTimeFormat("en-US", {
+    timeZone: "America/Caracas",
+    month: "short",
+  }).format(date);
+  const y = new Intl.DateTimeFormat("en-US", {
     timeZone: "America/Caracas",
     year: "numeric",
-    month: "2-digit",
-    day: "2-digit",
-  }).formatToParts(domingo);
+  }).format(date);
+  return `${d} ${m} ${y}`;
+}
 
-  const partesFin = new Intl.DateTimeFormat("en-US", {
-    timeZone: "America/Caracas",
-    year: "numeric",
-    month: "2-digit",
-    day: "2-digit",
-  }).formatToParts(sabado);
+export function getPeriodFromPosition(position: number = 0): Period {
+  const hoy = new Date();
+  const fechaCaracas = new Date(
+    hoy.toLocaleString("en-US", { timeZone: "America/Caracas" })
+  );
+  const diaSemana = fechaCaracas.getDay(); // 0=Dom, 1=Lun, ..., 6=Sáb
 
-  const diaInicio = partesInicio.find((p) => p.type === "day")?.value;
-  const mesInicio =
-    parseInt(partesInicio.find((p) => p.type === "month")?.value || "1") - 1;
-  const diaFin = partesFin.find((p) => p.type === "day")?.value;
-  const mesFin =
-    parseInt(partesFin.find((p) => p.type === "month")?.value || "1") - 1;
-  const anioFin = partesFin.find((p) => p.type === "year")?.value;
+  // Lunes de la semana actual (si es domingo, la semana actual empieza mañana)
+  const diffDesdeLunes = diaSemana === 0 ? -6 : -(diaSemana - 1); // días desde el lunes
+  const lunesActual = new Date(fechaCaracas);
+  lunesActual.setDate(fechaCaracas.getDate() + diffDesdeLunes);
 
-  const label = `${diaInicio} ${meses[mesInicio]} – ${diaFin} ${meses[mesFin]} ${anioFin}`;
+  const isSunday = position % 2 === 1;
+  const stepsBack = Math.floor(position / 2);
 
-  return { inicio, fin, label };
+  if (isSunday) {
+    // Domingos: cada domingo está entre la semana actual y la anterior
+    const domingo = new Date(lunesActual);
+    domingo.setDate(lunesActual.getDate() - (stepsBack * 7 + 1));
+    const dateStr = getLocalDateString(domingo);
+    return {
+      inicio: dateStr,
+      fin: dateStr,
+      label: `Domingo ${formatFecha(domingo)}`,
+      isSunday: true,
+    };
+  }
+
+  // Semanas Lun-Sáb
+  const lunes = new Date(lunesActual);
+  lunes.setDate(lunesActual.getDate() - stepsBack * 7);
+  const sabado = new Date(lunes);
+  sabado.setDate(lunes.getDate() + 5);
+
+  return {
+    inicio: getLocalDateString(lunes),
+    fin: getLocalDateString(sabado),
+    label: `${formatFecha(lunes)} – ${formatFecha(sabado)}`,
+    isSunday: false,
+  };
 }

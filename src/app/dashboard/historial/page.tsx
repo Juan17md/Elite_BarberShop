@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useMemo } from "react";
 import { useAuth } from "@/context/AuthContext";
-import { type FinancialRecord, type Service, SERVICES } from "@/lib/types";
+import { type FinancialRecord, type Service, SERVICES, type PaymentMethod, PAYMENT_METHODS } from "@/lib/types";
 import {
   collection,
   onSnapshot,
@@ -42,7 +42,7 @@ import {
   Select,
 } from "@/components/ui";
 import SearchInput from "@/components/ui/search-input";
-import { getLocalDateString, getWeekRangeFromOffset } from "@/lib/utils";
+import { getLocalDateString, getPeriodFromPosition } from "@/lib/utils";
 
 const ITEMS_POR_PAGINA = 15;
 
@@ -55,25 +55,19 @@ export default function HistorialPage() {
   const [pagina, setPagina] = useState(1);
 
   // Navegación semanal
-  const [semanaOffset, setSemanaOffset] = useState(0);
+  const [position, setPosition] = useState(0);
 
-  // Filtros
-  const [busqueda, setBusqueda] = useState("");
-  const [filtroBarbero, setFiltroBarbero] = useState("todos");
-  const [filtroServicio, setFiltroServicio] = useState("todos");
-
-  // Rango de la semana seleccionada
-  const rangoSemana = useMemo(
-    () => getWeekRangeFromOffset(semanaOffset),
-    [semanaOffset]
+  const periodo = useMemo(
+    () => getPeriodFromPosition(position),
+    [position]
   );
-  const esSemanaActual = semanaOffset === 0;
+  const esPosicionActual = position === 0;
 
 
   // Estado para Edición
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [recordToEdit, setRecordToEdit] = useState<FinancialRecord | null>(null);
-  const [formData, setFormData] = useState({ serviceId: "", clientName: "", barberId: "" });
+  const [formData, setFormData] = useState({ serviceId: "", clientName: "", barberId: "", paymentMethod: "bcv" as PaymentMethod, bcvRate: "" });
   const [serviciosDisponibles, setServiciosDisponibles] = useState<Service[]>(SERVICES);
   const [barbers, setBarbers] = useState<any[]>([]);
 
@@ -232,7 +226,9 @@ export default function HistorialPage() {
     setFormData({
       serviceId: record.serviceId,
       clientName: record.clientName,
-      barberId: record.barberId
+      barberId: record.barberId,
+      paymentMethod: (record.paymentMethod || "bcv") as PaymentMethod,
+      bcvRate: record.bcvRate != null ? String(record.bcvRate) : "",
     });
     setIsEditModalOpen(true);
   };
@@ -255,7 +251,10 @@ export default function HistorialPage() {
       ? (barbers.find(b => b.id === formData.barberId)?.name || recordToEdit.barberName) 
       : recordToEdit.barberName;
 
-    const newTotalAmount = selService.price;
+    const paymentMethod = formData.paymentMethod || "bcv";
+    const newTotalAmount = paymentMethod === "divisa" && selService.priceDivisa != null
+      ? selService.priceDivisa
+      : selService.price;
     const newBarberShare = newTotalAmount * 0.6;
     const newBarberiaShare = newTotalAmount * 0.4;
     
@@ -381,6 +380,7 @@ export default function HistorialPage() {
       }
 
       // --- 4. ACTUALIZAR FINANCE RECORD ---
+      const bcvRate = paymentMethod === "bcv" && formData.bcvRate ? Number(formData.bcvRate) : null;
       await updateDoc(doc(db, "finances", recordToEdit.id), {
         serviceId: selService.id,
         serviceName: selService.name,
@@ -390,6 +390,8 @@ export default function HistorialPage() {
         totalAmount: newTotalAmount,
         barberShare: newBarberShare,
         barberiaShare: newBarberiaShare,
+        paymentMethod,
+        ...(bcvRate != null ? { bcvRate } : {}),
       });
 
       setIsEditModalOpen(false);
@@ -414,7 +416,7 @@ export default function HistorialPage() {
   const registrosFiltrados = useMemo(() => {
     return registros.filter((r) => {
       // Filtro semanal
-      if (r.date < rangoSemana.inicio || r.date > rangoSemana.fin) return false;
+      if (r.date < periodo.inicio || r.date > periodo.fin) return false;
       if (esAdmin && filtroBarbero !== "todos" && r.barberName !== filtroBarbero)
         return false;
       if (filtroServicio !== "todos" && r.serviceName !== filtroServicio)
@@ -429,12 +431,12 @@ export default function HistorialPage() {
       }
       return true;
     });
-  }, [registros, rangoSemana, filtroBarbero, filtroServicio, busqueda, esAdmin]);
+  }, [registros, periodo, filtroBarbero, filtroServicio, busqueda, esAdmin]);
 
   // Reset paginación cuando cambian filtros
   useEffect(() => {
     setPagina(1);
-  }, [semanaOffset, busqueda, filtroBarbero, filtroServicio]);
+  }, [position, busqueda, filtroBarbero, filtroServicio]);
 
   const totalPaginas = Math.ceil(registrosFiltrados.length / ITEMS_POR_PAGINA);
   const registrosPagina = registrosFiltrados.slice(
@@ -486,13 +488,13 @@ export default function HistorialPage() {
     <div className="space-y-8">
       {/* Panel de filtros */}
       <div className="card-premium p-4 md:p-5 space-y-4">
-        {/* Navegador semanal */}
+        {/* Navegador de periodo */}
         <div className="flex flex-col sm:flex-row gap-4 items-center justify-between font-display">
           <div className="flex items-center gap-2 sm:gap-3 w-full sm:w-auto">
             <button
-              onClick={() => setSemanaOffset((prev) => prev - 1)}
+              onClick={() => setPosition((prev) => prev + 1)}
               className="p-2.5 rounded-lg border border-white/10 text-text-muted hover:text-white hover:border-white/20 hover:bg-white/5 active:scale-95 transition-all"
-              aria-label="Semana anterior"
+              aria-label="Anterior"
             >
               <ChevronLeft size={18} />
             </button>
@@ -500,31 +502,31 @@ export default function HistorialPage() {
             <div className="flex-1 sm:flex-none flex items-center justify-center gap-2.5 px-4 py-2.5 bg-void/60 rounded-lg border border-white/5 min-w-0 sm:min-w-[240px]">
               <CalendarDays size={16} className="text-primary shrink-0" />
               <span className="text-white text-xs sm:text-sm tracking-wider whitespace-nowrap">
-                {rangoSemana.label}
+                {periodo.label}
               </span>
             </div>
 
             <button
-              onClick={() => setSemanaOffset((prev) => prev + 1)}
-              disabled={esSemanaActual}
+              onClick={() => setPosition((prev) => Math.max(0, prev - 1))}
+              disabled={esPosicionActual}
               className="p-2.5 rounded-lg border border-white/10 text-text-muted hover:text-white hover:border-white/20 hover:bg-white/5 active:scale-95 disabled:opacity-30 disabled:cursor-not-allowed transition-all"
-              aria-label="Semana siguiente"
+              aria-label="Siguiente"
             >
               <ChevronRight size={18} />
             </button>
           </div>
 
           <div className="flex items-center">
-            {esSemanaActual ? (
+            {esPosicionActual ? (
               <span className="px-3 py-1.5 rounded-full text-[10px] font-bold uppercase tracking-widest bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 shadow-[0_0_15px_rgba(16,185,129,0.1)]">
-                Semana actual
+                {periodo.isSunday ? "Domingo actual" : "Semana actual"}
               </span>
             ) : (
               <button
-                onClick={() => setSemanaOffset(0)}
+                onClick={() => setPosition(0)}
                 className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[10px] font-bold uppercase tracking-widest text-text-muted hover:text-white border border-white/10 hover:border-primary/30 hover:bg-primary/10 active:scale-95 transition-all"
               >
-                Ir a semana actual
+                Ir a actual
                 <ChevronRight size={12} />
               </button>
             )}
@@ -654,6 +656,7 @@ export default function HistorialPage() {
                     {esAdmin && <TableHead>Barbero</TableHead>}
                     <TableHead>Servicio</TableHead>
                     <TableHead>Cliente</TableHead>
+                    <TableHead align="center">Pago</TableHead>
                     <TableHead align="right">Total</TableHead>
                     <TableHead align="right">
                       {esAdmin ? "Barbero (60%)" : "Tu Parte"}
@@ -678,6 +681,13 @@ export default function HistorialPage() {
                       </TableCell>
                       <TableCell className="text-text-secondary text-sm">
                         {r.clientName}
+                      </TableCell>
+                      <TableCell className="text-center">
+                        <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider ${
+                          r.paymentMethod === "divisa" ? "bg-amber-500/10 text-amber-400 border border-amber-500/20" : "bg-blue-500/10 text-blue-400 border border-blue-500/20"
+                        }`}>
+                          {r.paymentMethod === "divisa" ? "Divisa" : "BCV"}
+                        </span>
                       </TableCell>
                       <TableCell className="text-right font-display text-white tracking-wider">
                         ${r.totalAmount.toFixed(2)}
@@ -723,6 +733,11 @@ export default function HistorialPage() {
                       <p className="text-text-muted text-[10px] uppercase tracking-wider font-bold mt-0.5">
                         {r.date}
                       </p>
+                      <span className={`inline-block mt-1 px-2 py-0.5 rounded text-[9px] font-bold uppercase tracking-wider ${
+                        r.paymentMethod === "divisa" ? "text-amber-400 bg-amber-500/10 border border-amber-500/20" : "text-blue-400 bg-blue-500/10 border border-blue-500/20"
+                      }`}>
+                        {r.paymentMethod === "divisa" ? "Divisa" : "BCV"}
+                      </span>
                     </div>
                     <div className="flex items-center gap-3">
                       <div className="px-2 py-1 rounded bg-primary/10 border border-primary/20">
@@ -877,13 +892,70 @@ export default function HistorialPage() {
               <div>
                 <label className="block text-[10px] font-bold text-text-muted uppercase tracking-[0.2em] mb-2">Servicio</label>
                 <Select
-                  options={serviciosDisponibles.map(s => ({ value: s.id, label: `$${s.price.toFixed(2)} - ${s.name}` }))}
+                  options={serviciosDisponibles.map(s => {
+                    const precioBase = `$${s.price.toFixed(2)}`;
+                    const precioDivisa = s.priceDivisa != null ? ` / $${s.priceDivisa.toFixed(2)} Div` : "";
+                    return { value: s.id, label: `${precioBase}${precioDivisa} - ${s.name}` };
+                  })}
                   value={formData.serviceId}
                   onChange={(val: string) => setFormData({ ...formData, serviceId: val })}
                   placeholder="Seleccionar servicio..."
                   className="bg-void/50 border-white/10 rounded-md"
                 />
               </div>
+
+              <div>
+                <label className="block text-[10px] font-bold text-text-muted uppercase tracking-[0.2em] mb-2">Método de Pago</label>
+                <div className="grid grid-cols-2 gap-3">
+                  {PAYMENT_METHODS.map((m) => (
+                    <button
+                      key={m.value}
+                      type="button"
+                      onClick={() => setFormData({ ...formData, paymentMethod: m.value })}
+                      className={`px-4 py-3 rounded-md text-xs font-bold uppercase tracking-wider transition-all border ${
+                        formData.paymentMethod === m.value
+                          ? "bg-primary/20 border-primary text-white shadow-red-glow"
+                          : "bg-void/50 border-white/10 text-text-muted hover:text-white hover:border-white/20"
+                      }`}
+                    >
+                      {m.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+              {formData.paymentMethod === "bcv" && (
+                <div>
+                  <label className="block text-[10px] font-bold text-text-muted uppercase tracking-[0.2em] mb-2">Tasa BCV (Bs/USD)</label>
+                  <input
+                    type="number"
+                    placeholder="Ej: 65.50"
+                    value={formData.bcvRate}
+                    onChange={(e) => setFormData({ ...formData, bcvRate: e.target.value })}
+                    min="0"
+                    step="0.01"
+                    className="w-full bg-void/50 border border-white/10 rounded-md px-4 py-3 text-white focus:border-primary/50 focus:ring-1 focus:ring-primary/20 transition-all outline-none placeholder:text-text-muted/50"
+                  />
+                </div>
+              )}
+              {formData.serviceId && (() => {
+                const selectedService = serviciosDisponibles.find(s => s.id === formData.serviceId);
+                if (!selectedService) return null;
+                const precio = formData.paymentMethod === "divisa" && selectedService.priceDivisa != null
+                  ? selectedService.priceDivisa
+                  : selectedService.price;
+                return (
+                  <div className="bg-primary/5 border border-primary/10 rounded-md p-4">
+                    <p className="text-[10px] font-bold text-text-muted uppercase tracking-[0.2em] mb-1">Precio a Cobrar</p>
+                    <p className="font-display text-3xl text-white tracking-wider">
+                      ${precio.toFixed(2)}
+                    </p>
+                    <div className="flex gap-4 mt-2 text-xs">
+                      <span className="text-emerald-400">Barbero 60%: ${(precio * 0.6).toFixed(2)}</span>
+                      <span className="text-blue-400">Barbería 40%: ${(precio * 0.4).toFixed(2)}</span>
+                    </div>
+                  </div>
+                );
+              })()}
               
               <div>
                 <label className="block text-[10px] font-bold text-text-muted uppercase tracking-[0.2em] mb-2">Cliente</label>

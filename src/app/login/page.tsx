@@ -38,7 +38,6 @@ export default function LoginPage() {
   };
 
   const features = [
-    { icon: Clock, title: "Agenda Inteligente", desc: "Gestiona tus citas y disponibilidad" },
     { icon: Activity, title: "Estadísticas de Barberos", desc: "Mide el rendimiento y productividad de tu equipo" },
     { icon: BarChart3, title: "Análisis Financiero", desc: "Control de ganancias y reportes" },
   ];
@@ -79,9 +78,9 @@ export default function LoginPage() {
             {/* Logo */}
             <div className="mb-20">
               <img 
-                src="https://ik.imagekit.io/h5w0cdkit/elite_barber_shop/loogo1.png" 
+                src="https://ik.imagekit.io/h5w0cdkit/elite_barber_shop/elite_logo.png" 
                 alt="Elite BarberShop Logo" 
-                className="h-28 max-w-full object-contain drop-shadow-[0_0_20px_rgba(255,255,255,0.15)] transition-transform hover:scale-105 duration-500"
+                className="h-36 max-w-full object-contain drop-shadow-[0_0_20px_rgba(255,255,255,0.15)] transition-transform hover:scale-105 duration-500"
               />
             </div>
 
@@ -102,7 +101,7 @@ export default function LoginPage() {
           </div>
 
           {/* Bottom - Features */}
-          <div className="grid grid-cols-3 gap-6 pt-12 border-t border-white/5 mt-4">
+          <div className="grid grid-cols-2 gap-6 pt-12 border-t border-white/5 mt-4">
             {features.map((feature, i) => {
               const Icon = feature.icon;
               return (
@@ -139,7 +138,7 @@ export default function LoginPage() {
           {/* Mobile Logo */}
           <div className="lg:hidden flex flex-col items-center mb-12">
             <img 
-              src="https://ik.imagekit.io/h5w0cdkit/elite_barber_shop/loogo1.png" 
+              src="https://ik.imagekit.io/h5w0cdkit/elite_barber_shop/elite_logo.png" 
               alt="Elite BarberShop Logo" 
               className="h-24 w-auto object-contain drop-shadow-[0_0_20px_rgba(255,255,255,0.15)]"
             />

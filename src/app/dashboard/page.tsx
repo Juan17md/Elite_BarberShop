@@ -12,9 +12,9 @@ import {
   where
 } from "firebase/firestore";
 import { db } from "@/lib/firebase";
-import { DollarSign, Users, Scissors, TrendingUp, Activity, Wallet, CalendarDays, Target, BarChart3, ArrowRight, History, ChevronLeft, ChevronRight, RotateCcw } from "lucide-react";
+import { DollarSign, Users, Scissors, TrendingUp, Activity, Wallet, Target, BarChart3, ArrowRight, History, ChevronLeft, ChevronRight, RotateCcw } from "lucide-react";
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from "@/components/ui";
-import { getLocalDateString, getStartOfWeekString, getStartOfMonthString, getWeekRangeFromOffset } from "@/lib/utils";
+import { getLocalDateString, getStartOfMonthString, getPeriodFromPosition } from "@/lib/utils";
 
 export default function DashboardPage() {
   const { userRole } = useAuth();
@@ -22,10 +22,10 @@ export default function DashboardPage() {
   const [records, setRecords] = useState<FinancialRecord[]>([]);
   const [today, setToday] = useState(getLocalDateString());
   const [loading, setLoading] = useState(true);
-  const [semanaOffset, setSemanaOffset] = useState(0);
+  const [position, setPosition] = useState(0);
 
-  const esSemanaActual = semanaOffset === 0;
-  const rangoSemana = useMemo(() => getWeekRangeFromOffset(semanaOffset), [semanaOffset]);
+  const esPosicionActual = position === 0;
+  const periodo = useMemo(() => getPeriodFromPosition(position), [position]);
 
   // Actualizar la fecha actual cada minuto para manejar el cambio de medianoche
   useEffect(() => {
@@ -60,16 +60,15 @@ export default function DashboardPage() {
   }, [isAdmin, userRole?.uid]);
 
   // Resumen rápido (siempre período actual)
-  const startOfWeekStr = getStartOfWeekString();
   const startOfMonthStr = getStartOfMonthString();
   const todayRecords = records.filter(r => r.date === today);
-  const weekRecords = records.filter(r => r.date >= startOfWeekStr);
+  const weekRecords = records.filter(r => r.date >= getPeriodFromPosition(0).inicio);
   const monthRecords = records.filter(r => r.date >= startOfMonthStr);
 
   // Registros filtrados por la semana seleccionada (navegador)
   const weeklyFilteredRecords = useMemo(() => {
-    return records.filter(r => r.date >= rangoSemana.inicio && r.date <= rangoSemana.fin);
-  }, [records, rangoSemana]);
+    return records.filter(r => r.date >= periodo.inicio && r.date <= periodo.fin);
+  }, [records, periodo]);
 
   const dailyRevenue = todayRecords.reduce((sum: number, r: FinancialRecord) => sum + r.totalAmount, 0);
   const weeklyRevenue = weekRecords.reduce((sum: number, r: FinancialRecord) => sum + r.totalAmount, 0);
@@ -99,46 +98,46 @@ export default function DashboardPage() {
     );
   }
 
-  // ── Navegador semanal global ──
+  // ── Navegador de periodo global ──
   const navegadorSemanal = (
     <div className="card-premium p-4 sm:p-5">
       <div className="flex items-center justify-between gap-4">
         <button
-          onClick={() => setSemanaOffset((prev) => prev - 1)}
+          onClick={() => setPosition((prev) => prev + 1)}
           className="p-2.5 rounded-lg border border-white/10 text-text-muted hover:text-white hover:border-white/20 hover:bg-white/5 active:scale-95 transition-all"
-          aria-label="Semana anterior"
+          aria-label="Anterior"
         >
           <ChevronLeft size={18} />
         </button>
 
         <div className="flex flex-col items-center gap-1.5 min-w-0">
-          {esSemanaActual && (
+          {esPosicionActual && (
             <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-[10px] font-bold uppercase tracking-[0.15em] shadow-[0_0_12px_rgba(16,185,129,0.15)]">
               <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
-              Semana actual
+              {periodo.isSunday ? "Domingo actual" : "Semana actual"}
             </span>
           )}
           <span className="font-display text-sm sm:text-base text-white tracking-widest uppercase text-center">
-            {rangoSemana.label}
+            {periodo.label}
           </span>
         </div>
 
         <div className="flex items-center gap-2">
-          {!esSemanaActual && (
+          {!esPosicionActual && (
             <button
-              onClick={() => setSemanaOffset(0)}
+              onClick={() => setPosition(0)}
               className="p-2.5 rounded-lg border border-emerald-500/20 text-emerald-400 hover:bg-emerald-500/10 active:scale-95 transition-all"
-              aria-label="Ir a semana actual"
-              title="Ir a semana actual"
+              aria-label="Ir a actual"
+              title="Ir a actual"
             >
               <RotateCcw size={16} />
             </button>
           )}
           <button
-            onClick={() => setSemanaOffset((prev) => prev + 1)}
-            disabled={esSemanaActual}
+            onClick={() => setPosition((prev) => Math.max(0, prev - 1))}
+            disabled={esPosicionActual}
             className="p-2.5 rounded-lg border border-white/10 text-text-muted hover:text-white hover:border-white/20 hover:bg-white/5 active:scale-95 disabled:opacity-30 disabled:cursor-not-allowed transition-all"
-            aria-label="Semana siguiente"
+            aria-label="Siguiente"
           >
             <ChevronRight size={18} />
           </button>
@@ -355,16 +354,6 @@ export default function DashboardPage() {
       bgIcono: "bg-emerald-400/10",
       bordeIcono: "border-emerald-400/20",
       hoverCard: "hover:border-emerald-400/30 hover:bg-emerald-400/5",
-    },
-    {
-      label: "Mis Reservas",
-      descripcion: "Consulta tus citas agendadas",
-      href: "/dashboard/reservas",
-      icon: CalendarDays,
-      colorIcono: "text-blue-400",
-      bgIcono: "bg-blue-400/10",
-      bordeIcono: "border-blue-400/20",
-      hoverCard: "hover:border-blue-400/30 hover:bg-blue-400/5",
     },
     {
       label: "Servicios",
