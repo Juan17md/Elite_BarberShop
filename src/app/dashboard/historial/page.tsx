@@ -54,6 +54,11 @@ export default function HistorialPage() {
   const [cargando, setCargando] = useState(true);
   const [pagina, setPagina] = useState(1);
 
+  // Filtros
+  const [busqueda, setBusqueda] = useState("");
+  const [filtroBarbero, setFiltroBarbero] = useState("todos");
+  const [filtroServicio, setFiltroServicio] = useState("todos");
+
   // Navegación semanal
   const [position, setPosition] = useState(0);
 

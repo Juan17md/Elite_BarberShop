@@ -11,7 +11,7 @@ export async function GET() {
     const ahora = Date.now();
 
     if (docSnap.exists) {
-      const data = docSnap.data();
+      const data = docSnap.data()!;
       const lastUpdated = data.lastUpdated?.toDate?.()?.getTime() || data.lastUpdated?.getTime();
       if (lastUpdated && ahora - lastUpdated < SEIS_HORAS) {
         return NextResponse.json({ rate: data.rate, cached: true, lastUpdated });
@@ -22,7 +22,7 @@ export async function GET() {
 
     if (!res.ok) {
       if (docSnap.exists) {
-        const data = docSnap.data();
+        const data = docSnap.data()!;
         return NextResponse.json({ rate: data.rate, cached: true });
       }
       return NextResponse.json({ error: "No se pudo obtener la tasa BCV" }, { status: 502 });
@@ -33,7 +33,7 @@ export async function GET() {
 
     if (!rate || typeof rate !== "number") {
       if (docSnap.exists) {
-        const old = docSnap.data();
+        const old = docSnap.data()!;
         return NextResponse.json({ rate: old.rate, cached: true });
       }
       return NextResponse.json({ error: "Respuesta inválida de la API" }, { status: 502 });
@@ -53,7 +53,7 @@ export async function GET() {
       const docRef = adminDb.collection("settings").doc("bcv");
       const docSnap = await docRef.get();
       if (docSnap.exists) {
-        const data = docSnap.data();
+        const data = docSnap.data()!;
         return NextResponse.json({ rate: data.rate, cached: true });
       }
     } catch {}
