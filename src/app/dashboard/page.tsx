@@ -12,9 +12,10 @@ import {
   where
 } from "firebase/firestore";
 import { db } from "@/lib/firebase";
-import { DollarSign, Users, Scissors, TrendingUp, Activity, Wallet, Target, BarChart3, ArrowRight, History, ChevronLeft, ChevronRight, RotateCcw } from "lucide-react";
+import { DollarSign, Users, Scissors, TrendingUp, Activity, Wallet, Target, BarChart3, ArrowRight, History, ChevronLeft, ChevronRight, RotateCcw, Plus } from "lucide-react";
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from "@/components/ui";
 import { getLocalDateString, getStartOfMonthString, getPeriodFromPosition } from "@/lib/utils";
+import RegisterServiceModal from "@/components/RegisterServiceModal";
 
 export default function DashboardPage() {
   const { userRole } = useAuth();
@@ -23,6 +24,7 @@ export default function DashboardPage() {
   const [today, setToday] = useState(getLocalDateString());
   const [loading, setLoading] = useState(true);
   const [position, setPosition] = useState(0);
+  const [isRegisterModalOpen, setIsRegisterModalOpen] = useState(false);
 
   const esPosicionActual = position === 0;
   const periodo = useMemo(() => getPeriodFromPosition(position), [position]);
@@ -169,6 +171,20 @@ export default function DashboardPage() {
 
     return (
       <div className="space-y-8">
+        {/* Cabecera con botón de acceso rápido */}
+        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 border-b border-white/5 pb-6">
+          <div>
+            <h1 className="font-display text-2xl sm:text-3xl text-white tracking-wider uppercase">Panel de Control</h1>
+            <p className="text-text-muted text-[10px] tracking-[0.2em] font-bold mt-1 opacity-70">VISTA ADMINISTRATIVA GLOBAL</p>
+          </div>
+          <button 
+            onClick={() => setIsRegisterModalOpen(true)}
+            className="btn-primary flex items-center gap-2 px-6 py-3 text-xs tracking-[0.2em] font-bold uppercase shadow-red-strong hover:-translate-y-0.5 transition-all w-full sm:w-auto justify-center"
+          >
+            <Plus size={16} /> Registrar Servicio
+          </button>
+        </div>
+
         {/* Tarjetas de resumen rápido */}
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6 stagger-children">
           {stats.map((stat, i) => {
@@ -337,6 +353,11 @@ export default function DashboardPage() {
             )}
           </div>
         </div>
+
+        <RegisterServiceModal 
+          isOpen={isRegisterModalOpen} 
+          onClose={() => setIsRegisterModalOpen(false)} 
+        />
       </div>
     );
   }
