@@ -38,6 +38,7 @@ import {
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell, Select } from "@/components/ui";
 import { getLocalDateString, getPeriodFromPosition, type Period } from "@/lib/utils";
 import RegisterServiceModal from "@/components/RegisterServiceModal";
+import RegistrarPagoModal from "@/components/RegistrarPagoModal";
 
 interface Transaccion {
   id: string;
@@ -67,6 +68,13 @@ export default function FinanzasPage() {
   const [formData, setFormData] = useState({ serviceId: "", clientName: "", barberId: "", paymentMethod: "bcv" as PaymentMethod, bcvRate: "" });
   const [isSubmitting, setIsSubmitting] = useState(false);
   
+  // Estado para pago a barbero
+  const [selectedBarberForPayout, setSelectedBarberForPayout] = useState<{
+    barberId: string;
+    barberName: string;
+    periodEarnings: number;
+  } | null>(null);
+
   // Estado para Eliminación
   const [recordToDelete, setRecordToDelete] = useState<FinancialRecord | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
@@ -202,19 +210,19 @@ export default function FinanzasPage() {
   const desgloseBarbers = useMemo(() => {
     const desglose = filteredRecords.reduce((acc, r) => {
       if (!acc[r.barberName]) {
-        acc[r.barberName] = { barberShare: 0, barberiaShare: 0, total: 0 };
+        acc[r.barberName] = { barberId: r.barberId, barberShare: 0, barberiaShare: 0, total: 0 };
       }
       acc[r.barberName].barberShare += r.barberShare;
       acc[r.barberName].barberiaShare += r.barberiaShare;
       acc[r.barberName].total += r.totalAmount;
       return acc;
-    }, {} as Record<string, { barberShare: number; barberiaShare: number; total: number }>);
+    }, {} as Record<string, { barberId: string; barberShare: number; barberiaShare: number; total: number }>);
 
     // Asegurar que todos los barberos registrados aparezcan (si es admin)
     if (isAdmin) {
       barbers.forEach((barber: any) => {
         if (!desglose[barber.name]) {
-          desglose[barber.name] = { barberShare: 0, barberiaShare: 0, total: 0 };
+          desglose[barber.name] = { barberId: barber.id, barberShare: 0, barberiaShare: 0, total: 0 };
         }
       });
     }
@@ -708,6 +716,19 @@ export default function FinanzasPage() {
                 <div className="flex items-center gap-2 mb-2">
                   <div className="h-px flex-1 bg-white/5"></div>
                   <span className="text-white/80 font-display text-[13px] uppercase tracking-[0.2em]">{barberName}</span>
+                  {isAdmin && (
+                    <button
+                      onClick={() => setSelectedBarberForPayout({
+                        barberId: stats.barberId,
+                        barberName,
+                        periodEarnings: stats.barberShare
+                      })}
+                      className="p-1.5 rounded-lg border border-primary/20 text-primary/70 hover:text-primary hover:bg-primary/10 hover:border-primary/40 transition-all"
+                      title={`Pagar a ${barberName}`}
+                    >
+                      <Wallet size={14} />
+                    </button>
+                  )}
                   <div className="h-px flex-1 bg-white/5"></div>
                 </div>
 
@@ -912,6 +933,17 @@ export default function FinanzasPage() {
         isOpen={isModalOpen} 
         onClose={() => setIsModalOpen(false)} 
       />
+
+      {selectedBarberForPayout && (
+        <RegistrarPagoModal
+          isOpen={!!selectedBarberForPayout}
+          onClose={() => setSelectedBarberForPayout(null)}
+          barberId={selectedBarberForPayout.barberId}
+          barberName={selectedBarberForPayout.barberName}
+          periodEarnings={selectedBarberForPayout.periodEarnings}
+          currentPeriodLabel={`Ganado en: ${periodo.label}`}
+        />
+      )}
 
       {isEditModalOpen && (
         <div className="fixed inset-0 bg-void/90 backdrop-blur-md z-50 flex items-center justify-center p-4">

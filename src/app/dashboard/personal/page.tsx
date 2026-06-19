@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useAuth } from "@/context/AuthContext";
 import { 
   collection, 
@@ -12,7 +12,9 @@ import {
   getDoc
 } from "firebase/firestore";
 import { db } from "@/lib/firebase";
-import { Shield, Users, TrendingUp, DollarSign, Calendar, Award, Activity } from "lucide-react";
+import { Shield, Users, TrendingUp, DollarSign, Calendar, Award, Activity, Wallet } from "lucide-react";
+import { getPeriodFromPosition } from "@/lib/utils";
+import RegistrarPagoModal from "@/components/RegistrarPagoModal";
 
 interface BarberWithStats {
   uid: string;
@@ -22,6 +24,7 @@ interface BarberWithStats {
   totalServices: number;
   totalRevenue: number;
   balance: number;
+  periodEarnings: number;
   lastActivity?: string;
 }
 
@@ -31,6 +34,16 @@ export default function PersonalPage() {
   const [barbers, setBarbers] = useState<BarberWithStats[]>([]);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState<"equipo" | "configuracion">("equipo");
+  const [selectedBarberForPayout, setSelectedBarberForPayout] = useState<BarberWithStats | null>(null);
+
+  // Calcular el período actual para la cabecera / modal
+  const currentPeriod = useMemo(() => {
+    const hoy = new Date();
+    const fechaCaracas = new Date(hoy.toLocaleString("en-US", { timeZone: "America/Caracas" }));
+    const diaSemana = fechaCaracas.getDay();
+    const currentPeriodPosition = diaSemana === 0 ? 1 : 0;
+    return getPeriodFromPosition(currentPeriodPosition);
+  }, []);
 
   useEffect(() => {
     if (!isAdmin) {
@@ -58,7 +71,8 @@ export default function PersonalPage() {
           role: userData.role || "barber",
           totalServices: 0,
           totalRevenue: bankData ? (bankData.totalEarned || 0) : 0,
-          balance: bankData ? (bankData.balance || 0) : 0
+          balance: bankData ? (bankData.balance || 0) : 0,
+          periodEarnings: 0
         });
       }
       
@@ -75,23 +89,32 @@ export default function PersonalPage() {
     const financesQuery = query(collection(db, "finances"), orderBy("date", "desc"));
     
     const unsubscribe = onSnapshot(financesQuery, (snapshot) => {
-      const servicesByBarber = snapshot.docs.reduce((acc, doc) => {
+      const statsByBarber = snapshot.docs.reduce((acc, doc) => {
         const data = doc.data();
-        if (!acc[data.barberId]) {
-          acc[data.barberId] = 0;
+        const barberId = data.barberId;
+        const date = data.date;
+        const isWithinPeriod = date >= currentPeriod.inicio && date <= currentPeriod.fin;
+
+        if (!acc[barberId]) {
+          acc[barberId] = { services: 0, periodEarnings: 0 };
         }
-        acc[data.barberId]++;
+        
+        acc[barberId].services++;
+        if (isWithinPeriod) {
+          acc[barberId].periodEarnings += data.barberShare || 0;
+        }
         return acc;
-      }, {} as Record<string, number>);
+      }, {} as Record<string, { services: number; periodEarnings: number }>);
 
       setBarbers(prev => prev.map(b => ({
         ...b,
-        totalServices: servicesByBarber[b.uid] || 0
+        totalServices: statsByBarber[b.uid]?.services || 0,
+        periodEarnings: statsByBarber[b.uid]?.periodEarnings || 0
       })));
     });
 
     return () => unsubscribe();
-  }, [isAdmin, barbers.length]);
+  }, [isAdmin, barbers.length, currentPeriod]);
 
   const totalTeamServices = barbers.reduce((acc, b) => acc + b.totalServices, 0);
   const totalTeamRevenue = barbers.reduce((acc, b) => acc + b.totalRevenue, 0);
@@ -239,7 +262,7 @@ export default function PersonalPage() {
                       </span>
                       <span className="font-display text-xl text-green-400">${barber.totalRevenue.toFixed(0)}</span>
                     </div>
-                    <div className="flex justify-between items-center py-2">
+                    <div className="flex justify-between items-center py-2 border-b border-white/5">
                       <span className="text-text-muted text-xs uppercase tracking-widest flex items-center gap-2">
                         <Award size={14} /> Balance
                       </span>
@@ -247,6 +270,23 @@ export default function PersonalPage() {
                         ${barber.balance.toFixed(2)}
                       </span>
                     </div>
+                    <div className="flex justify-between items-center py-2">
+                      <span className="text-text-muted text-[10px] uppercase tracking-widest flex items-center gap-2">
+                        <Activity size={14} className="text-primary" /> {currentPeriod.isSunday ? "Ingreso Domingo" : "Semana Actual"}
+                      </span>
+                      <span className="font-display text-base text-primary">
+                        ${(barber.periodEarnings || 0).toFixed(2)}
+                      </span>
+                    </div>
+                  </div>
+
+                  <div className="mt-5 pt-4 border-t border-white/5">
+                    <button
+                      onClick={() => setSelectedBarberForPayout(barber)}
+                      className="w-full btn-primary text-xs py-2.5 flex items-center justify-center gap-2 tracking-wider uppercase font-bold"
+                    >
+                      <Wallet size={14} /> Registrar Pago
+                    </button>
                   </div>
                 </div>
               </div>
@@ -359,6 +399,17 @@ export default function PersonalPage() {
             </div>
           </div>
         </div>
+      )}
+
+      {selectedBarberForPayout && (
+        <RegistrarPagoModal
+          isOpen={!!selectedBarberForPayout}
+          onClose={() => setSelectedBarberForPayout(null)}
+          barberId={selectedBarberForPayout.uid}
+          barberName={selectedBarberForPayout.name}
+          periodEarnings={selectedBarberForPayout.periodEarnings || 0}
+          currentPeriodLabel={currentPeriod.isSunday ? "Ganado este Domingo" : "Ganado esta Semana"}
+        />
       )}
     </div>
   );
