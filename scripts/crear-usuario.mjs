@@ -1,53 +1,53 @@
+import dotenv from "dotenv";
+dotenv.config({ path: ".env.local" });
 import admin from "firebase-admin";
+import readline from "readline";
 
-const args = process.argv.slice(2);
+const rl = readline.createInterface({
+  input: process.stdin,
+  output: process.stdout,
+});
 
-function usage() {
-  console.log(`
-Uso: node scripts/crear-usuario.mjs [opciones]
-
-Opciones:
-  --email=<email>       Correo del usuario (requerido)
-  --password=<pass>     Contraseña (requerido)
-  --name=<nombre>       Nombre completo (requerido)
-  --phone=<teléfono>    Teléfono (opcional)
-  --role=<role>         Rol: admin | barber (default: barber)
-
-Ejemplo:
-  node scripts/crear-usuario.mjs --email=admin@elitebarber.com --password=123456 --name="Admin" --role=admin
-`);
-  process.exit(1);
+function preguntar(query) {
+  return new Promise((resolve) => rl.question(query, resolve));
 }
 
-if (args.length === 0 || args.includes("--help") || args.includes("-h")) {
-  usage();
-}
+async function pedirDatos() {
+  console.log("=== Crear nuevo usuario ===\n");
 
-function parseArg(flag) {
-  const arg = args.find((a) => a.startsWith(flag));
-  if (!arg) return null;
-  return arg.split("=").slice(1).join("=");
-}
+  const email = await preguntar("Email: ");
+  if (!email) {
+    console.error("Error: el email es requerido");
+    process.exit(1);
+  }
 
-const email = parseArg("--email");
-const password = parseArg("--password");
-const name = parseArg("--name");
-const phone = parseArg("--phone") || "";
-const role = parseArg("--role") || "barber";
+  const password = await preguntar("Contraseña (mín. 6 caracteres): ");
+  if (!password) {
+    console.error("Error: la contraseña es requerida");
+    process.exit(1);
+  }
+  if (password.length < 6) {
+    console.error("Error: la contraseña debe tener al menos 6 caracteres");
+    process.exit(1);
+  }
 
-if (!email || !password || !name) {
-  console.error("Error: --email, --password y --name son requeridos");
-  usage();
-}
+  const name = await preguntar("Nombre completo: ");
+  if (!name) {
+    console.error("Error: el nombre es requerido");
+    process.exit(1);
+  }
 
-if (!["admin", "barber"].includes(role)) {
-  console.error('Error: --role debe ser "admin" o "barber"');
-  process.exit(1);
-}
+  const phone = await preguntar("Teléfono (opcional): ");
 
-if (password.length < 6) {
-  console.error("Error: la contraseña debe tener al menos 6 caracteres");
-  process.exit(1);
+  const roleInput = await preguntar("Rol (admin/barber) [barber]: ");
+  const role = roleInput || "barber";
+  if (!["admin", "barber"].includes(role)) {
+    console.error('Error: el rol debe ser "admin" o "barber"');
+    process.exit(1);
+  }
+
+  rl.close();
+  return { email, password, name, phone, role };
 }
 
 if (!admin.apps.length) {
@@ -69,6 +69,7 @@ const db = admin.firestore();
 const auth = admin.auth();
 
 async function createUser() {
+  const { email, password, name, phone, role } = await pedirDatos();
   const emailNormalized = email.trim().toLowerCase();
 
   try {

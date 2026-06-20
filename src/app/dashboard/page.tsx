@@ -303,6 +303,7 @@ export default function DashboardPage() {
                   <TableHead>Barbero</TableHead>
                   <TableHead>Servicio</TableHead>
                   <TableHead>Cliente</TableHead>
+                  <TableHead>Pago</TableHead>
                   <TableHead align="right">Total</TableHead>
                 </TableRow>
               </TableHeader>
@@ -313,12 +314,21 @@ export default function DashboardPage() {
                     <TableCell className="py-3 text-text-primary">{r.barberName}</TableCell>
                     <TableCell className="py-3 text-text-secondary">{r.serviceName}</TableCell>
                     <TableCell className="py-3 text-text-secondary">{r.clientName}</TableCell>
+                    <TableCell className="py-3">
+                      <span className={`text-[10px] uppercase tracking-widest font-bold px-2 py-0.5 rounded-full border ${
+                        r.paymentMethod === "divisa"
+                          ? "text-emerald-400 border-emerald-400/30 bg-emerald-400/10"
+                          : "text-sky-400 border-sky-400/30 bg-sky-400/10"
+                      }`}>
+                        {r.paymentMethod === "divisa" ? "Divisa" : "BCV"}
+                      </span>
+                    </TableCell>
                     <TableCell className="py-3 text-primary text-right font-display">${r.totalAmount.toFixed(2)}</TableCell>
                   </TableRow>
                 ))}
                 {weeklyFilteredRecords.length === 0 && (
                   <TableRow className="hover:bg-transparent border-0">
-                    <TableCell colSpan={5} className="py-8 text-center text-text-muted">
+                    <TableCell colSpan={6} className="py-8 text-center text-text-muted">
                       No hay servicios en la semana seleccionada
                     </TableCell>
                   </TableRow>
@@ -340,10 +350,19 @@ export default function DashboardPage() {
                     <p className="font-display text-xl text-primary tracking-widest">${r.totalAmount.toFixed(2)}</p>
                   </div>
                 </div>
-                <div className="flex justify-between items-center bg-void/30 px-3 py-2 rounded-lg border border-white/5">
-                  <span className="text-text-secondary text-[10px] uppercase tracking-widest font-bold">{r.serviceName}</span>
-                  <span className="text-text-muted text-[10px]">{r.date}</span>
-                </div>
+                  <div className="flex justify-between items-center bg-void/30 px-3 py-2 rounded-lg border border-white/5">
+                    <div className="flex items-center gap-2">
+                      <span className="text-text-secondary text-[10px] uppercase tracking-widest font-bold">{r.serviceName}</span>
+                      <span className={`text-[9px] uppercase tracking-widest font-bold px-1.5 py-0.5 rounded-full border ${
+                        r.paymentMethod === "divisa"
+                          ? "text-emerald-400 border-emerald-400/30 bg-emerald-400/10"
+                          : "text-sky-400 border-sky-400/30 bg-sky-400/10"
+                      }`}>
+                        {r.paymentMethod === "divisa" ? "Divisa" : "BCV"}
+                      </span>
+                    </div>
+                    <span className="text-text-muted text-[10px]">{r.date}</span>
+                  </div>
               </div>
             ))}
             {weeklyFilteredRecords.length === 0 && (
@@ -548,6 +567,7 @@ export default function DashboardPage() {
                   <TableHead>Fecha</TableHead>
                   <TableHead>Servicio</TableHead>
                   <TableHead>Cliente</TableHead>
+                  <TableHead>Pago</TableHead>
                   <TableHead align="right">Tu Parte (60%)</TableHead>
                 </TableRow>
               </TableHeader>
@@ -557,12 +577,21 @@ export default function DashboardPage() {
                     <TableCell className="py-3 text-text-secondary">{r.date}</TableCell>
                     <TableCell className="py-3 text-text-primary">{r.serviceName}</TableCell>
                     <TableCell className="py-3 text-text-secondary">{r.clientName}</TableCell>
+                    <TableCell className="py-3">
+                      <span className={`text-[10px] uppercase tracking-widest font-bold px-2 py-0.5 rounded-full border ${
+                        r.paymentMethod === "divisa"
+                          ? "text-emerald-400 border-emerald-400/30 bg-emerald-400/10"
+                          : "text-sky-400 border-sky-400/30 bg-sky-400/10"
+                      }`}>
+                        {r.paymentMethod === "divisa" ? "Divisa" : "BCV"}
+                      </span>
+                    </TableCell>
                     <TableCell className="py-3 text-emerald-400 text-right font-display">${r.barberShare.toFixed(2)}</TableCell>
                   </TableRow>
                 ))}
                 {weeklyFilteredRecords.length === 0 && (
                   <TableRow className="hover:bg-transparent border-0">
-                    <TableCell colSpan={4} className="py-8 text-center text-text-muted">
+                    <TableCell colSpan={5} className="py-8 text-center text-text-muted">
                       No hay servicios en la semana seleccionada
                     </TableCell>
                   </TableRow>
@@ -585,8 +614,15 @@ export default function DashboardPage() {
                     <p className="text-[9px] uppercase tracking-tighter text-text-muted">(Tu parte 60%)</p>
                   </div>
                 </div>
-                <div className="flex justify-end text-[10px] text-text-muted italic">
-                  {r.date}
+                <div className="flex justify-between items-center text-[10px] text-text-muted">
+                  <span className={`text-[9px] uppercase tracking-widest font-bold px-1.5 py-0.5 rounded-full border ${
+                    r.paymentMethod === "divisa"
+                      ? "text-emerald-400 border-emerald-400/30 bg-emerald-400/10"
+                      : "text-sky-400 border-sky-400/30 bg-sky-400/10"
+                  }`}>
+                    {r.paymentMethod === "divisa" ? "Divisa" : "BCV"}
+                  </span>
+                  <span className="italic">{r.date}</span>
                 </div>
               </div>
             ))}
