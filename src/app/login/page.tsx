@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 import { signInWithEmailAndPassword } from "firebase/auth";
 import { auth } from "@/lib/firebase";
 import { Scissors, Loader2, Clock, Activity, BarChart3, ChevronRight, Sparkles, Star, Eye, EyeOff } from "lucide-react";
@@ -8,6 +9,7 @@ import { Input, Label, Button } from "@/components/ui";
 import { toSpanishUserMessage } from "@/components/notifications";
 
 export default function LoginPage() {
+  const router = useRouter();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
@@ -20,18 +22,29 @@ export default function LoginPage() {
     setError("");
 
     try {
-      const userCredential = await signInWithEmailAndPassword(auth, email.trim(), password.trim());
+      const userCredential = await Promise.race([
+        signInWithEmailAndPassword(auth, email.trim(), password.trim()),
+        new Promise<never>((_, reject) =>
+          setTimeout(() => reject(new Error("La autenticación está tomando demasiado tiempo. Verifica tu conexión.")), 10000)
+        ),
+      ]);
       const token = await userCredential.user.getIdToken();
       document.cookie = `firebase-token=${token}; path=/; max-age=3600`;
+      router.replace("/dashboard");
     } catch (err: unknown) {
-      const errorCode = err && typeof err === 'object' && 'code' in err ? (err as { code: string }).code : 'unknown';
-      console.error('Error de autenticación:', errorCode, err);
-      setError(
-        toSpanishUserMessage(
-          err,
-          "Credenciales inválidas. Por favor, inténtalo de nuevo."
-        )
-      );
+      const errorMessage = err instanceof Error ? err.message : "";
+      if (errorMessage.includes("demasiado tiempo")) {
+        setError(errorMessage);
+      } else {
+        const errorCode = err && typeof err === 'object' && 'code' in err ? (err as { code: string }).code : 'unknown';
+        console.error('Error de autenticación:', errorCode, err);
+        setError(
+          toSpanishUserMessage(
+            err,
+            "Credenciales inválidas. Por favor, inténtalo de nuevo."
+          )
+        );
+      }
     } finally {
       setLoading(false);
     }

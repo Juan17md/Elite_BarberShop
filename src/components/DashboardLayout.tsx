@@ -50,7 +50,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         <Header onOpenSidebar={() => setSidebarOpen(true)} />
 
         {/* Page content */}
-        <div className="flex-1 overflow-y-auto w-full flex flex-col" style={{ overscrollBehavior: "contain" }}>
+        <div className="flex-1 overflow-y-auto w-full flex flex-col min-h-0">
           <div className="flex-1 p-8 lg:p-12 max-w-7xl mx-auto w-full animate-fade-in">
             {children}
           </div>
