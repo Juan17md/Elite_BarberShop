@@ -23,7 +23,6 @@ export default function LoginPage() {
       const userCredential = await signInWithEmailAndPassword(auth, email.trim(), password.trim());
       const token = await userCredential.user.getIdToken();
       document.cookie = `firebase-token=${token}; path=/; max-age=3600`;
-      // AuthGuard redirigirá automáticamente cuando AuthContext esté listo
     } catch (err: unknown) {
       const errorCode = err && typeof err === 'object' && 'code' in err ? (err as { code: string }).code : 'unknown';
       console.error('Error de autenticación:', errorCode, err);
@@ -33,6 +32,7 @@ export default function LoginPage() {
           "Credenciales inválidas. Por favor, inténtalo de nuevo."
         )
       );
+    } finally {
       setLoading(false);
     }
   };

@@ -1,6 +1,6 @@
 "use client";
 
-import { createContext, useContext, useEffect, useState, ReactNode } from "react";
+import { createContext, useContext, useEffect, useState, useRef, ReactNode } from "react";
 import { onAuthStateChanged, User } from "firebase/auth";
 import { doc, onSnapshot } from "firebase/firestore";
 import { auth, db } from "@/lib/firebase";
@@ -35,12 +35,20 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [datosUsuario, setDatosUsuario] = useState<DatosUsuario | null>(null);
   const [authLoading, setAuthLoading] = useState(true);
   const [rolLoading, setRolLoading] = useState(true);
+  const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const resolvedRef = useRef(false);
 
   useEffect(() => {
     let unsubFirestore: (() => void) | null = null;
 
     const unsubAuth = onAuthStateChanged(auth, (firebaseUser) => {
       setUsuario(firebaseUser);
+
+      if (timeoutRef.current) {
+        clearTimeout(timeoutRef.current);
+        timeoutRef.current = null;
+      }
+      resolvedRef.current = false;
 
       if (unsubFirestore) {
         unsubFirestore();
@@ -57,9 +65,34 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setAuthLoading(false);
       setRolLoading(true);
 
+      const datosPorDefecto: DatosUsuario = {
+        uid: firebaseUser.uid,
+        email: firebaseUser.email || "",
+        nombre: firebaseUser.displayName || firebaseUser.email?.split("@")[0] || "Usuario",
+        telefono: "",
+        rol: "barber",
+        bloqueado: false,
+        primerInicio: false,
+      };
+
+      timeoutRef.current = setTimeout(() => {
+        if (resolvedRef.current) return;
+        resolvedRef.current = true;
+        timeoutRef.current = null;
+        console.warn("onSnapshot no respondió, usando datos por defecto");
+        setDatosUsuario(datosPorDefecto);
+        setRolLoading(false);
+      }, 5000);
+
       unsubFirestore = onSnapshot(
         doc(db, "users", firebaseUser.uid),
         (snap) => {
+          if (resolvedRef.current) return;
+          resolvedRef.current = true;
+          if (timeoutRef.current) {
+            clearTimeout(timeoutRef.current);
+            timeoutRef.current = null;
+          }
           if (snap.exists()) {
             const data = snap.data();
             setDatosUsuario({
@@ -72,29 +105,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
               primerInicio: data.primerInicio ?? false,
             });
           } else {
-            setDatosUsuario({
-              uid: firebaseUser.uid,
-              email: firebaseUser.email || "",
-              nombre: firebaseUser.displayName || firebaseUser.email?.split("@")[0] || "Usuario",
-              telefono: "",
-              rol: "barber",
-              bloqueado: false,
-              primerInicio: false,
-            });
+            setDatosUsuario(datosPorDefecto);
           }
           setRolLoading(false);
         },
         (error) => {
+          if (resolvedRef.current) return;
+          resolvedRef.current = true;
+          if (timeoutRef.current) {
+            clearTimeout(timeoutRef.current);
+            timeoutRef.current = null;
+          }
           console.error("Error en onSnapshot de usuario:", error);
-          setDatosUsuario({
-            uid: firebaseUser.uid,
-            email: firebaseUser.email || "",
-            nombre: firebaseUser.displayName || firebaseUser.email?.split("@")[0] || "Usuario",
-            telefono: "",
-            rol: "barber",
-            bloqueado: false,
-            primerInicio: false,
-          });
+          setDatosUsuario(datosPorDefecto);
           setRolLoading(false);
         }
       );
@@ -103,6 +126,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return () => {
       unsubAuth();
       if (unsubFirestore) unsubFirestore();
+      if (timeoutRef.current) clearTimeout(timeoutRef.current);
     };
   }, []);
 
