@@ -20,7 +20,9 @@ interface BarberWithStats {
   email: string;
   role: "admin" | "barber";
   totalServices: number;
+  periodServices: number;
   totalRevenue: number;
+  periodRevenue: number;
   balance: number;
   periodEarnings: number;
 }
@@ -70,7 +72,9 @@ export default function PersonalPage() {
           email: data.email || "",
           role,
           totalServices: 0,
+          periodServices: 0,
           totalRevenue: 0,
+          periodRevenue: 0,
           balance: 0,
           periodEarnings: 0,
         });
@@ -112,7 +116,7 @@ export default function PersonalPage() {
     const q = query(collection(db, "finances"), orderBy("date", "desc"));
 
     const unsub = onSnapshot(q, (snap) => {
-      const statsByBarber: Record<string, { services: number; periodEarnings: number }> = {};
+      const statsByBarber: Record<string, { totalServices: number; servicesInPeriod: number; totalAmountInPeriod: number; periodEarnings: number }> = {};
       snap.forEach((doc) => {
         const data = doc.data();
         const barberId = data.barberId;
@@ -120,10 +124,12 @@ export default function PersonalPage() {
         const isWithinPeriod = date >= periodo.inicio && date <= periodo.fin;
 
         if (!statsByBarber[barberId]) {
-          statsByBarber[barberId] = { services: 0, periodEarnings: 0 };
+          statsByBarber[barberId] = { totalServices: 0, servicesInPeriod: 0, totalAmountInPeriod: 0, periodEarnings: 0 };
         }
-        statsByBarber[barberId].services++;
+        statsByBarber[barberId].totalServices++;
         if (isWithinPeriod) {
+          statsByBarber[barberId].servicesInPeriod++;
+          statsByBarber[barberId].totalAmountInPeriod += data.totalAmount || 0;
           statsByBarber[barberId].periodEarnings += data.barberShare || 0;
         }
       });
@@ -131,7 +137,9 @@ export default function PersonalPage() {
       setBarbers((prev) =>
         prev.map((b) => ({
           ...b,
-          totalServices: statsByBarber[b.uid]?.services || 0,
+          totalServices: statsByBarber[b.uid]?.totalServices || 0,
+          periodServices: statsByBarber[b.uid]?.servicesInPeriod || 0,
+          periodRevenue: statsByBarber[b.uid]?.totalAmountInPeriod || 0,
           periodEarnings: statsByBarber[b.uid]?.periodEarnings || 0,
         }))
       );
@@ -323,13 +331,13 @@ export default function PersonalPage() {
                   <span className="text-text-muted text-[10px] md:text-xs uppercase tracking-widest flex items-center gap-2">
                     <Calendar size={12} className="md:size-[14px]" /> Servicios
                   </span>
-                  <span className="font-display text-lg md:text-xl text-white">{barber.totalServices}</span>
+                  <span className="font-display text-lg md:text-xl text-white">{barber.periodServices}</span>
                 </div>
                 <div className="flex justify-between items-center py-1.5 md:py-2 border-b border-white/5">
                   <span className="text-text-muted text-[10px] md:text-xs uppercase tracking-widest flex items-center gap-2">
                     <DollarSign size={12} className="md:size-[14px]" /> Ingresos
                   </span>
-                  <span className="font-display text-lg md:text-xl text-green-400">${(barber.totalRevenue || 0).toFixed(0)}</span>
+                  <span className="font-display text-lg md:text-xl text-green-400">${(barber.periodRevenue || 0).toFixed(0)}</span>
                 </div>
                 <div className="flex justify-between items-center py-1.5 md:py-2 border-b border-white/5">
                   <span className="text-text-muted text-[10px] md:text-xs uppercase tracking-widest flex items-center gap-2">
