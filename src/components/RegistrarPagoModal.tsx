@@ -29,8 +29,7 @@ const CONCEPT_OPTIONS = [
   { value: "Pago Semanal", label: "Pago Semanal" },
   { value: "Pago Semanal - Parcial", label: "Pago Semanal - Parcial" },
   { value: "Pago de Domingo", label: "Pago de Domingo" },
-  { value: "Adelanto de Domingo", label: "Adelanto de Domingo" },
-  { value: "Adelanto Semanal", label: "Adelanto Semanal" },
+  { value: "Domingo Parcial", label: "Domingo Parcial" },
   { value: "otro", label: "Otro (Especificar)" }
 ];
 
