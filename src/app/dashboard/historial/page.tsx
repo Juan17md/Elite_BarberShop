@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useMemo } from "react";
 import { useAuth } from "@/context/AuthContext";
-import { type FinancialRecord, type Service, SERVICES, type PaymentMethod, PAYMENT_METHODS } from "@/lib/types";
+import { type FinancialRecord, type Service, SERVICES, type PaymentMethod, PAYMENT_METHODS, getPaymentBadge } from "@/lib/types";
 import {
   collection,
   onSnapshot,
@@ -257,7 +257,7 @@ export default function HistorialPage() {
       : recordToEdit.barberName;
 
     const paymentMethod = formData.paymentMethod || "bcv";
-    const newTotalAmount = paymentMethod === "divisa" && selService.priceDivisa != null
+    const newTotalAmount = paymentMethod !== "bcv" && selService.priceDivisa != null
       ? selService.priceDivisa
       : selService.price;
     const newBarberShare = newTotalAmount * 0.6;
@@ -692,9 +692,9 @@ export default function HistorialPage() {
                       </TableCell>
                       <TableCell className="text-center">
                         <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider ${
-                          r.paymentMethod === "divisa" ? "bg-amber-500/10 text-amber-400 border border-amber-500/20" : "bg-blue-500/10 text-blue-400 border border-blue-500/20"
+                          getPaymentBadge(r.paymentMethod).colorClass
                         }`}>
-                          {r.paymentMethod === "divisa" ? "Divisa" : "BCV"}
+                          {getPaymentBadge(r.paymentMethod).label}
                         </span>
                       </TableCell>
                       <TableCell className="text-right font-display text-white tracking-wider">
@@ -742,9 +742,9 @@ export default function HistorialPage() {
                         {r.date}
                       </p>
                       <span className={`inline-block mt-1 px-2 py-0.5 rounded text-[9px] font-bold uppercase tracking-wider ${
-                        r.paymentMethod === "divisa" ? "text-amber-400 bg-amber-500/10 border border-amber-500/20" : "text-blue-400 bg-blue-500/10 border border-blue-500/20"
+                        getPaymentBadge(r.paymentMethod).colorClass
                       }`}>
-                        {r.paymentMethod === "divisa" ? "Divisa" : "BCV"}
+                        {getPaymentBadge(r.paymentMethod).label}
                       </span>
                     </div>
                     <div className="flex items-center gap-3">
@@ -902,7 +902,7 @@ export default function HistorialPage() {
                 <Select
                   options={serviciosDisponibles.map(s => {
                     const precioBase = `$${s.price.toFixed(2)}`;
-                    const precioDivisa = s.priceDivisa != null ? ` / $${s.priceDivisa.toFixed(2)} Div` : "";
+                    const precioDivisa = s.priceDivisa != null ? ` / $${s.priceDivisa.toFixed(2)} USD` : "";
                     return { value: s.id, label: `${precioBase}${precioDivisa} - ${s.name}` };
                   })}
                   value={formData.serviceId}
@@ -914,7 +914,7 @@ export default function HistorialPage() {
 
               <div>
                 <label className="block text-[10px] font-bold text-text-muted uppercase tracking-[0.2em] mb-2">Método de Pago</label>
-                <div className="grid grid-cols-2 gap-3">
+                <div className="grid grid-cols-3 gap-2">
                   {PAYMENT_METHODS.map((m) => (
                     <button
                       key={m.value}
@@ -948,7 +948,7 @@ export default function HistorialPage() {
               {formData.serviceId && (() => {
                 const selectedService = serviciosDisponibles.find(s => s.id === formData.serviceId);
                 if (!selectedService) return null;
-                const precio = formData.paymentMethod === "divisa" && selectedService.priceDivisa != null
+                const precio = formData.paymentMethod !== "bcv" && selectedService.priceDivisa != null
                   ? selectedService.priceDivisa
                   : selectedService.price;
                 return (

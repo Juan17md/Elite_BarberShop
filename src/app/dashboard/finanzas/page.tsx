@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useMemo } from "react";
 import { useAuth } from "@/context/AuthContext";
-import { type FinancialRecord, SERVICES, type Service, type PaymentMethod, PAYMENT_METHODS } from "@/lib/types";
+import { type FinancialRecord, SERVICES, type Service, type PaymentMethod, PAYMENT_METHODS, getPaymentBadge } from "@/lib/types";
 import { 
   collection, 
   addDoc, 
@@ -373,7 +373,7 @@ export default function FinanzasPage() {
     const finalBarberName = finalBarber.name;
 
     const paymentMethod = formData.paymentMethod || "bcv";
-    const newTotalAmount = paymentMethod === "divisa" && selService.priceDivisa != null
+    const newTotalAmount = paymentMethod !== "bcv" && selService.priceDivisa != null
       ? selService.priceDivisa
       : selService.price;
     const newBarberShare = newTotalAmount * 0.6;
@@ -797,9 +797,9 @@ export default function FinanzasPage() {
                   <TableCell className="text-text-secondary text-sm">{record.clientName}</TableCell>
                   <TableCell className="text-center">
                     <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider ${
-                      record.paymentMethod === "divisa" ? "bg-amber-500/10 text-amber-400 border border-amber-500/20" : "bg-blue-500/10 text-blue-400 border border-blue-500/20"
+                      getPaymentBadge(record.paymentMethod).colorClass
                     }`}>
-                      {record.paymentMethod === "divisa" ? "Divisa" : "BCV"}
+                      {getPaymentBadge(record.paymentMethod).label}
                     </span>
                   </TableCell>
                   <TableCell className="text-white text-right font-display tracking-widest">${record.totalAmount.toFixed(2)}</TableCell>
@@ -839,9 +839,9 @@ export default function FinanzasPage() {
                     <p className="text-white font-medium text-base tracking-wide">{record.clientName}</p>
                     <span className="text-[10px] text-text-muted opacity-50 px-2 py-0.5 border border-white/10 rounded uppercase">{record.date}</span>
                     <span className={`text-[10px] px-2 py-0.5 border rounded uppercase font-bold ${
-                      record.paymentMethod === "divisa" ? "text-amber-400 border-amber-500/20 bg-amber-500/10" : "text-blue-400 border-blue-500/20 bg-blue-500/10"
+                      getPaymentBadge(record.paymentMethod).colorClass
                     }`}>
-                      {record.paymentMethod === "divisa" ? "Divisa" : "BCV"}
+                      {getPaymentBadge(record.paymentMethod).label}
                     </span>
                   </div>
                   <p className="text-primary text-[10px] sm:text-xs uppercase tracking-[0.15em] font-bold">{record.serviceName}</p>
@@ -967,7 +967,7 @@ export default function FinanzasPage() {
                 <Select
                   options={serviciosDisponibles.map(s => {
                     const precioBase = `$${s.price.toFixed(2)}`;
-                    const precioDivisa = s.priceDivisa != null ? ` / $${s.priceDivisa.toFixed(2)} Div` : "";
+                    const precioDivisa = s.priceDivisa != null ? ` / $${s.priceDivisa.toFixed(2)} USD` : "";
                     return { value: s.id, label: `${precioBase}${precioDivisa} - ${s.name}` };
                   })}
                   value={formData.serviceId}
@@ -978,7 +978,7 @@ export default function FinanzasPage() {
               </div>
               <div>
                 <label className="block text-[10px] font-bold text-text-muted uppercase tracking-[0.2em] mb-2">Método de Pago</label>
-                <div className="grid grid-cols-2 gap-3">
+                <div className="grid grid-cols-3 gap-2">
                   {PAYMENT_METHODS.map((m) => (
                     <button
                       key={m.value}
@@ -1012,7 +1012,7 @@ export default function FinanzasPage() {
               {formData.serviceId && (() => {
                 const selectedService = serviciosDisponibles.find(s => s.id === formData.serviceId);
                 if (!selectedService) return null;
-                const precio = formData.paymentMethod === "divisa" && selectedService.priceDivisa != null
+                const precio = formData.paymentMethod !== "bcv" && selectedService.priceDivisa != null
                   ? selectedService.priceDivisa
                   : selectedService.price;
                 return (

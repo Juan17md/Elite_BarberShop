@@ -62,7 +62,7 @@ export interface Objective {
   createdByName?: string;
 }
 
-export type PaymentMethod = "bcv" | "divisa";
+export type PaymentMethod = "bcv" | "divisa" | "usd" | "usdt";
 
 export interface FinancialRecord {
   id: string;
@@ -76,7 +76,7 @@ export interface FinancialRecord {
   barberiaShare: number; // 40%
   date: string;
   createdAt: Date;
-  paymentMethod?: PaymentMethod; // método de pago: bcv (bolívares) o divisa (físico/USDT)
+  paymentMethod?: PaymentMethod;
   bcvRate?: number; // tasa BCV al momento del pago (solo si paymentMethod = "bcv")
 }
 
@@ -116,9 +116,23 @@ export const SERVICES: Service[] = [
 ];
 
 export const PAYMENT_METHODS: { value: PaymentMethod; label: string }[] = [
-  { value: "bcv", label: "BCV (Bolívares)" },
-  { value: "divisa", label: "Divisa ($ / USDT)" },
+  { value: "bcv", label: "Bolívares" },
+  { value: "usd", label: "Dólares ($)" },
+  { value: "usdt", label: "USDT" },
 ];
+
+export function getPaymentBadge(pm: string | undefined): { label: string; colorClass: string } {
+  switch (pm) {
+    case "bcv":
+      return { label: "BCV", colorClass: "bg-blue-500/10 text-blue-400 border-blue-500/20" };
+    case "usd":
+      return { label: "USD", colorClass: "bg-emerald-500/10 text-emerald-400 border-emerald-500/20" };
+    case "usdt":
+      return { label: "USDT", colorClass: "bg-purple-500/10 text-purple-400 border-purple-500/20" };
+    default:
+      return { label: "Divisa", colorClass: "bg-amber-500/10 text-amber-400 border-amber-500/20" };
+  }
+}
 
 export const ROLES: { value: RolUsuario; label: string }[] = [
   { value: 'superadmin', label: 'Super Administrador' },

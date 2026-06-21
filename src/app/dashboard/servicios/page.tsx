@@ -158,7 +158,7 @@ export default function ServiciosPage() {
                     </p>
                     {servicio.priceDivisa != null && (
                       <p className="text-xs text-amber-400 font-bold tracking-wide">
-                        Div: ${servicio.priceDivisa}
+                        USD/USDT: ${servicio.priceDivisa}
                       </p>
                     )}
                   </div>
@@ -209,7 +209,7 @@ export default function ServiciosPage() {
 
               <div>
                 <label className="block text-[10px] font-bold text-text-muted uppercase tracking-[0.2em] mb-2">
-                  Precio Divisa / USDT (opcional)
+                  Precio Dólar / USDT (opcional)
                 </label>
                 <input
                   type="number"

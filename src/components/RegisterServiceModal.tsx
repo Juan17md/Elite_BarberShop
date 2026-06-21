@@ -137,8 +137,9 @@ export default function RegisterServiceModal({ isOpen, onClose }: RegisterServic
     setIsSubmitting(true);
     try {
       const paymentMethod = formData.paymentMethod || "bcv";
-      const totalAmount = paymentMethod === "divisa" && service.priceDivisa != null 
-        ? service.priceDivisa 
+      const esDivisa = paymentMethod !== "bcv";
+      const totalAmount = esDivisa && service.priceDivisa != null
+        ? service.priceDivisa
         : service.price;
       const barberShareAmount = totalAmount * 0.6;
       const barberiaShareAmount = totalAmount * 0.4;
@@ -307,7 +308,7 @@ export default function RegisterServiceModal({ isOpen, onClose }: RegisterServic
             <Select
               options={serviciosDisponibles.map(s => {
                 const precioBase = `$${s.price.toFixed(2)}`;
-                const precioDivisa = s.priceDivisa != null ? ` / $${s.priceDivisa.toFixed(2)} Div` : "";
+                const precioDivisa = s.priceDivisa != null ? ` / $${s.priceDivisa.toFixed(2)} USD` : "";
                 return { value: s.id, label: `${precioBase}${precioDivisa} - ${s.name}` };
               })}
               value={formData.serviceId}
@@ -319,7 +320,7 @@ export default function RegisterServiceModal({ isOpen, onClose }: RegisterServic
 
           <div>
             <label className="block text-[10px] font-bold text-text-muted uppercase tracking-[0.2em] mb-2">Método de Pago</label>
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-3 gap-2">
               {PAYMENT_METHODS.map((m) => (
                 <button
                   key={m.value}
@@ -331,7 +332,7 @@ export default function RegisterServiceModal({ isOpen, onClose }: RegisterServic
                       : "bg-void/50 border-white/10 text-text-muted hover:text-white hover:border-white/20"
                   }`}
                 >
-                  {m.value === "bcv" ? "Bolívares" : "Divisas"}
+                  {m.label}
                 </button>
               ))}
             </div>
@@ -340,7 +341,8 @@ export default function RegisterServiceModal({ isOpen, onClose }: RegisterServic
           {formData.serviceId && (() => {
             const selectedService = serviciosDisponibles.find(s => s.id === formData.serviceId);
             if (!selectedService) return null;
-            const precio = formData.paymentMethod === "divisa" && selectedService.priceDivisa != null
+            const esDivisa = formData.paymentMethod !== "bcv";
+            const precio = esDivisa && selectedService.priceDivisa != null
               ? selectedService.priceDivisa
               : selectedService.price;
             return (

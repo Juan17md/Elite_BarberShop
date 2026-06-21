@@ -3,7 +3,7 @@
 import { useState, useEffect, useMemo } from "react";
 import Link from "next/link";
 import { useAuth } from "@/context/AuthContext";
-import { type FinancialRecord } from "@/lib/types";
+import { type FinancialRecord, getPaymentBadge } from "@/lib/types";
 import { 
   collection, 
   onSnapshot,
@@ -316,11 +316,9 @@ export default function DashboardPage() {
                     <TableCell className="py-3 text-text-secondary">{r.clientName}</TableCell>
                     <TableCell className="py-3">
                       <span className={`text-[10px] uppercase tracking-widest font-bold px-2 py-0.5 rounded-full border ${
-                        r.paymentMethod === "divisa"
-                          ? "text-emerald-400 border-emerald-400/30 bg-emerald-400/10"
-                          : "text-sky-400 border-sky-400/30 bg-sky-400/10"
+                        getPaymentBadge(r.paymentMethod).colorClass
                       }`}>
-                        {r.paymentMethod === "divisa" ? "Divisa" : "BCV"}
+                        {getPaymentBadge(r.paymentMethod).label}
                       </span>
                     </TableCell>
                     <TableCell className="py-3 text-primary text-right font-display">${r.totalAmount.toFixed(2)}</TableCell>
@@ -354,11 +352,9 @@ export default function DashboardPage() {
                     <span className="text-text-secondary text-[10px] uppercase tracking-widest font-bold leading-relaxed mr-2">{r.serviceName}</span>
                     <div className="flex items-center gap-2 shrink-0">
                       <span className={`text-[9px] uppercase tracking-widest font-bold px-1.5 py-0.5 rounded-full border ${
-                        r.paymentMethod === "divisa"
-                          ? "text-emerald-400 border-emerald-400/30 bg-emerald-400/10"
-                          : "text-sky-400 border-sky-400/30 bg-sky-400/10"
+                        getPaymentBadge(r.paymentMethod).colorClass
                       }`}>
-                        {r.paymentMethod === "divisa" ? "Divisa" : "BCV"}
+                        {getPaymentBadge(r.paymentMethod).label}
                       </span>
                       <span className="text-text-muted text-[10px]">{r.date}</span>
                     </div>
@@ -579,11 +575,9 @@ export default function DashboardPage() {
                     <TableCell className="py-3 text-text-secondary">{r.clientName}</TableCell>
                     <TableCell className="py-3">
                       <span className={`text-[10px] uppercase tracking-widest font-bold px-2 py-0.5 rounded-full border ${
-                        r.paymentMethod === "divisa"
-                          ? "text-emerald-400 border-emerald-400/30 bg-emerald-400/10"
-                          : "text-sky-400 border-sky-400/30 bg-sky-400/10"
+                        getPaymentBadge(r.paymentMethod).colorClass
                       }`}>
-                        {r.paymentMethod === "divisa" ? "Divisa" : "BCV"}
+                        {getPaymentBadge(r.paymentMethod).label}
                       </span>
                     </TableCell>
                     <TableCell className="py-3 text-emerald-400 text-right font-display">${r.barberShare.toFixed(2)}</TableCell>
@@ -615,12 +609,8 @@ export default function DashboardPage() {
                   </div>
                 </div>
                 <div className="flex justify-between items-center text-[10px] text-text-muted">
-                  <span className={`text-[9px] uppercase tracking-widest font-bold px-1.5 py-0.5 rounded-full border ${
-                    r.paymentMethod === "divisa"
-                      ? "text-emerald-400 border-emerald-400/30 bg-emerald-400/10"
-                      : "text-sky-400 border-sky-400/30 bg-sky-400/10"
-                  }`}>
-                    {r.paymentMethod === "divisa" ? "Divisa" : "BCV"}
+                  <span className={`text-[9px] uppercase tracking-widest font-bold px-1.5 py-0.5 rounded-full border ${getPaymentBadge(r.paymentMethod).colorClass}`}>
+                    {getPaymentBadge(r.paymentMethod).label}
                   </span>
                   <span className="italic">{r.date}</span>
                 </div>
