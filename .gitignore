@@ -140,6 +140,7 @@ CLAUDE.md
 *.seed
 createAdmin.js
 resetDatabase.js
+resetCompleto.js
 migrar-*.js
 migrar-*.mjs
 migrar-*.cjs
