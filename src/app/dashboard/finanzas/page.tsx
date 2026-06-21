@@ -609,83 +609,83 @@ export default function FinanzasPage() {
 
       <div className="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-4 gap-3 md:gap-6 animate-fade-in-up">
         {/* Card Servicios Count */}
-        <div className="card-premium p-4 md:p-6 flex flex-col justify-between">
-          <div className="flex items-center gap-2 md:gap-3 mb-3 md:mb-4">
-            <div className="w-10 h-10 md:w-12 md:h-12 rounded-lg md:rounded-xl bg-void/50 border border-white/5 flex items-center justify-center text-primary shadow-inner">
-              <Scissors size={20} className="md:size-6" />
+        <div className="card-premium p-5 md:p-6 flex flex-col justify-between">
+          <div className="flex items-center gap-3 md:gap-3 mb-3 md:mb-4">
+            <div className="w-12 h-12 md:w-12 md:h-12 rounded-xl md:rounded-xl bg-void/50 border border-white/5 flex items-center justify-center text-primary shadow-inner">
+              <Scissors size={22} className="md:size-6" />
             </div>
-            <p className="text-[9px] md:text-[10px] font-bold text-text-muted uppercase tracking-[0.15em] md:tracking-[0.2em]">Servicios</p>
+            <p className="text-[10px] md:text-[10px] font-bold text-text-muted uppercase tracking-[0.15em] md:tracking-[0.2em]">Servicios</p>
           </div>
           <div className="mt-auto">
-            <p className="font-display text-2xl md:text-5xl text-white font-bold tracking-tighter leading-none">{filteredRecords.length}</p>
-            <p className="text-[9px] md:text-[9px] text-text-muted uppercase tracking-widest font-bold mt-1 md:mt-2 flex items-center gap-1">
+            <p className="font-display text-3xl md:text-5xl text-white font-bold tracking-tighter leading-none">{filteredRecords.length}</p>
+            <p className="text-[10px] md:text-[9px] text-text-muted uppercase tracking-widest font-bold mt-1 md:mt-2 flex items-center gap-1">
               <TrendingUp size={10} className="md:size-[10px] text-emerald-500" /> Total Realizados
             </p>
           </div>
         </div>
 
         {/* Card Ingreso Barbero (60%) / Tu Parte */}
-        <div className="card-premium p-4 md:p-6 flex flex-col justify-between">
-          <div className="flex items-center gap-2 md:gap-3 mb-3 md:mb-4">
-            <div className="w-10 h-10 md:w-12 md:h-12 rounded-lg md:rounded-xl bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center text-emerald-400 shadow-inner">
-              <DollarSign size={20} className="md:size-6" />
+        <div className="card-premium p-5 md:p-6 flex flex-col justify-between">
+          <div className="flex items-center gap-3 md:gap-3 mb-3 md:mb-4">
+            <div className="w-12 h-12 md:w-12 md:h-12 rounded-xl md:rounded-xl bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center text-emerald-400 shadow-inner">
+              <DollarSign size={22} className="md:size-6" />
             </div>
-            <p className="text-[9px] md:text-[10px] font-bold text-text-muted uppercase tracking-[0.15em] md:tracking-[0.2em]">{isAdmin ? "Ingreso Barberos" : "Tu Parte"}</p>
+            <p className="text-[10px] md:text-[10px] font-bold text-text-muted uppercase tracking-[0.15em] md:tracking-[0.2em]">{isAdmin ? "Ingreso Barberos" : "Tu Parte"}</p>
           </div>
           <div className="mt-auto">
-            <p className="font-display text-xl md:text-5xl text-white font-bold tracking-tighter leading-none">${barberShare.toFixed(2).split('.')[0]}<span className="text-xs md:text-2xl opacity-50">.{barberShare.toFixed(2).split('.')[1]}</span></p>
-            <p className="text-[9px] md:text-[9px] text-text-muted uppercase tracking-widest font-bold mt-1 md:mt-2">60% de Comisiones</p>
+            <p className="font-display text-2xl md:text-5xl text-white font-bold tracking-tighter leading-none">${barberShare.toFixed(2).split('.')[0]}<span className="text-sm md:text-2xl opacity-50">.{barberShare.toFixed(2).split('.')[1]}</span></p>
+            <p className="text-[10px] md:text-[9px] text-text-muted uppercase tracking-widest font-bold mt-1 md:mt-2">60% de Comisiones</p>
           </div>
         </div>
 
         {/* Card Barbería (40%) */}
-        <div className="card-premium p-4 md:p-6 flex flex-col justify-between">
-          <div className="flex items-center gap-2 md:gap-3 mb-3 md:mb-4">
-            <div className="w-10 h-10 md:w-12 md:h-12 rounded-lg md:rounded-xl bg-blue-500/10 border border-blue-500/20 flex items-center justify-center text-blue-400 shadow-inner">
-              <Wallet size={20} className="md:size-6" />
+        <div className="card-premium p-5 md:p-6 flex flex-col justify-between">
+          <div className="flex items-center gap-3 md:gap-3 mb-3 md:mb-4">
+            <div className="w-12 h-12 md:w-12 md:h-12 rounded-xl md:rounded-xl bg-blue-500/10 border border-blue-500/20 flex items-center justify-center text-blue-400 shadow-inner">
+              <Wallet size={22} className="md:size-6" />
             </div>
-            <p className="text-[9px] md:text-[10px] font-bold text-text-muted uppercase tracking-[0.15em] md:tracking-[0.2em]">Barbería</p>
+            <p className="text-[10px] md:text-[10px] font-bold text-text-muted uppercase tracking-[0.15em] md:tracking-[0.2em]">Barbería</p>
           </div>
           <div className="mt-auto">
-            <p className="font-display text-xl md:text-5xl text-white font-bold tracking-tighter leading-none">${barberiaShare.toFixed(2).split('.')[0]}<span className="text-xs md:text-2xl opacity-50">.{barberiaShare.toFixed(2).split('.')[1]}</span></p>
-            <p className="text-[9px] md:text-[9px] text-text-muted uppercase tracking-widest font-bold mt-1 md:mt-2">40% de Comisiones</p>
+            <p className="font-display text-2xl md:text-5xl text-white font-bold tracking-tighter leading-none">${barberiaShare.toFixed(2).split('.')[0]}<span className="text-sm md:text-2xl opacity-50">.{barberiaShare.toFixed(2).split('.')[1]}</span></p>
+            <p className="text-[10px] md:text-[9px] text-text-muted uppercase tracking-widest font-bold mt-1 md:mt-2">40% de Comisiones</p>
           </div>
         </div>
 
         {/* Card Total Generado */}
-        <div className="card-premium p-4 md:p-6 flex flex-col justify-between border-l-2 md:border-l-4 border-l-primary/40">
-          <div className="flex items-center gap-2 md:gap-3 mb-3 md:mb-4">
-            <div className="w-10 h-10 md:w-12 md:h-12 rounded-lg md:rounded-xl bg-primary/10 border border-primary/20 flex items-center justify-center text-primary shadow-inner">
-              <TrendingUp size={20} className="md:size-6" />
+        <div className="card-premium p-5 md:p-6 flex flex-col justify-between border-l-2 md:border-l-4 border-l-primary/40">
+          <div className="flex items-center gap-3 md:gap-3 mb-3 md:mb-4">
+            <div className="w-12 h-12 md:w-12 md:h-12 rounded-xl md:rounded-xl bg-primary/10 border border-primary/20 flex items-center justify-center text-primary shadow-inner">
+              <TrendingUp size={22} className="md:size-6" />
             </div>
-            <p className="text-[9px] md:text-[10px] font-bold text-text-muted uppercase tracking-[0.15em] md:tracking-[0.2em]">Total Generado</p>
+            <p className="text-[10px] md:text-[10px] font-bold text-text-muted uppercase tracking-[0.15em] md:tracking-[0.2em]">Total Generado</p>
           </div>
           <div className="mt-auto">
-            <p className="font-display text-xl md:text-5xl text-white font-bold tracking-tighter leading-none">${totalRevenue.toFixed(2).split('.')[0]}<span className="text-xs md:text-2xl opacity-50">.{totalRevenue.toFixed(2).split('.')[1]}</span></p>
-            <p className="text-[9px] md:text-[9px] text-text-muted uppercase tracking-widest font-bold mt-1 md:mt-2">Ingreso bruto semanal</p>
+            <p className="font-display text-2xl md:text-5xl text-white font-bold tracking-tighter leading-none">${totalRevenue.toFixed(2).split('.')[0]}<span className="text-sm md:text-2xl opacity-50">.{totalRevenue.toFixed(2).split('.')[1]}</span></p>
+            <p className="text-[10px] md:text-[9px] text-text-muted uppercase tracking-widest font-bold mt-1 md:mt-2">Ingreso bruto semanal</p>
           </div>
         </div>
 
         {isAdmin && (
         <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-3 md:gap-6 animate-fade-in-up col-span-full">
-          <div className="card-premium p-4 md:p-6 border-l-2 md:border-l-4 border-l-emerald-500/80">
-            <p className="text-text-secondary font-display text-[9px] md:text-[10px] tracking-widest uppercase mb-2 md:mb-3 font-bold opacity-60">Ingresos (Actas)</p>
-            <p className="font-display text-xl md:text-3xl text-white font-bold tracking-tight leading-none">${ingresos.toFixed(2)}</p>
+          <div className="card-premium p-5 md:p-6 border-l-2 md:border-l-4 border-l-emerald-500/80">
+            <p className="text-text-secondary font-display text-[10px] md:text-[10px] tracking-widest uppercase mb-2 md:mb-3 font-bold opacity-60">Ingresos (Actas)</p>
+            <p className="font-display text-2xl md:text-3xl text-white font-bold tracking-tight leading-none">${ingresos.toFixed(2)}</p>
           </div>
-          <div className="card-premium p-4 md:p-6 border-l-2 md:border-l-4 border-l-red-500/80">
-            <p className="text-text-secondary font-display text-[9px] md:text-[10px] tracking-widest uppercase mb-2 md:mb-3 font-bold opacity-60">Egresos (Gastos)</p>
-            <p className="font-display text-xl md:text-3xl text-white font-bold tracking-tight leading-none">${egresos.toFixed(2)}</p>
+          <div className="card-premium p-5 md:p-6 border-l-2 md:border-l-4 border-l-red-500/80">
+            <p className="text-text-secondary font-display text-[10px] md:text-[10px] tracking-widest uppercase mb-2 md:mb-3 font-bold opacity-60">Egresos (Gastos)</p>
+            <p className="font-display text-2xl md:text-3xl text-white font-bold tracking-tight leading-none">${egresos.toFixed(2)}</p>
           </div>
-          <div className="card-premium p-4 md:p-6 border-l-2 md:border-l-4 border-l-cyan-500/80">
-            <p className="text-text-secondary font-display text-[9px] md:text-[10px] tracking-widest uppercase mb-2 md:mb-3 font-bold opacity-60">Balance Semanal</p>
-            <p className="font-display text-xl md:text-3xl text-white font-bold tracking-tight leading-none">
-              ${(ingresos + barberiaShare - egresos).toFixed(2).split('.')[0]}<span className="text-xs md:text-xl opacity-50">.{(ingresos + barberiaShare - egresos).toFixed(2).split('.')[1]}</span>
+          <div className="card-premium p-5 md:p-6 border-l-2 md:border-l-4 border-l-cyan-500/80">
+            <p className="text-text-secondary font-display text-[10px] md:text-[10px] tracking-widest uppercase mb-2 md:mb-3 font-bold opacity-60">Balance Semanal</p>
+            <p className="font-display text-2xl md:text-3xl text-white font-bold tracking-tight leading-none">
+              ${(ingresos + barberiaShare - egresos).toFixed(2).split('.')[0]}<span className="text-sm md:text-xl opacity-50">.{(ingresos + barberiaShare - egresos).toFixed(2).split('.')[1]}</span>
             </p>
           </div>
-          <div className="card-premium p-4 md:p-6 border-l-2 md:border-l-4 border-l-primary-light bg-linear-to-br from-primary/10 to-transparent">
-            <p className="text-text-secondary font-display text-[9px] md:text-[10px] tracking-widest uppercase mb-2 md:mb-3 font-bold opacity-60">Balance Neto Global</p>
-            <p className="font-display text-xl md:text-3xl text-white font-bold tracking-tight leading-none">
-              ${(globalIngresos + globalBarberiaShare - globalEgresos).toFixed(2).split('.')[0]}<span className="text-xs md:text-xl opacity-50">.{(globalIngresos + globalBarberiaShare - globalEgresos).toFixed(2).split('.')[1]}</span>
+          <div className="card-premium p-5 md:p-6 border-l-2 md:border-l-4 border-l-primary-light bg-linear-to-br from-primary/10 to-transparent">
+            <p className="text-text-secondary font-display text-[10px] md:text-[10px] tracking-widest uppercase mb-2 md:mb-3 font-bold opacity-60">Balance Neto Global</p>
+            <p className="font-display text-2xl md:text-3xl text-white font-bold tracking-tight leading-none">
+              ${(globalIngresos + globalBarberiaShare - globalEgresos).toFixed(2).split('.')[0]}<span className="text-sm md:text-xl opacity-50">.{(globalIngresos + globalBarberiaShare - globalEgresos).toFixed(2).split('.')[1]}</span>
             </p>
           </div>
         </div>
