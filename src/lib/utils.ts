@@ -68,19 +68,34 @@ export function getPeriodFromPosition(position: number = 0): Period {
     hoy.toLocaleString("en-US", { timeZone: "America/Caracas" })
   );
   const diaSemana = fechaCaracas.getDay(); // 0=Dom, 1=Lun, ..., 6=Sáb
+  const hoyEsDomingo = diaSemana === 0;
 
-  // Lunes de la semana actual (si es domingo, la semana actual empieza mañana)
-  const diffDesdeLunes = diaSemana === 0 ? -6 : -(diaSemana - 1); // días desde el lunes
-  const lunesActual = new Date(fechaCaracas);
-  lunesActual.setDate(fechaCaracas.getDate() + diffDesdeLunes);
+  // En domingo, posición 0 = hoy (domingo actual)
+  if (hoyEsDomingo && position === 0) {
+    const dateStr = getLocalDateString(fechaCaracas);
+    return {
+      inicio: dateStr,
+      fin: dateStr,
+      label: `Domingo ${formatFecha(fechaCaracas)}`,
+      isSunday: true,
+    };
+  }
 
-  const isSunday = position % 2 === 1;
-  const stepsBack = Math.floor(position / 2);
+  // Ajustar posición si hoy es domingo (posición 0 ya se usó para hoy)
+  const pos = hoyEsDomingo ? position - 1 : position;
+  const lunesActual = (() => {
+    const diff = hoyEsDomingo ? -6 : -(diaSemana - 1);
+    const l = new Date(fechaCaracas);
+    l.setDate(fechaCaracas.getDate() + diff);
+    return l;
+  })();
 
-  if (isSunday) {
-    // Domingos: cada domingo está entre la semana actual y la anterior
+  const esDomingo = pos % 2 === 1;
+  const pasosAtras = Math.floor(pos / 2);
+
+  if (esDomingo) {
     const domingo = new Date(lunesActual);
-    domingo.setDate(lunesActual.getDate() - (stepsBack * 7 + 1));
+    domingo.setDate(lunesActual.getDate() - (pasosAtras * 7 + 1));
     const dateStr = getLocalDateString(domingo);
     return {
       inicio: dateStr,
@@ -90,9 +105,8 @@ export function getPeriodFromPosition(position: number = 0): Period {
     };
   }
 
-  // Semanas Lun-Sáb
   const lunes = new Date(lunesActual);
-  lunes.setDate(lunesActual.getDate() - stepsBack * 7);
+  lunes.setDate(lunesActual.getDate() - pasosAtras * 7);
   const sabado = new Date(lunes);
   sabado.setDate(lunes.getDate() + 5);
 

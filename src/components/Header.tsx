@@ -27,8 +27,8 @@ const navItems = [
 
 export default function Header({ onOpenSidebar }: HeaderProps) {
   const pathname = usePathname();
-  const { userRole } = useAuth();
-  const isAdmin = userRole?.role === "admin";
+  const { datosUsuario, authLoading, rolLoading } = useAuth();
+  const isAdmin = (datosUsuario?.rol === "admin" || datosUsuario?.rol === "superadmin");
 
   const [bcvRate, setBcvRate] = useState<number | null>(null);
 
@@ -68,11 +68,11 @@ export default function Header({ onOpenSidebar }: HeaderProps) {
         if (isAdmin) {
           return {
             title: <>RESUMEN DE <span className="text-primary">OPERACIONES</span></>,
-            desc: `Bienvenido, ${userRole?.name || ""}. Aquí está el overview de la barbería.`
+            desc: `Bienvenido, ${datosUsuario?.nombre || ""}. Aquí está el overview de la barbería.`
           };
         }
         return {
-          title: <>HOLA, <span className="text-primary">{userRole?.name?.toUpperCase() || ""}</span></>,
+          title: <>HOLA, <span className="text-primary">{datosUsuario?.nombre?.toUpperCase() || ""}</span></>,
           desc: "Este es tu resumen de ganancias y rendimiento."
         };
       case "/dashboard/clientes":

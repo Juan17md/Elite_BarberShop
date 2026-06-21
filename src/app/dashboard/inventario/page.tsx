@@ -55,8 +55,8 @@ const OPCIONES_ESTADO_EQUIPO = ESTADOS_EQUIPO.map((estado) => ({
 type FiltroEstado = (typeof FILTROS_ESTADO)[number];
 
 export default function InventarioPage() {
-  const { userRole } = useAuth();
-  const isAdmin = userRole?.role === "admin";
+  const { datosUsuario, authLoading, rolLoading } = useAuth();
+  const isAdmin = (datosUsuario?.rol === "admin" || datosUsuario?.rol === "superadmin");
 
   const [items, setItems] = useState<InventoryItem[]>([]);
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -144,7 +144,7 @@ export default function InventarioPage() {
         ...datosComunes,
         ...(esEquipo ? { estado: formData.estado } : {}),
         addedAt: new Date(),
-        addedBy: userRole?.uid || "",
+        addedBy: datosUsuario?.uid || "",
       });
     }
 

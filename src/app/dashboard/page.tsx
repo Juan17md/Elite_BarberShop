@@ -18,8 +18,8 @@ import { getLocalDateString, getStartOfMonthString, getPeriodFromPosition } from
 import RegisterServiceModal from "@/components/RegisterServiceModal";
 
 export default function DashboardPage() {
-  const { userRole } = useAuth();
-  const isAdmin = userRole?.role === "admin";
+  const { datosUsuario, authLoading, rolLoading } = useAuth();
+  const isAdmin = (datosUsuario?.rol === "admin" || datosUsuario?.rol === "superadmin");
   const [records, setRecords] = useState<FinancialRecord[]>([]);
   const [today, setToday] = useState(getLocalDateString());
   const [loading, setLoading] = useState(true);
@@ -41,13 +41,13 @@ export default function DashboardPage() {
   }, [today]);
 
   useEffect(() => {
-    if (!userRole?.uid) return;
+    if (!datosUsuario?.uid) return;
     
     let q;
     if (isAdmin) {
       q = query(collection(db, "finances"), orderBy("date", "desc"));
     } else {
-      q = query(collection(db, "finances"), where("barberId", "==", userRole?.uid), orderBy("date", "desc"));
+      q = query(collection(db, "finances"), where("barberId", "==", datosUsuario?.uid), orderBy("date", "desc"));
     }
     
     const unsubscribe = onSnapshot(q, (snapshot) => {
@@ -59,7 +59,7 @@ export default function DashboardPage() {
       setLoading(false);
     });
     return () => unsubscribe();
-  }, [isAdmin, userRole?.uid]);
+  }, [isAdmin, datosUsuario?.uid]);
 
   // Resumen rápido (siempre período actual)
   const startOfMonthStr = getStartOfMonthString();
@@ -114,7 +114,7 @@ export default function DashboardPage() {
 
         <div className="flex flex-col items-center gap-1.5 min-w-0">
           {esPosicionActual && (
-            <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-[10px] font-bold uppercase tracking-[0.15em] shadow-[0_0_12px_rgba(16,185,129,0.15)]">
+            <span className="inline-flex items-center justify-center gap-1.5 px-3 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-[10px] font-bold uppercase tracking-[0.15em] shadow-[0_0_12px_rgba(16,185,129,0.15)]">
               <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
               {periodo.isSunday ? "Domingo actual" : "Semana actual"}
             </span>
@@ -351,8 +351,8 @@ export default function DashboardPage() {
                   </div>
                 </div>
                   <div className="flex justify-between items-center bg-void/30 px-3 py-2 rounded-lg border border-white/5">
-                    <div className="flex items-center gap-2">
-                      <span className="text-text-secondary text-[10px] uppercase tracking-widest font-bold">{r.serviceName}</span>
+                    <span className="text-text-secondary text-[10px] uppercase tracking-widest font-bold leading-relaxed mr-2">{r.serviceName}</span>
+                    <div className="flex items-center gap-2 shrink-0">
                       <span className={`text-[9px] uppercase tracking-widest font-bold px-1.5 py-0.5 rounded-full border ${
                         r.paymentMethod === "divisa"
                           ? "text-emerald-400 border-emerald-400/30 bg-emerald-400/10"
@@ -360,8 +360,8 @@ export default function DashboardPage() {
                       }`}>
                         {r.paymentMethod === "divisa" ? "Divisa" : "BCV"}
                       </span>
+                      <span className="text-text-muted text-[10px]">{r.date}</span>
                     </div>
-                    <span className="text-text-muted text-[10px]">{r.date}</span>
                   </div>
               </div>
             ))}

@@ -30,8 +30,8 @@ interface RegisterServiceModalProps {
 const normalizarNombreServicio = (nombre: string) => nombre.trim().toLowerCase();
 
 export default function RegisterServiceModal({ isOpen, onClose }: RegisterServiceModalProps) {
-  const { userRole } = useAuth();
-  const isAdmin = userRole?.role === "admin";
+  const { datosUsuario } = useAuth();
+  const esAdmin = datosUsuario?.rol === "admin" || datosUsuario?.rol === "superadmin";
 
   const [formData, setFormData] = useState({
     serviceId: "",
@@ -85,7 +85,7 @@ export default function RegisterServiceModal({ isOpen, onClose }: RegisterServic
 
   // Cargar barberos si es administrador
   useEffect(() => {
-    if (!isOpen || !isAdmin) return;
+    if (!isOpen || !esAdmin) return;
 
     const consulta = query(
       collection(db, "users"), 
@@ -100,7 +100,7 @@ export default function RegisterServiceModal({ isOpen, onClose }: RegisterServic
       setBarbers(data);
     });
     return () => unsubscribe();
-  }, [isOpen, isAdmin]);
+  }, [isOpen, esAdmin]);
 
   // Inicializar o limpiar campos al abrir/cerrar el modal
   useEffect(() => {
@@ -108,11 +108,11 @@ export default function RegisterServiceModal({ isOpen, onClose }: RegisterServic
       setFormData({
         serviceId: "",
         clientName: "",
-        barberId: isAdmin ? "" : (userRole?.uid || ""),
+        barberId: esAdmin ? "" : (datosUsuario?.uid || ""),
         paymentMethod: "bcv"
       });
     }
-  }, [isOpen, isAdmin, userRole]);
+  }, [isOpen, esAdmin, datosUsuario]);
 
   const handleRegisterService = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -124,10 +124,10 @@ export default function RegisterServiceModal({ isOpen, onClose }: RegisterServic
       return;
     }
 
-    const finalBarberId = isAdmin ? formData.barberId : userRole?.uid;
-    const finalBarber = isAdmin && formData.barberId 
-      ? (barbers.find(b => b.id === formData.barberId) || userRole)
-      : userRole;
+    const finalBarberId = esAdmin ? formData.barberId : datosUsuario?.uid;
+    const finalBarber = esAdmin && formData.barberId 
+      ? (barbers.find(b => b.id === formData.barberId) || datosUsuario)
+      : datosUsuario;
 
     if (!finalBarberId || !finalBarber) {
       alert("Debes seleccionar un barbero");
@@ -228,7 +228,7 @@ export default function RegisterServiceModal({ isOpen, onClose }: RegisterServic
       // 6. Actualizar objetivos automáticamente
       try {
         let objectivesQuery;
-        if (isAdmin) {
+        if (esAdmin) {
           objectivesQuery = query(collection(db, "objectives"));
         } else {
           objectivesQuery = query(collection(db, "objectives"), where("barberoId", "==", finalBarberId));
@@ -289,7 +289,7 @@ export default function RegisterServiceModal({ isOpen, onClose }: RegisterServic
         <h2 className="font-display text-3xl text-white mb-8 tracking-widest uppercase">Registrar Servicio</h2>
         
         <form onSubmit={handleRegisterService} className="space-y-6">
-          {isAdmin && (
+          {esAdmin && (
             <div>
               <label className="block text-[10px] font-bold text-text-muted uppercase tracking-[0.2em] mb-2">Barbero</label>
               <Select

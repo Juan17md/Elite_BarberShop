@@ -20,8 +20,8 @@ const normalizarNombreServicio = (nombre: string) => nombre.trim().toLowerCase()
 const formatearNombreServicio = (nombre: string) => nombre.trim().toUpperCase();
 
 export default function ServiciosPage() {
-  const { userRole } = useAuth();
-  const puedeGestionarServicios = userRole?.role === "admin" || userRole?.role === "barber";
+  const { datosUsuario, authLoading, rolLoading } = useAuth();
+  const puedeGestionarServicios = (datosUsuario?.rol === "admin" || datosUsuario?.rol === "superadmin" || datosUsuario?.rol === "barber");
   const [servicios, setServicios] = useState<Service[]>([]);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);

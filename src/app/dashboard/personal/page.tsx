@@ -29,8 +29,8 @@ interface BarberWithStats {
 }
 
 export default function PersonalPage() {
-  const { userRole } = useAuth();
-  const isAdmin = userRole?.role === "admin";
+  const { datosUsuario, authLoading, rolLoading } = useAuth();
+  const isAdmin = (datosUsuario?.rol === "admin" || datosUsuario?.rol === "superadmin");
   const [barbers, setBarbers] = useState<BarberWithStats[]>([]);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState<"equipo" | "configuracion">("equipo");
@@ -129,11 +129,11 @@ export default function PersonalPage() {
           <div className="flex items-center gap-4 mb-6">
             <div className="w-20 h-20 rounded-full bg-primary/20 flex items-center justify-center">
               <span className="font-display text-3xl text-primary">
-                {userRole?.name?.[0] || "U"}
+                {datosUsuario?.nombre?.[0] || "U"}
               </span>
             </div>
             <div>
-              <h2 className="font-display text-2xl text-white">{userRole?.name}</h2>
+              <h2 className="font-display text-2xl text-white">{datosUsuario?.nombre}</h2>
               <p className="text-text-secondary">Barbero</p>
             </div>
           </div>

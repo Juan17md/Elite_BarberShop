@@ -140,6 +140,9 @@ CLAUDE.md
 *.seed
 createAdmin.js
 resetDatabase.js
+migrar-*.js
+migrar-*.mjs
+migrar-*.cjs
 documentacion.txt
 docs-obsidian
 

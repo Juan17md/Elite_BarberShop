@@ -47,8 +47,8 @@ import { getLocalDateString, getPeriodFromPosition } from "@/lib/utils";
 const ITEMS_POR_PAGINA = 15;
 
 export default function HistorialPage() {
-  const { userRole } = useAuth();
-  const esAdmin = userRole?.role === "admin";
+  const { datosUsuario, authLoading, rolLoading } = useAuth();
+  const esAdmin = (datosUsuario?.rol === "admin" || datosUsuario?.rol === "superadmin");
 
   const [registros, setRegistros] = useState<FinancialRecord[]>([]);
   const [cargando, setCargando] = useState(true);
@@ -78,14 +78,14 @@ export default function HistorialPage() {
 
   // Efecto para registros
   useEffect(() => {
-    if (!userRole?.uid) return;
+    if (!datosUsuario?.uid) return;
     let q;
     if (esAdmin) {
       q = query(collection(db, "finances"), orderBy("date", "desc"));
     } else {
       q = query(
         collection(db, "finances"),
-        where("barberId", "==", userRole?.uid),
+        where("barberId", "==", datosUsuario?.uid),
         orderBy("date", "desc")
       );
     }
@@ -99,7 +99,7 @@ export default function HistorialPage() {
       setCargando(false);
     });
     return () => unsubscribe();
-  }, [esAdmin, userRole?.uid]);
+  }, [esAdmin, datosUsuario?.uid]);
 
   // Efecto para servicios disponibles (para el modal de edición)
   useEffect(() => {
@@ -494,7 +494,24 @@ export default function HistorialPage() {
       {/* Panel de filtros */}
       <div className="card-premium p-4 md:p-5 space-y-4">
         {/* Navegador de periodo */}
-        <div className="flex flex-col sm:flex-row gap-4 items-center justify-between font-display">
+        <div className="flex flex-col gap-4 items-center font-display">
+          {/* Badge de periodo actual */}
+          <div className="flex items-center">
+            {esPosicionActual ? (
+              <span className="px-3 py-1.5 rounded-full text-[10px] font-bold uppercase tracking-widest bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 shadow-[0_0_15px_rgba(16,185,129,0.1)]">
+                {periodo.isSunday ? "Domingo actual" : "Semana actual"}
+              </span>
+            ) : (
+              <button
+                onClick={() => setPosition(0)}
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[10px] font-bold uppercase tracking-widest text-text-muted hover:text-white border border-white/10 hover:border-primary/30 hover:bg-primary/10 active:scale-95 transition-all"
+              >
+                Ir a actual
+                <ChevronRight size={12} />
+              </button>
+            )}
+          </div>
+
           <div className="flex items-center gap-2 sm:gap-3 w-full sm:w-auto">
             <button
               onClick={() => setPosition((prev) => prev + 1)}
@@ -520,22 +537,6 @@ export default function HistorialPage() {
               <ChevronRight size={18} />
             </button>
           </div>
-
-          <div className="flex items-center">
-            {esPosicionActual ? (
-              <span className="px-3 py-1.5 rounded-full text-[10px] font-bold uppercase tracking-widest bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 shadow-[0_0_15px_rgba(16,185,129,0.1)]">
-                {periodo.isSunday ? "Domingo actual" : "Semana actual"}
-              </span>
-            ) : (
-              <button
-                onClick={() => setPosition(0)}
-                className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[10px] font-bold uppercase tracking-widest text-text-muted hover:text-white border border-white/10 hover:border-primary/30 hover:bg-primary/10 active:scale-95 transition-all"
-              >
-                Ir a actual
-                <ChevronRight size={12} />
-              </button>
-            )}
-          </div>
         </div>
 
         {/* Búsqueda y filtros avanzados */}
@@ -548,9 +549,9 @@ export default function HistorialPage() {
             />
           </div>
 
-          <div className="flex flex-col sm:flex-row gap-3">
+          <div className={`gap-3 ${esAdmin ? "grid grid-cols-2 sm:flex sm:flex-row" : "flex flex-col sm:flex-row"}`}>
             {esAdmin && (
-              <div className="flex-1 sm:min-w-[170px]">
+              <div className="sm:min-w-[170px]">
                 <Select
                   options={[
                     { value: "todos", label: "Todos los barberos" },
@@ -559,11 +560,12 @@ export default function HistorialPage() {
                   value={filtroBarbero}
                   onChange={setFiltroBarbero}
                   placeholder="Todos los barberos"
+                  className="md:px-4 md:py-3.5 px-3 py-2.5 text-xs md:text-sm"
                 />
               </div>
             )}
 
-            <div className="flex-1 sm:min-w-[170px]">
+            <div className="sm:min-w-[170px]">
               <Select
                 options={[
                   { value: "todos", label: "Todos los servicios" },
@@ -572,6 +574,7 @@ export default function HistorialPage() {
                 value={filtroServicio}
                 onChange={setFiltroServicio}
                 placeholder="Todos los servicios"
+                className="md:px-4 md:py-3.5 px-3 py-2.5 text-xs md:text-sm"
               />
             </div>
           </div>

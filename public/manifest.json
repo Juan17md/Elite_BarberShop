@@ -1,11 +1,16 @@
 {
   "name": "Elite BarberShop | Gestión Premium",
   "short_name": "Elite BarberShop",
-  "description": "Sistema interno de gestión para Elite BarberShop",
-  "start_url": "/",
+  "description": "Sistema interno de gestión premium para Elite BarberShop. Control financiero, personal, inventario y más.",
+  "start_url": "/dashboard",
+  "scope": "/",
   "display": "standalone",
-  "background_color": "#000000",
-  "theme_color": "#000000",
+  "orientation": "portrait-primary",
+  "background_color": "#0A0A0A",
+  "theme_color": "#8B0000",
+  "dir": "ltr",
+  "lang": "es",
+  "categories": ["business", "productivity"],
   "icons": [
     {
       "src": "/elite_logo.PNG",
@@ -16,6 +21,26 @@
       "src": "/elite_logo.PNG",
       "sizes": "512x512",
       "type": "image/png"
+    },
+    {
+      "src": "/elite_logo.PNG",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    }
+  ],
+  "screenshots": [
+    {
+      "src": "/elite_logo.PNG",
+      "sizes": "1280x720",
+      "type": "image/png",
+      "form_factor": "wide"
+    },
+    {
+      "src": "/elite_logo.PNG",
+      "sizes": "720x1280",
+      "type": "image/png",
+      "form_factor": "narrow"
     }
   ]
 }

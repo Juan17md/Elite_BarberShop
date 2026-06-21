@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Sin conexión - Elite BarberShop</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: system-ui, -apple-system, sans-serif;
+      background: #0A0A0A;
+      color: #FAFAFA;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 100vh;
+      padding: 2rem;
+    }
+    .container {
+      text-align: center;
+      max-width: 400px;
+    }
+    .icon {
+      width: 80px;
+      height: 80px;
+      margin: 0 auto 2rem;
+      background: rgba(139, 0, 0, 0.1);
+      border: 1px solid rgba(139, 0, 0, 0.3);
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 2.5rem;
+    }
+    h1 {
+      font-size: 1.75rem;
+      font-weight: 700;
+      margin-bottom: 0.75rem;
+      letter-spacing: 0.05em;
+    }
+    h1 span { color: #8B0000; }
+    p {
+      color: #8A8A8A;
+      line-height: 1.6;
+      margin-bottom: 2rem;
+      font-size: 0.9rem;
+    }
+    button {
+      background: rgba(139, 0, 0, 0.1);
+      color: #8B0000;
+      border: 1px solid rgba(139, 0, 0, 0.3);
+      padding: 0.75rem 2rem;
+      border-radius: 12px;
+      font-size: 0.8rem;
+      font-weight: 700;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    button:hover {
+      background: #8B0000;
+      color: white;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="icon">📡</div>
+    <h1>SIN <span>CONEXIÓN</span></h1>
+    <p>Parece que no tienes acceso a internet. Verifica tu conexión e inténtalo de nuevo. Los datos se sincronizarán automáticamente cuando vuelvas a estar en línea.</p>
+    <button onclick="location.reload()">Reintentar</button>
+  </div>
+</body>
+</html>

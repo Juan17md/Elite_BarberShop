@@ -1,16 +1,22 @@
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 
+const RUTAS_PUBLICAS = ["/login", "/bloqueado", "/cambiar-contrasena"];
+
 export function middleware(request: NextRequest) {
   const isLoggedIn = request.cookies.get("firebase-token");
   const { pathname } = request.nextUrl;
 
-  // If trying to access dashboard without auth, redirect to login
+  const esRutaPublica = RUTAS_PUBLICAS.some((r) => pathname === r || pathname.startsWith(r + "/"));
+
+  if (esRutaPublica) {
+    return NextResponse.next();
+  }
+
   if (pathname.startsWith("/dashboard") && !isLoggedIn) {
     return NextResponse.redirect(new URL("/login", request.url));
   }
 
-  // If logged in and trying to access login, redirect to dashboard
   if (pathname === "/login" && isLoggedIn) {
     return NextResponse.redirect(new URL("/dashboard", request.url));
   }
@@ -19,5 +25,10 @@ export function middleware(request: NextRequest) {
 }
 
 export const config = {
-  matcher: ["/dashboard/:path*", "/login"],
+  matcher: [
+    "/dashboard/:path*",
+    "/login",
+    "/bloqueado",
+    "/cambiar-contrasena",
+  ],
 };

@@ -3,11 +3,13 @@
 import { useState } from "react";
 import { signInWithEmailAndPassword } from "firebase/auth";
 import { auth } from "@/lib/firebase";
+import { useRouter } from "next/navigation";
 import { Scissors, Loader2, Clock, Activity, BarChart3, ChevronRight, Sparkles, Star, Eye, EyeOff } from "lucide-react";
 import { Input, Label, Button } from "@/components/ui";
 import { toSpanishUserMessage } from "@/components/notifications";
 
 export default function LoginPage() {
+  const router = useRouter();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
@@ -23,7 +25,7 @@ export default function LoginPage() {
       const userCredential = await signInWithEmailAndPassword(auth, email.trim(), password.trim());
       const token = await userCredential.user.getIdToken();
       document.cookie = `firebase-token=${token}; path=/; max-age=3600`;
-      window.location.href = "/dashboard";
+      router.replace("/dashboard");
     } catch (err: unknown) {
       const errorCode = err && typeof err === 'object' && 'code' in err ? (err as { code: string }).code : 'unknown';
       console.error('Error de autenticación:', errorCode, err);

@@ -15,19 +15,23 @@ service cloud.firestore {
       return get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role;
     }
     
+    function isSuperadmin() {
+      return isAuthenticated() && getUserRole() == "superadmin";
+    }
+    
     function isAdmin() {
-      return isAuthenticated() && getUserRole() == "admin";
+      return isAuthenticated() && (getUserRole() == "admin" || getUserRole() == "superadmin");
     }
     
     function isBarber() {
-      return isAuthenticated() && (getUserRole() == "barber" || getUserRole() == "admin");
+      return isAuthenticated() && (getUserRole() == "barber" || getUserRole() == "admin" || getUserRole() == "superadmin");
     }
     
-    // Usuarios
+    // Usuarios: solo superadmin escribe desde cliente, lectura para autenticados
     match /users/{userId} {
       allow read: if isAuthenticated();
-      allow write: if isAdmin() || isOwner(userId);
-      allow create: if isAdmin();
+      allow write: if isSuperadmin();
+      allow create: if isSuperadmin();
     }
     
     // Servicios
@@ -81,7 +85,6 @@ service cloud.firestore {
 
     // Banco (Billeteras de Barberos y Barbería)
     match /bank/{bankId} {
-      // Barberos necesitan leer/actualizar el banco de la barbería al registrar servicios
       allow read: if isOwner(bankId) || isAdmin() || (isBarber() && bankId == "barbershop");
       allow write: if isOwner(bankId) || isAdmin() || (isBarber() && bankId == "barbershop");
     }
@@ -89,7 +92,6 @@ service cloud.firestore {
     // Transacciones Bancarias
     match /bank_transactions/{registroId} {
       allow read: if isAuthenticated();
-      // Barberos crean transacciones tanto para sí mismos como para la barbería ("barbershop")
       allow create: if isAdmin() || isBarber() || (isAuthenticated() && request.resource.data.userId == request.auth.uid);
       allow write: if isAdmin();
     }

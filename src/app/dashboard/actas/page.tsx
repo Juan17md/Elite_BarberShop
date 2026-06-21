@@ -24,6 +24,21 @@ export default function ActasGastosPage() {
   const [modalAbierto, setModalAbierto] = useState(false);
   const [nuevaData, setNuevaData] = useState({ concepto: "", especialista: "", monto: 0 });
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [barberos, setBarberos] = useState<{ value: string; label: string }[]>([]);
+
+  useEffect(() => {
+    const q = query(collection(db, "users"), orderBy("name"));
+    const unsub = onSnapshot(q, (snap) => {
+      const lista = snap.docs
+        .filter((doc) => doc.data().role === "barber" || doc.data().role === "admin" || doc.data().role === "superadmin")
+        .map((doc) => ({
+          value: doc.data().name,
+          label: doc.data().name,
+        }));
+      setBarberos(lista);
+    });
+    return () => unsub();
+  }, []);
 
   useEffect(() => {
     const q = query(collection(db, "transacciones"), orderBy("creadoAt", "desc"));
@@ -193,11 +208,7 @@ export default function ActasGastosPage() {
                 <div>
                   <label className="block text-xs uppercase tracking-widest text-text-secondary mb-2">Responsable / Especialista</label>
                   <Select
-                    options={[
-                      { value: "Eduardo", label: "Eduardo" },
-                      { value: "Franyer", label: "Franyer" },
-                      { value: "Brayan", label: "Brayan" }
-                    ]}
+                    options={barberos}
                     value={nuevaData.especialista}
                     onChange={(val: string) => setNuevaData({...nuevaData, especialista: val})}
                     placeholder="Selecciona un barbero"

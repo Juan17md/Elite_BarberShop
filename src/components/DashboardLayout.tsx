@@ -8,9 +8,9 @@ import Footer from "./Footer";
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
-  const { userRole, loading } = useAuth();
+  const { datosUsuario, authLoading, rolLoading } = useAuth();
 
-  if (loading) {
+  if (authLoading || rolLoading) {
     return (
       <div className="min-h-screen bg-void flex items-center justify-center">
         <div className="flex flex-col items-center gap-4">

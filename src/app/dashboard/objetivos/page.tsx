@@ -44,8 +44,8 @@ function convertirFecha(valor: unknown): Date | undefined {
 }
 
 export default function ObjetivosPage() {
-  const { userRole } = useAuth();
-  const isAdmin = userRole?.role === "admin";
+  const { datosUsuario, authLoading, rolLoading } = useAuth();
+  const isAdmin = (datosUsuario?.rol === "admin" || datosUsuario?.rol === "superadmin");
   const [objetivos, setObjetivos] = useState<Objective[]>([]);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -80,12 +80,12 @@ export default function ObjetivosPage() {
   }, [isAdmin]);
 
   useEffect(() => {
-    if (!userRole?.uid) return;
+    if (!datosUsuario?.uid) return;
     let q;
     if (isAdmin) {
       q = query(collection(db, "objectives"), orderBy("endDate", "desc"));
     } else {
-      q = query(collection(db, "objectives"), where("barberoId", "==", userRole?.uid), orderBy("endDate", "desc"));
+      q = query(collection(db, "objectives"), where("barberoId", "==", datosUsuario?.uid), orderBy("endDate", "desc"));
     }
     
     const unsubscribe = onSnapshot(q, (snapshot) => {
@@ -106,7 +106,7 @@ export default function ObjetivosPage() {
       setObjetivos(data);
     });
     return () => unsubscribe();
-  }, [isAdmin, userRole?.uid]);
+  }, [isAdmin, datosUsuario?.uid]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -127,8 +127,8 @@ export default function ObjetivosPage() {
         ...payload,
         currentAmount: 0,
         createdAt: new Date(),
-        barberoId: userRole?.uid ?? "",
-        createdByName: userRole?.name ?? "Usuario",
+        barberoId: datosUsuario?.uid ?? "",
+        createdByName: datosUsuario?.nombre ?? "Usuario",
       });
     }
 
@@ -200,7 +200,7 @@ export default function ObjetivosPage() {
 
   const obtenerNombreRegistrador = (obj: Objective) => {
     if (obj.createdByName?.trim()) return obj.createdByName;
-    if (obj.barberoId === userRole?.uid && userRole?.name) return userRole.name;
+    if (obj.barberoId === datosUsuario?.uid && datosUsuario?.nombre) return datosUsuario.nombre;
     if (obj.barberoId && usuariosPorId[obj.barberoId]) return usuariosPorId[obj.barberoId];
     if (!obj.barberoId) return "Administración";
     return "Usuario no disponible";

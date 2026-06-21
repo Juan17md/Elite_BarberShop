@@ -1,12 +1,16 @@
-export interface User {
+export interface Usuario {
   uid: string;
   email: string;
   name: string;
-  role: 'admin' | 'barber';
-  createdAt: Date;
+  phone?: string;
+  role: 'superadmin' | 'admin' | 'barber';
+  bloqueado: boolean;
+  primerInicio: boolean;
+  creadoEn: string;
+  creadoPor?: string;
 }
 
-export type UserRole = 'admin' | 'barber';
+export type RolUsuario = 'superadmin' | 'admin' | 'barber';
 
 export interface Service {
   id: string;
@@ -116,8 +120,10 @@ export const PAYMENT_METHODS: { value: PaymentMethod; label: string }[] = [
   { value: "divisa", label: "Divisa ($ / USDT)" },
 ];
 
-export const BARBERS = [
-  { uid: 'barber-eduardo', name: 'Eduardo', role: 'admin' as const },
-  { uid: 'barber-franyer', name: 'Franyer', role: 'barber' as const },
-  { uid: 'barber-brayan', name: 'Brayan', role: 'barber' as const },
+export const ROLES: { value: RolUsuario; label: string }[] = [
+  { value: 'superadmin', label: 'Super Administrador' },
+  { value: 'admin', label: 'Administrador' },
+  { value: 'barber', label: 'Barbero' },
 ];
+
+

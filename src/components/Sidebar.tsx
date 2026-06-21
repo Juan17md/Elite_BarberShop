@@ -12,7 +12,8 @@ import {
   BarChart3,
   Scissors,
   Users,
-  History
+  History,
+  ShieldCheck
 } from "lucide-react";
 import { auth } from "@/lib/firebase";
 import { signOut } from "firebase/auth";
@@ -27,7 +28,7 @@ interface SidebarProps {
 
 export default function Sidebar({ collapsed, isOpen, onToggleCollapse, onClose }: SidebarProps) {
   const pathname = usePathname();
-  const { user, userRole } = useAuth();
+  const { usuario, datosUsuario } = useAuth();
 
   const handleLogout = async () => {
     try {
@@ -40,19 +41,20 @@ export default function Sidebar({ collapsed, isOpen, onToggleCollapse, onClose }
   };
 
   const navItems = [
-    { name: "Resumen", path: "/dashboard", icon: LayoutDashboard, roles: ["admin", "barber"] },
-    { name: "Servicios", path: "/dashboard/servicios", icon: Scissors, roles: ["admin", "barber"] },
-    { name: "Inventario", path: "/dashboard/inventario", icon: Package, roles: ["admin"] },
-    { name: "Finanzas", path: "/dashboard/finanzas", icon: Wallet, roles: ["admin", "barber"] },
-    { name: "Historial", path: "/dashboard/historial", icon: History, roles: ["admin", "barber"] },
-    { name: "Estadísticas", path: "/dashboard/estadisticas", icon: BarChart3, roles: ["admin", "barber"] },
-    { name: "Objetivos", path: "/dashboard/objetivos", icon: Target, roles: ["admin", "barber"] },
-    { name: "Administración", path: "/dashboard/actas", icon: FileText, roles: ["admin"] },
-    { name: "Personal", path: "/dashboard/perfil", icon: Users, roles: ["admin"] },
+    { name: "Resumen", path: "/dashboard", icon: LayoutDashboard, roles: ["superadmin", "admin", "barber"] },
+    { name: "Servicios", path: "/dashboard/servicios", icon: Scissors, roles: ["superadmin", "admin", "barber"] },
+    { name: "Inventario", path: "/dashboard/inventario", icon: Package, roles: ["superadmin", "admin"] },
+    { name: "Finanzas", path: "/dashboard/finanzas", icon: Wallet, roles: ["superadmin", "admin", "barber"] },
+    { name: "Historial", path: "/dashboard/historial", icon: History, roles: ["superadmin", "admin", "barber"] },
+    { name: "Estadísticas", path: "/dashboard/estadisticas", icon: BarChart3, roles: ["superadmin", "admin", "barber"] },
+    { name: "Objetivos", path: "/dashboard/objetivos", icon: Target, roles: ["superadmin", "admin", "barber"] },
+    { name: "Administración", path: "/dashboard/actas", icon: FileText, roles: ["superadmin", "admin"] },
+    { name: "Perfil", path: "/dashboard/perfil", icon: Users, roles: ["superadmin", "admin", "barber"] },
+    { name: "Usuarios", path: "/dashboard/usuarios", icon: ShieldCheck, roles: ["superadmin"] },
   ];
 
   const filteredNavItems = navItems.filter(item => 
-    item.roles.includes(userRole?.role || "barber")
+    item.roles.includes(datosUsuario?.rol || "barber")
   );
 
   const handleNavClick = () => {
@@ -115,7 +117,7 @@ export default function Sidebar({ collapsed, isOpen, onToggleCollapse, onClose }
         {collapsed ? (
           <div className="flex flex-col gap-4 items-center">
             <div className="w-10 h-10 rounded-full bg-surface-high border border-white/5 flex items-center justify-center text-primary font-display">
-              {user?.email?.[0].toUpperCase()}
+              {usuario?.email?.[0].toUpperCase()}
             </div>
             <button 
               onClick={handleLogout}
@@ -128,11 +130,11 @@ export default function Sidebar({ collapsed, isOpen, onToggleCollapse, onClose }
           <div className="flex flex-col gap-3">
             <div className="flex items-center gap-3 px-3 py-3 rounded-xl bg-surface-high border border-white/5 shadow-lg">
               <div className="w-9 h-9 rounded-full bg-primary/10 flex items-center justify-center text-primary font-display border border-primary/20 shadow-inner">
-                {user?.email?.[0].toUpperCase()}
+                {usuario?.email?.[0].toUpperCase()}
               </div>
               <div className="flex-1 min-w-0">
-                <p className="font-display text-[13px] font-bold text-white truncate uppercase tracking-wider">{userRole?.name || "Premium User"}</p>
-                <p className="text-[10px] text-primary font-bold tracking-widest uppercase opacity-80">{userRole?.role || 'Barber'}</p>
+                <p className="font-display text-[13px] font-bold text-white truncate uppercase tracking-wider">{datosUsuario?.nombre || "Usuario"}</p>
+                <p className="text-[10px] text-primary font-bold tracking-widest uppercase opacity-80">{datosUsuario?.rol || 'Barber'}</p>
               </div>
             </div>
             <button 

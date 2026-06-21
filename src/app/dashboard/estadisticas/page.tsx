@@ -19,8 +19,8 @@ import { getPeriodFromPosition } from "@/lib/utils";
 
 
 export default function EstadisticasPage() {
-  const { userRole, loading } = useAuth();
-  const isAdmin = userRole?.role === "admin";
+  const { datosUsuario, authLoading, rolLoading } = useAuth();
+  const isAdmin = (datosUsuario?.rol === "admin" || datosUsuario?.rol === "superadmin");
   const [records, setRecords] = useState<FinancialRecord[]>([]);
   const [barbersList, setBarbersList] = useState<{uid: string, name: string}[]>([]);
 
@@ -50,9 +50,9 @@ export default function EstadisticasPage() {
   }, []);
 
   useEffect(() => {
-    if (loading) return;
+    if (authLoading || rolLoading) return;
 
-    if (!userRole?.uid) {
+    if (!datosUsuario?.uid) {
       setRecords([]);
       return;
     }
@@ -61,7 +61,7 @@ export default function EstadisticasPage() {
       ? query(collection(db, "finances"), orderBy("date", "desc"))
       : query(
           collection(db, "finances"),
-          where("barberId", "==", userRole.uid),
+          where("barberId", "==", datosUsuario.uid),
           orderBy("date", "desc")
         );
 
@@ -76,7 +76,7 @@ export default function EstadisticasPage() {
     });
 
     return () => unsubscribe();
-  }, [isAdmin, loading, userRole?.uid]);
+  }, [isAdmin, authLoading, rolLoading, datosUsuario?.uid]);
 
 
   // Registros filtrados por semana seleccionada
@@ -147,7 +147,7 @@ export default function EstadisticasPage() {
     <div className="space-y-8">
       <div className="card-premium p-4 sm:p-5">
         <div className="flex flex-col gap-4">
-          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+          <div className="flex flex-col items-center gap-2 text-center">
             <div>
               <p className="text-text-muted text-[10px] font-bold tracking-[0.25em] uppercase opacity-70">
                 Vista general
@@ -174,7 +174,7 @@ export default function EstadisticasPage() {
             </div>
           </div>
 
-          <div className="flex items-center gap-2 sm:gap-3 w-full sm:w-auto font-display">
+          <div className="flex items-center justify-center gap-2 sm:gap-3 w-full font-display">
             <button
               onClick={() => setPosition((prev) => prev + 1)}
               className="p-2.5 rounded-lg border border-white/10 text-text-muted hover:text-white hover:border-white/20 hover:bg-white/5 active:scale-95 transition-all"

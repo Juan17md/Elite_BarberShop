@@ -19,7 +19,7 @@ import { Plus, Pencil, Trash2, Phone, Mail, User, Check, Search, X } from "lucid
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from "@/components/ui";
 
 export default function ClientesPage() {
-  const { userRole } = useAuth();
+  const { datosUsuario, authLoading, rolLoading } = useAuth();
   const [clientes, setClientes] = useState<Client[]>([]);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -28,12 +28,12 @@ export default function ClientesPage() {
   const [formData, setFormData] = useState({ name: "", phone: "", email: "", notes: "" });
 
   useEffect(() => {
-    if (!userRole?.uid) return;
+    if (!datosUsuario?.uid) return;
     let q;
-    if (userRole?.role === "admin") {
+    if (datosUsuario?.rol === "admin" || datosUsuario?.rol === "superadmin") {
       q = query(collection(db, "clients"), orderBy("name"));
     } else {
-      q = query(collection(db, "clients"), where("createdBy", "==", userRole?.uid), orderBy("name"));
+      q = query(collection(db, "clients"), where("createdBy", "==", datosUsuario?.uid), orderBy("name"));
     }
     
     const unsubscribe = onSnapshot(q, (snapshot) => {
@@ -45,14 +45,14 @@ export default function ClientesPage() {
       setClientes(data);
     });
     return () => unsubscribe();
-  }, [userRole?.role, userRole?.uid]);
+  }, [datosUsuario?.rol, datosUsuario?.uid]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     const clientData = {
       ...formData,
       createdAt: new Date(),
-      createdBy: userRole?.uid || ""
+      createdBy: datosUsuario?.uid || ""
     };
 
     if (editingId) {

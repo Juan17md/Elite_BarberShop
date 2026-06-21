@@ -100,7 +100,7 @@ export function Select({
           className
         )}
       >
-        <span className={cn("truncate pr-3 text-text-primary", !selectedOption && "text-text-muted")}>
+        <span className={cn("pr-3 text-text-primary", !selectedOption && "text-text-muted")}>
           {selectedOption?.label || placeholder}
         </span>
         <ChevronDown className={cn(
@@ -136,7 +136,7 @@ export function Select({
                 option.disabled && "opacity-50 cursor-not-allowed"
               )}
             >
-              <span className="truncate">{option.label}</span>
+              <span>{option.label}</span>
               {option.value === value && <Check className="h-4 w-4 shrink-0" />}
             </button>
           ))}

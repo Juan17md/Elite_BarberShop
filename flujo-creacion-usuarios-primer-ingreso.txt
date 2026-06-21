@@ -1,0 +1,159 @@
+# FLUJO DE CREACIÓN DE USUARIOS Y PRIMER INGRESO
+## Sistema: PlugZone (Next.js 16 + Firebase)
+## Propósito: Documentación para replicar en otro sistema
+
+============================================================
+1. ARQUITECTURA GENERAL
+============================================================
+
+- Framework: Next.js 16 (App Router) + TypeScript
+- Autenticación: Firebase Auth (email/contraseña)
+- BD: Firebase Firestore
+- Backend admin: Firebase Admin SDK (server-side)
+- Protección: 3 capas (API Routes verifican token, Firestore Rules bloquean escritura cliente, AuthGuard protege rutas frontend)
+
+Colección en Firestore: `usuarios`
+Campos del documento:
+  - uid: string (mismo que Firebase Auth UID)
+  - email: string
+  - rol: 'admin' | 'operador'
+  - bloqueado: boolean
+  - primerInicio: boolean (clave del flujo)
+  - creadoEn: string (ISO date)
+
+Roles:
+  - admin: acceso total, gestiona usuarios
+  - operador: inventario, ventas, finanzas, historial (NO usuarios)
+
+============================================================
+2. CREACIÓN DE USUARIO (SOLO ADMIN)
+============================================================
+
+Frontend: Modal "CrearUsuarioModal"
+  - Inputs: nombre, email, contraseña temporal, rol (admin/operador)
+  - POST /api/usuarios
+
+Backend (API Route POST /api/usuarios):
+  1. Recibe token JWT del admin solicitante (del header Authorization)
+  2. Verifica token con admin.auth().verifyIdToken(token)
+  3. Busca documento del admin en Firestore: `usuarios/{uid}`
+  4. Verifica que el solicitante tenga rol === 'admin' (si no, 403)
+  5. Crea usuario en Firebase Auth:
+       admin.auth().createUser({
+         email,
+         password: contraseñaTemporal,
+         displayName: nombre
+       })
+  6. Crea documento en Firestore `usuarios/{uid}`:
+       {
+         uid: uid_de_firebase_auth,
+         email,
+         rol: rolSeleccionado,
+         bloqueado: false,
+         primerInicio: (rol === 'operador') ? true : false,
+         creadoEn: new Date().toISOString()
+       }
+     - Si es operador → primerInicio: true (debe cambiar contraseña al entrar)
+     - Si es admin → primerInicio: false (acceso directo)
+  7. Responde con { exito: true }
+
+Reglas Firestore (seguridad):
+  - match /usuarios/{userId} {
+      allow read: if request.auth != null;  // lectura si autenticado
+      allow write: if false;                 // SOLO Admin SDK escribe
+    }
+
+============================================================
+3. FLUJO DE PRIMER INGRESO (OPERADOR)
+============================================================
+
+Paso a paso:
+
+  1. Admin crea operador → recibe credenciales (email + pass temporal)
+  2. Operador hace login en /login (signInWithEmailAndPassword)
+  3. AuthGuard (guardian de rutas) detecta autenticación exitosa
+  4. AuthGuard ejecuta cadena de verificación:
+     a. ¿Usuario autenticado? Sí
+     b. ¿primerInicio === true? Sí → REDIRIGE a /cambiar-contrasena
+     c. (No llega al dashboard todavía)
+  5. Página /cambiar-contrasena muestra formulario:
+     - Nueva contraseña + Confirmar contraseña
+     - Validaciones: mínimo 6 caracteres, ambas deben coincidir
+  6. Usuario envía → PATCH /api/usuarios/[uid]/cambiar-contrasena
+  7. Backend (API Route):
+     a. Verifica token JWT del usuario (debe ser el mismo uid)
+     b. Verifica que uid del token === uid de la URL (solo puede cambiar su propia contraseña)
+     c. Ejecuta: admin.auth().updateUser(uid, { password: nuevaContraseña })
+     d. Actualiza Firestore: usuarios/{uid} → { primerInicio: false }
+     e. Responde éxito
+  8. Contexto global (TiendaContext) recibe actualización vía onSnapshot
+     - setPrimerInicio(false)
+  9. AuthGuard detecta primerInicio === false
+     - pathname es /cambiar-contrasena pero ya no aplica
+     - REDIRIGE a /dashboard
+  10. Operador accede al sistema con su propia contraseña
+
+============================================================
+4. FLUJO DE ADMIN NUEVO
+============================================================
+
+- Se crea con primerInicio: false directamente
+- Al hacer login → va directo al dashboard
+- NO pasa por cambio de contraseña obligatorio
+
+============================================================
+5. BLOQUEO DE USUARIOS
+============================================================
+
+Admin puede bloquear/desbloquear desde /usuarios (UI):
+  - PATCH /api/usuarios/[uid] establece:
+    - Firestore: bloqueado: true/false
+    - Firebase Auth: disabled: true/false
+  - AuthGuard escucha cambios vía onSnapshot
+  - Usuario bloqueado → redirigido a /bloqueado
+  - Existe además bloqueo global por suscripción (config/suscripcion.activa)
+
+============================================================
+6. PROTECCIÓN DE RUTAS (AuthGuard)
+============================================================
+
+Orden de verificación en AuthGuard (src/components/providers/AuthGuard.tsx):
+
+  1. Loading: si authLoading o rolLoading o suscripcionLoading → spinner
+  2. No autenticado: si !user y ruta no pública → redirect /login
+  3. Primer inicio: si primerInicio && !/cambiar-contrasena → redirect /cambiar-contrasena
+  4. Ya cambió: si !primerInicio && /cambiar-contrasena → redirect /dashboard
+  5. Ya logueado en login: si /login pero ya tiene sesión → redirect /dashboard
+  6. Bloqueado: si bloqueado || !suscripcionActiva → redirect /bloqueado
+  7. Desbloqueado en /bloqueado: redirect /dashboard
+  8. Rol operador en /usuarios: redirect /dashboard
+
+Rutas públicas: ['/login', '/bloqueado', '/cambiar-contrasena']
+
+============================================================
+7. API ROUTES COMPLETAS
+============================================================
+
+| Método | Ruta                            | Propósito                                    |
+|--------|----------------------------------|----------------------------------------------|
+| GET    | /api/usuarios                    | Listar usuarios (solo admin)                 |
+| POST   | /api/usuarios                    | Crear usuario en Auth + Firestore            |
+| PATCH  | /api/usuarios/[uid]              | Actualizar email, password, rol, bloquear    |
+| DELETE | /api/usuarios/[uid]              | Eliminar usuario de Auth + Firestore         |
+| PATCH  | /api/usuarios/[uid]/cambiar-contrasena | Cambiar propia contraseña y marcar primerInicio: false |
+
+============================================================
+8. PUNTOS CLAVE PARA REPLICAR EN OTRO SISTEMA
+============================================================
+
+- [ ] Firebase Auth para email/contraseña
+- [ ] Firestore colección usuarios con campo primerInicio (boolean)
+- [ ] Admin SDK para operaciones de escritura en usuarios (seguridad)
+- [ ] Reglas Firestore: solo lectura desde cliente, escritura bloqueada
+- [ ] Modal de creación con selector de rol (admin/operador)
+- [ ] Lógica backend: si es operador → primerInicio: true
+- [ ] AuthGuard/RouteGuard con cadena de verificación (primerInicio antes que dashboard)
+- [ ] Página /cambiar-contrasena con validaciones
+- [ ] API para cambiar contraseña propia + marcar primerInicio: false
+- [ ] Contexto global que escucha cambios en tiempo real (onSnapshot)
+- [ ] Bloqueo doble: Firestore (bloqueado) + Firebase Auth (disabled)
