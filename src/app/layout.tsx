@@ -23,7 +23,7 @@ export const metadata: Metadata = {
     title: "Elite BarberShop",
   },
   icons: {
-    apple: "/elite_logo.PNG",
+    apple: "/icon-180x180.png",
     icon: "/elite_logo.PNG",
   },
 };
