@@ -13,7 +13,8 @@ import {
   Scissors,
   Users,
   History,
-  ShieldCheck
+  ShieldCheck,
+  UserCog
 } from "lucide-react";
 import { auth } from "@/lib/firebase";
 import { signOut } from "firebase/auth";
@@ -49,6 +50,7 @@ export default function Sidebar({ collapsed, isOpen, onToggleCollapse, onClose }
     { name: "Estadísticas", path: "/dashboard/estadisticas", icon: BarChart3, roles: ["superadmin", "admin", "barber"] },
     { name: "Objetivos", path: "/dashboard/objetivos", icon: Target, roles: ["superadmin", "admin", "barber"] },
     { name: "Administración", path: "/dashboard/actas", icon: FileText, roles: ["superadmin", "admin"] },
+    { name: "Barberos", path: "/dashboard/personal", icon: UserCog, roles: ["superadmin", "admin"] },
     { name: "Perfil", path: "/dashboard/perfil", icon: Users, roles: ["superadmin", "admin", "barber"] },
     { name: "Usuarios", path: "/dashboard/usuarios", icon: ShieldCheck, roles: ["superadmin"] },
   ];

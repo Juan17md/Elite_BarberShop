@@ -187,7 +187,7 @@ export default function RegistrarPagoModal({
             <p className="font-display text-2xl text-white mt-1">${balanceActual.toFixed(2)}</p>
           </div>
           <div className="bg-primary/5 p-4 rounded-xl border border-primary/10">
-            <p className="text-primary text-[10px] font-bold uppercase tracking-widest truncate">{currentPeriodLabel}</p>
+            <p className="text-primary text-[10px] font-bold uppercase tracking-widest leading-tight">{currentPeriodLabel}</p>
             <p className="font-display text-2xl text-primary mt-1">${periodEarnings.toFixed(2)}</p>
           </div>
         </div>
