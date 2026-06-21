@@ -38,14 +38,6 @@ export default function PersonalPage() {
   const esPosicionActual = position === 0;
   const periodo = useMemo(() => getPeriodFromPosition(position), [position]);
 
-  const currentPeriod = useMemo(() => {
-    const hoy = new Date();
-    const fechaCaracas = new Date(hoy.toLocaleString("en-US", { timeZone: "America/Caracas" }));
-    const diaSemana = fechaCaracas.getDay();
-    const currentPeriodPosition = diaSemana === 0 ? 1 : 0;
-    return getPeriodFromPosition(currentPeriodPosition);
-  }, []);
-
   // Merge bank data into barbers whenever either changes
   const barbersWithBank = useMemo(() => {
     return barbers.map((b) => {
@@ -125,7 +117,7 @@ export default function PersonalPage() {
         const data = doc.data();
         const barberId = data.barberId;
         const date = data.date;
-        const isWithinPeriod = date >= currentPeriod.inicio && date <= currentPeriod.fin;
+        const isWithinPeriod = date >= periodo.inicio && date <= periodo.fin;
 
         if (!statsByBarber[barberId]) {
           statsByBarber[barberId] = { services: 0, periodEarnings: 0 };
@@ -146,7 +138,7 @@ export default function PersonalPage() {
     });
 
     return () => unsub();
-  }, [isAdmin, currentPeriod]);
+  }, [isAdmin, periodo]);
 
   // 4. Historial de transacciones
   useEffect(() => {
@@ -264,6 +256,57 @@ export default function PersonalPage() {
         </div>
       </div>
 
+      {/* Navegador de periodo */}
+      <div className="card-premium p-4 md:p-5">
+        <div className="flex items-center justify-between gap-4">
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => setPosition((prev) => prev + 1)}
+              className="p-2 rounded-lg border border-white/10 text-text-muted hover:text-white hover:border-white/20 hover:bg-white/5 active:scale-95 transition-all"
+              aria-label="Anterior"
+            >
+              <ChevronLeft size={16} />
+            </button>
+
+            <div className="flex flex-col items-center gap-1 min-w-0">
+              {esPosicionActual && (
+                <span className="inline-flex items-center justify-center gap-1.5 px-3 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-[10px] font-bold uppercase tracking-[0.15em] shadow-[0_0_12px_rgba(16,185,129,0.15)]">
+                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+                  {periodo.isSunday ? "Domingo actual" : "Semana actual"}
+                </span>
+              )}
+              <span className="font-display text-xs md:text-sm text-white tracking-widest uppercase text-center">
+                {periodo.label}
+              </span>
+            </div>
+
+            <button
+              onClick={() => setPosition((prev) => Math.max(0, prev - 1))}
+              disabled={esPosicionActual}
+              className="p-2 rounded-lg border border-white/10 text-text-muted hover:text-white hover:border-white/20 hover:bg-white/5 active:scale-95 disabled:opacity-30 disabled:cursor-not-allowed transition-all"
+              aria-label="Siguiente"
+            >
+              <ChevronRight size={16} />
+            </button>
+
+            {!esPosicionActual && (
+              <button
+                onClick={() => setPosition(0)}
+                className="p-2 rounded-lg border border-emerald-500/20 text-emerald-400 hover:bg-emerald-500/10 active:scale-95 transition-all"
+                aria-label="Ir a actual"
+              >
+                <RotateCcw size={14} />
+              </button>
+            )}
+          </div>
+
+          <div className="text-right shrink-0">
+            <p className="text-text-muted text-[10px] uppercase tracking-widest font-bold">Total Pagado</p>
+            <p className="font-display text-lg md:text-2xl text-red-400">-${totalPagadoPeriodo.toFixed(2)}</p>
+          </div>
+        </div>
+      </div>
+
       {/* Cards de barberos */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6">
         {barbersWithBank.map((barber) => (
@@ -309,7 +352,7 @@ export default function PersonalPage() {
                 </div>
                 <div className="flex justify-between items-center py-1.5 md:py-2">
                   <span className="text-text-muted text-[10px] md:text-xs uppercase tracking-widest flex items-center gap-2">
-                    <Activity size={12} className="md:size-[14px] text-primary" /> {currentPeriod.isSunday ? "Ganado este Domingo" : "Ganado esta Semana"}
+                    <Activity size={12} className="md:size-[14px] text-primary" /> {periodo.isSunday ? "Ganado este Domingo" : "Ganado esta Semana"}
                   </span>
                   <span className="font-display text-sm md:text-base text-primary">
                     ${(barber.periodEarnings || 0).toFixed(2)}
@@ -340,55 +383,10 @@ export default function PersonalPage() {
 
       {/* Historial de Pagos */}
       <div className="card-premium p-4 md:p-6">
-        <div className="flex flex-col gap-4 mb-6">
-          <h3 className="font-display text-xl md:text-2xl text-white tracking-widest uppercase flex items-center gap-3">
-            <ArrowDownRight className="text-primary" size={20} />
-            Historial de Pagos
-          </h3>
-
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <button
-                onClick={() => setPosition((prev) => prev + 1)}
-                className="p-2 rounded-lg border border-white/10 text-text-muted hover:text-white hover:border-white/20 hover:bg-white/5 active:scale-95 transition-all"
-                aria-label="Anterior"
-              >
-                <ChevronLeft size={16} />
-              </button>
-
-              <div className="flex items-center gap-2 px-3 py-1.5 bg-void/60 rounded-lg border border-white/5">
-                <Calendar size={14} className="text-primary shrink-0" />
-                <span className="text-white text-[11px] md:text-sm tracking-wider whitespace-nowrap">
-                  {periodo.label}
-                </span>
-              </div>
-
-              <button
-                onClick={() => setPosition((prev) => Math.max(0, prev - 1))}
-                disabled={esPosicionActual}
-                className="p-2 rounded-lg border border-white/10 text-text-muted hover:text-white hover:border-white/20 hover:bg-white/5 active:scale-95 disabled:opacity-30 disabled:cursor-not-allowed transition-all"
-                aria-label="Siguiente"
-              >
-                <ChevronRight size={16} />
-              </button>
-
-              {!esPosicionActual && (
-                <button
-                  onClick={() => setPosition(0)}
-                  className="p-2 rounded-lg border border-emerald-500/20 text-emerald-400 hover:bg-emerald-500/10 active:scale-95 transition-all"
-                  aria-label="Ir a actual"
-                >
-                  <RotateCcw size={14} />
-                </button>
-              )}
-            </div>
-
-            <div className="text-right">
-              <p className="text-text-muted text-[10px] uppercase tracking-widest font-bold">Total Pagado</p>
-              <p className="font-display text-xl md:text-2xl text-red-400">-${totalPagadoPeriodo.toFixed(2)}</p>
-            </div>
-          </div>
-        </div>
+        <h3 className="font-display text-xl md:text-2xl text-white tracking-widest uppercase flex items-center gap-3 mb-4 md:mb-6">
+          <ArrowDownRight className="text-primary" size={20} />
+          Historial de Pagos
+        </h3>
 
         {/* Tabla de pagos (escritorio) */}
         <div className="hidden md:block overflow-x-auto">
@@ -448,7 +446,7 @@ export default function PersonalPage() {
           barberId={selectedBarberForPayout.uid}
           barberName={selectedBarberForPayout.name}
           periodEarnings={selectedBarberForPayout.periodEarnings || 0}
-          currentPeriodLabel={currentPeriod.isSunday ? "Ganado este Domingo" : "Ganado esta Semana"}
+          currentPeriodLabel={periodo.isSunday ? "Ganado este Domingo" : "Ganado esta Semana"}
         />
       )}
     </div>
