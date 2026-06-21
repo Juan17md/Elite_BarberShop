@@ -100,35 +100,6 @@ export default function EstadisticasPage() {
     return acc;
   }, {} as Record<string, number>);
 
-  // Desglose por barbero para la semana seleccionada
-  const desgloseBarbers = useMemo(() => {
-    const desglose = filteredRecords.reduce((acc, r) => {
-      if (!acc[r.barberName]) {
-        acc[r.barberName] = { barberShare: 0, barberiaShare: 0, total: 0 };
-      }
-      acc[r.barberName].barberShare += r.barberShare;
-      acc[r.barberName].barberiaShare += r.barberiaShare;
-      acc[r.barberName].total += r.totalAmount;
-      return acc;
-    }, {} as Record<string, { barberShare: number; barberiaShare: number; total: number }>);
-
-    // Asegurar que todos los barberos aparezcan
-    barbersList.forEach((barber) => {
-      if (!desglose[barber.name]) {
-        desglose[barber.name] = { barberShare: 0, barberiaShare: 0, total: 0 };
-      }
-    });
-
-    return desglose;
-  }, [filteredRecords, barbersList]);
-
-  const maxBarValue = Math.max(
-    ...Object.entries(desgloseBarbers)
-      .filter(([name]) => barbersList.some((b) => b.name === name))
-      .flatMap(([, b]) => [b.barberShare, b.barberiaShare]),
-    1
-  );
-
   const topService = Object.entries(servicesByType).sort((a, b) => b[1] - a[1])[0];
   const topBarber = Object.entries(revenueByBarber).sort((a, b) => b[1] - a[1])[0];
   
@@ -201,70 +172,6 @@ export default function EstadisticasPage() {
           </div>
         </div>
       </div>
-
-      <div className="card-premium p-6 sm:p-8">
-        <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-3 mb-8">
-          <div>
-            <h3 className="font-display text-2xl text-text-primary tracking-[0.05em] uppercase">
-              Ingresos de la <span className="text-primary">semana</span>
-            </h3>
-            <p className="text-text-muted text-sm">
-              Comparativa entre lo generado para cada barbero y lo correspondiente a la barbería.
-            </p>
-          </div>
-          <span className="text-white font-display text-lg tracking-wider">
-            Total ${totalRevenue.toFixed(2)}
-          </span>
-        </div>
-
-        <div className="space-y-8">
-          {Object.entries(desgloseBarbers)
-            .filter(([name]) => barbersList.some((b) => b.name === name))
-            .sort((a, b) => b[1].total - a[1].total)
-            .map(([barberName, stats]) => (
-              <div key={barberName} className="space-y-4">
-                <div className="flex items-center gap-2 mb-2">
-                  <div className="h-px flex-1 bg-white/5"></div>
-                  <span className="text-white/80 font-display text-[13px] uppercase tracking-[0.2em]">{barberName}</span>
-                  <div className="h-px flex-1 bg-white/5"></div>
-                </div>
-
-                <div className="space-y-4">
-                  <div className="grid grid-cols-1 md:grid-cols-[140px_1fr_110px] items-center gap-3">
-                    <span className="text-emerald-400 text-[10px] font-bold uppercase tracking-[0.18em]">
-                      Personal
-                    </span>
-                    <div className="h-2.5 bg-surface-high rounded-full overflow-hidden border border-white/5">
-                      <div
-                        className="h-full bg-linear-to-r from-emerald-600 to-emerald-400 rounded-full transition-all duration-1000"
-                        style={{ width: `${maxBarValue > 0 ? (stats.barberShare / maxBarValue) * 100 : 0}%` }}
-                      />
-                    </div>
-                    <span className="text-white font-display text-lg text-left md:text-right tracking-wider">
-                      ${stats.barberShare.toFixed(2)}
-                    </span>
-                  </div>
-
-                  <div className="grid grid-cols-1 md:grid-cols-[140px_1fr_110px] items-center gap-3">
-                    <span className="text-cyan-400 text-[10px] font-bold uppercase tracking-[0.18em]">
-                      Barbería
-                    </span>
-                    <div className="h-2.5 bg-surface-high rounded-full overflow-hidden border border-white/5">
-                      <div
-                        className="h-full bg-linear-to-r from-cyan-700 to-cyan-400 rounded-full transition-all duration-1000"
-                        style={{ width: `${maxBarValue > 0 ? (stats.barberiaShare / maxBarValue) * 100 : 0}%` }}
-                      />
-                    </div>
-                    <span className="text-white font-display text-lg text-left md:text-right tracking-wider">
-                      ${stats.barberiaShare.toFixed(2)}
-                    </span>
-                  </div>
-                </div>
-              </div>
-            ))}
-        </div>
-      </div>
-
 
       <div className="grid grid-cols-2 lg:grid-cols-5 gap-3 md:gap-4">
         <div className="card-premium p-4 md:p-6 min-h-[140px] md:min-h-[170px] flex flex-col justify-between">
