@@ -87,6 +87,20 @@ export default function Sidebar({ collapsed, isOpen, onToggleCollapse, onClose }
     };
   }, [isOpen]);
 
+  // Cerrar sidebar con gesto de retroceso (swipe back en iOS/Android)
+  useEffect(() => {
+    if (!isOpen || window.innerWidth >= 1024) return;
+
+    window.history.pushState(null, "", window.location.href);
+    const handlePopState = () => {
+      window.history.pushState(null, "", window.location.href);
+      onClose();
+    };
+    window.addEventListener("popstate", handlePopState);
+
+    return () => window.removeEventListener("popstate", handlePopState);
+  }, [isOpen, onClose]);
+
   return (
     <aside className={`
       fixed top-0 left-0 h-dvh z-50
