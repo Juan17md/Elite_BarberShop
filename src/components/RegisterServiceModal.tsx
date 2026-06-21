@@ -273,6 +273,11 @@ export default function RegisterServiceModal({ isOpen, onClose }: RegisterServic
     }
   };
 
+  useEffect(() => {
+    if (isOpen) document.body.style.overflow = "hidden";
+    return () => { document.body.style.overflow = ""; };
+  }, [isOpen]);
+
   if (!isOpen) return null;
 
   return (

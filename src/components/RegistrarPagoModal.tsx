@@ -86,6 +86,11 @@ export default function RegistrarPagoModal({
     return () => unsubscribe();
   }, [barberId, barberName, isOpen, currentPeriodLabel]);
 
+  useEffect(() => {
+    if (isOpen) document.body.style.overflow = "hidden";
+    return () => { document.body.style.overflow = ""; };
+  }, [isOpen]);
+
   if (!isOpen) return null;
 
   const balanceActual = bankAccount?.balance ?? 0;
