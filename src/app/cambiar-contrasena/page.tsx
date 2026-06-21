@@ -4,11 +4,9 @@ import { useState } from "react";
 import { useAuth } from "@/context/AuthContext";
 import { auth } from "@/lib/firebase";
 import { Loader2, Lock, ShieldCheck, Eye, EyeOff, ArrowRight } from "lucide-react";
-import { useRouter } from "next/navigation";
 
 export default function CambiarContrasenaPage() {
   const { datosUsuario } = useAuth();
-  const router = useRouter();
   const [nuevaContrasena, setNuevaContrasena] = useState("");
   const [confirmarContrasena, setConfirmarContrasena] = useState("");
   const [mostrarContrasena, setMostrarContrasena] = useState(false);
@@ -59,7 +57,7 @@ export default function CambiarContrasenaPage() {
 
       setExito(true);
       setTimeout(() => {
-        router.replace("/dashboard");
+        window.location.href = "/dashboard";
       }, 2000);
     } catch (err) {
       console.error("Error al cambiar contraseña:", err);
