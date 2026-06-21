@@ -984,7 +984,7 @@ export default function FinanzasPage() {
                       key={m.value}
                       type="button"
                       onClick={() => setFormData({ ...formData, paymentMethod: m.value })}
-                      className={`px-4 py-3 rounded-md text-xs font-bold uppercase tracking-wider transition-all border ${
+                      className={`px-3 py-3 rounded-md text-[10px] font-bold uppercase tracking-wider transition-all border ${
                         formData.paymentMethod === m.value
                           ? "bg-primary/20 border-primary text-white shadow-red-glow"
                           : "bg-void/50 border-white/10 text-text-muted hover:text-white hover:border-white/20"
