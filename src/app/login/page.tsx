@@ -232,9 +232,6 @@ export default function LoginPage() {
             <p className="text-center text-xs text-text-muted">
               © 2026 Elite BarberShop
             </p>
-            <p className="text-center text-xs text-text-muted/60 mt-2 flex items-center justify-center gap-1">
-              Designed by <span className="text-primary font-medium">Juan17md</span>
-            </p>
           </div>
         </div>
       </div>
