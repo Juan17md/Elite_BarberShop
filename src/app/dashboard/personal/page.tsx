@@ -174,10 +174,6 @@ export default function PersonalPage() {
     });
   }, [transactions, periodo]);
 
-  const totalPagadoPeriodo = useMemo(() => {
-    return transaccionesDelPeriodo.reduce((acc, t) => acc + (t.amount || 0), 0);
-  }, [transaccionesDelPeriodo]);
-
   const totalTeamServices = barbersWithBank.reduce((acc, b) => acc + b.totalServices, 0);
   const totalBalance = barbersWithBank.reduce((acc, b) => acc + b.balance, 0);
   const avgServicesPerBarber = barbersWithBank.length > 0 ? Math.round(totalTeamServices / barbersWithBank.length) : 0;
@@ -258,52 +254,45 @@ export default function PersonalPage() {
 
       {/* Navegador de periodo */}
       <div className="card-premium p-4 md:p-5">
-        <div className="flex items-center justify-between gap-4">
-          <div className="flex items-center gap-2">
-            <button
-              onClick={() => setPosition((prev) => prev + 1)}
-              className="p-2 rounded-lg border border-white/10 text-text-muted hover:text-white hover:border-white/20 hover:bg-white/5 active:scale-95 transition-all"
-              aria-label="Anterior"
-            >
-              <ChevronLeft size={16} />
-            </button>
+        <div className="flex items-center justify-center gap-2">
+          <button
+            onClick={() => setPosition((prev) => prev + 1)}
+            className="p-2 rounded-lg border border-white/10 text-text-muted hover:text-white hover:border-white/20 hover:bg-white/5 active:scale-95 transition-all"
+            aria-label="Anterior"
+          >
+            <ChevronLeft size={16} />
+          </button>
 
-            <div className="flex flex-col items-center gap-1 min-w-0">
-              {esPosicionActual && (
-                <span className="inline-flex items-center justify-center gap-1.5 px-3 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-[10px] font-bold uppercase tracking-[0.15em] shadow-[0_0_12px_rgba(16,185,129,0.15)]">
-                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
-                  {periodo.isSunday ? "Domingo actual" : "Semana actual"}
-                </span>
-              )}
-              <span className="font-display text-xs md:text-sm text-white tracking-widest uppercase text-center">
-                {periodo.label}
+          <div className="flex flex-col items-center gap-1 min-w-0">
+            {esPosicionActual && (
+              <span className="inline-flex items-center justify-center gap-1.5 px-3 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-[10px] font-bold uppercase tracking-[0.15em] shadow-[0_0_12px_rgba(16,185,129,0.15)]">
+                <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+                {periodo.isSunday ? "Domingo actual" : "Semana actual"}
               </span>
-            </div>
-
-            <button
-              onClick={() => setPosition((prev) => Math.max(0, prev - 1))}
-              disabled={esPosicionActual}
-              className="p-2 rounded-lg border border-white/10 text-text-muted hover:text-white hover:border-white/20 hover:bg-white/5 active:scale-95 disabled:opacity-30 disabled:cursor-not-allowed transition-all"
-              aria-label="Siguiente"
-            >
-              <ChevronRight size={16} />
-            </button>
-
-            {!esPosicionActual && (
-              <button
-                onClick={() => setPosition(0)}
-                className="p-2 rounded-lg border border-emerald-500/20 text-emerald-400 hover:bg-emerald-500/10 active:scale-95 transition-all"
-                aria-label="Ir a actual"
-              >
-                <RotateCcw size={14} />
-              </button>
             )}
+            <span className="font-display text-xs md:text-sm text-white tracking-widest uppercase text-center">
+              {periodo.label}
+            </span>
           </div>
 
-          <div className="text-right shrink-0">
-            <p className="text-text-muted text-[10px] uppercase tracking-widest font-bold">Total Pagado</p>
-            <p className="font-display text-lg md:text-2xl text-red-400">-${totalPagadoPeriodo.toFixed(2)}</p>
-          </div>
+          <button
+            onClick={() => setPosition((prev) => Math.max(0, prev - 1))}
+            disabled={esPosicionActual}
+            className="p-2 rounded-lg border border-white/10 text-text-muted hover:text-white hover:border-white/20 hover:bg-white/5 active:scale-95 disabled:opacity-30 disabled:cursor-not-allowed transition-all"
+            aria-label="Siguiente"
+          >
+            <ChevronRight size={16} />
+          </button>
+
+          {!esPosicionActual && (
+            <button
+              onClick={() => setPosition(0)}
+              className="p-2 rounded-lg border border-emerald-500/20 text-emerald-400 hover:bg-emerald-500/10 active:scale-95 transition-all"
+              aria-label="Ir a actual"
+            >
+              <RotateCcw size={14} />
+            </button>
+          )}
         </div>
       </div>
 
