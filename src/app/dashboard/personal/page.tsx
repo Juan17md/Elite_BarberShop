@@ -114,7 +114,17 @@ export default function PersonalPage() {
         bankUnsubsRef.current.set(uid, unsub);
       }
 
-      setBarbers(barbersData);
+      // Preservar balance y stats previos al refrescar la lista
+      setBarbers((prev) => {
+        const prevMap = new Map(prev.map((b) => [b.uid, b]));
+        return barbersData.map((bd) => ({
+          ...bd,
+          balance: prevMap.get(bd.uid)?.balance ?? 0,
+          totalRevenue: prevMap.get(bd.uid)?.totalRevenue ?? 0,
+          totalServices: prevMap.get(bd.uid)?.totalServices ?? 0,
+          periodEarnings: prevMap.get(bd.uid)?.periodEarnings ?? 0,
+        }));
+      });
       setLoading(false);
     },
     (error) => {
