@@ -37,8 +37,13 @@ export default function PersonalPage() {
   const [bankBalances, setBankBalances] = useState<Record<string, { totalEarned: number; balance: number }>>({});
 
   const [position, setPosition] = useState(0);
+  const [paginaHistorial, setPaginaHistorial] = useState(0);
+  const ITEMS_POR_PAGINA = 10;
   const esPosicionActual = position === 0;
   const periodo = useMemo(() => getPeriodFromPosition(position), [position]);
+
+  // Resetear paginación al cambiar de periodo
+  useEffect(() => { setPaginaHistorial(0); }, [position]);
 
   // Merge bank data into barbers whenever either changes
   const barbersWithBank = useMemo(() => {
@@ -181,6 +186,13 @@ export default function PersonalPage() {
       return t.date >= periodo.inicio && t.date <= periodo.fin;
     });
   }, [transactions, periodo]);
+
+  const totalPaginas = Math.max(1, Math.ceil(transaccionesDelPeriodo.length / ITEMS_POR_PAGINA));
+  const paginaSegura = Math.min(paginaHistorial, totalPaginas - 1);
+  const transaccionesPaginadas = useMemo(() => {
+    const inicio = paginaSegura * ITEMS_POR_PAGINA;
+    return transaccionesDelPeriodo.slice(inicio, inicio + ITEMS_POR_PAGINA);
+  }, [transaccionesDelPeriodo, paginaSegura]);
 
   const totalTeamServices = barbersWithBank.reduce((acc, b) => acc + b.totalServices, 0);
   const totalBalance = barbersWithBank.reduce((acc, b) => acc + b.balance, 0);
@@ -397,14 +409,14 @@ export default function PersonalPage() {
               </tr>
             </thead>
             <tbody>
-              {transaccionesDelPeriodo.length === 0 && (
+              {transaccionesPaginadas.length === 0 && (
                 <tr>
                   <td colSpan={4} className="py-8 text-center text-text-muted text-sm">
                     No hay pagos registrados en este periodo
                   </td>
                 </tr>
               )}
-              {transaccionesDelPeriodo.map((tx) => (
+              {transaccionesPaginadas.map((tx) => (
                 <tr key={tx.id} className="border-b border-white/5 hover:bg-white/[0.02] transition-colors">
                   <td className="py-3 px-4 text-white text-sm">{tx.userName}</td>
                   <td className="py-3 px-4 text-red-400 font-display">-${tx.amount.toFixed(2)}</td>
@@ -418,12 +430,12 @@ export default function PersonalPage() {
 
         {/* Cards de pagos (móvil) */}
         <div className="md:hidden divide-y divide-white/5">
-          {transaccionesDelPeriodo.length === 0 && (
+          {transaccionesPaginadas.length === 0 && (
             <div className="py-8 text-center text-text-muted text-sm">
               No hay pagos registrados en este periodo
             </div>
           )}
-          {transaccionesDelPeriodo.map((tx) => (
+          {transaccionesPaginadas.map((tx) => (
             <div key={tx.id} className="py-3 space-y-2">
               <div className="flex justify-between items-center">
                 <span className="text-white text-sm font-medium">{tx.userName}</span>
@@ -434,6 +446,31 @@ export default function PersonalPage() {
             </div>
           ))}
         </div>
+
+        {/* Paginación */}
+        {transaccionesDelPeriodo.length > ITEMS_POR_PAGINA && (
+          <div className="flex items-center justify-center gap-3 mt-4 md:mt-6 pt-4 border-t border-white/5">
+            <button
+              onClick={() => setPaginaHistorial((p) => Math.max(0, p - 1))}
+              disabled={paginaSegura === 0}
+              className="p-2 rounded-lg border border-white/10 text-text-muted hover:text-white hover:border-white/20 hover:bg-white/5 active:scale-95 disabled:opacity-30 disabled:cursor-not-allowed transition-all"
+              aria-label="Anterior"
+            >
+              <ChevronLeft size={14} />
+            </button>
+            <span className="text-text-muted text-xs tracking-wider">
+              {paginaSegura + 1} / {totalPaginas}
+            </span>
+            <button
+              onClick={() => setPaginaHistorial((p) => Math.min(totalPaginas - 1, p + 1))}
+              disabled={paginaSegura >= totalPaginas - 1}
+              className="p-2 rounded-lg border border-white/10 text-text-muted hover:text-white hover:border-white/20 hover:bg-white/5 active:scale-95 disabled:opacity-30 disabled:cursor-not-allowed transition-all"
+              aria-label="Siguiente"
+            >
+              <ChevronRight size={14} />
+            </button>
+          </div>
+        )}
       </div>
 
       {selectedBarberForPayout && (
