@@ -19,6 +19,7 @@ import {
 import { auth } from "@/lib/firebase";
 import { signOut } from "firebase/auth";
 import { useAuth } from "@/context/AuthContext";
+import { useEffect } from "react";
 
 interface SidebarProps {
   collapsed: boolean;
@@ -64,6 +65,27 @@ export default function Sidebar({ collapsed, isOpen, onToggleCollapse, onClose }
       onClose();
     }
   };
+
+  // Bloquear scroll del body cuando el sidebar está abierto en móvil
+  useEffect(() => {
+    if (isOpen && window.innerWidth < 1024) {
+      document.body.style.overflow = "hidden";
+    } else {
+      document.body.style.overflow = "";
+    }
+
+    const handleResize = () => {
+      if (window.innerWidth >= 1024) {
+        document.body.style.overflow = "";
+      }
+    };
+    window.addEventListener("resize", handleResize);
+
+    return () => {
+      document.body.style.overflow = "";
+      window.removeEventListener("resize", handleResize);
+    };
+  }, [isOpen]);
 
   return (
     <aside className={`
