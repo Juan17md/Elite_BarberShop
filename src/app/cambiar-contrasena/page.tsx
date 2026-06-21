@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { signInWithEmailAndPassword } from "firebase/auth";
 import { useAuth } from "@/context/AuthContext";
 import { auth } from "@/lib/firebase";
 import { Loader2, Lock, ShieldCheck, Eye, EyeOff, ArrowRight } from "lucide-react";
@@ -56,6 +57,16 @@ export default function CambiarContrasenaPage() {
       }
 
       setExito(true);
+
+      try {
+        // Re-autenticar con la nueva contraseña para renovar la sesión
+        await signInWithEmailAndPassword(auth, datosUsuario.email, nuevaContrasena);
+        const token = await auth.currentUser!.getIdToken();
+        document.cookie = `firebase-token=${token}; path=/; max-age=3600`;
+      } catch {
+        console.warn("No se pudo re-autenticar, el cambio ya se realizó");
+      }
+
       setTimeout(() => {
         window.location.href = "/dashboard";
       }, 2000);
