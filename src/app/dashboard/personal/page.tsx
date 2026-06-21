@@ -1,14 +1,12 @@
 "use client";
 
-import { useState, useEffect, useMemo, useRef } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useAuth } from "@/context/AuthContext";
 import {
   collection,
   onSnapshot,
   query,
   orderBy,
-  where,
-  doc,
 } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import { Shield, Users, TrendingUp, DollarSign, Calendar, Award, Activity, Wallet, ChevronLeft, ChevronRight, RotateCcw, ArrowDownRight } from "lucide-react";
@@ -34,11 +32,11 @@ export default function PersonalPage() {
   const [loading, setLoading] = useState(true);
   const [selectedBarberForPayout, setSelectedBarberForPayout] = useState<BarberWithStats | null>(null);
   const [transactions, setTransactions] = useState<BankTransaction[]>([]);
+  const [bankBalances, setBankBalances] = useState<Record<string, { totalEarned: number; balance: number }>>({});
 
   const [position, setPosition] = useState(0);
   const esPosicionActual = position === 0;
   const periodo = useMemo(() => getPeriodFromPosition(position), [position]);
-  const bankUnsubsRef = useRef<Map<string, () => void>>(new Map());
 
   const currentPeriod = useMemo(() => {
     const hoy = new Date();
@@ -48,123 +46,95 @@ export default function PersonalPage() {
     return getPeriodFromPosition(currentPeriodPosition);
   }, []);
 
-  // Listener de usuarios + listeners individuales de banco (tiempo real)
+  // Merge bank data into barbers whenever either changes
+  const barbersWithBank = useMemo(() => {
+    return barbers.map((b) => {
+      const bank = bankBalances[b.uid];
+      return {
+        ...b,
+        totalRevenue: bank?.totalEarned ?? b.totalRevenue,
+        balance: bank?.balance ?? b.balance,
+      };
+    });
+  }, [barbers, bankBalances]);
+
+  // 1. Listener de usuarios
   useEffect(() => {
     if (!isAdmin) {
       setLoading(false);
       return;
     }
 
-    const usersQuery = query(collection(db, "users"), orderBy("name"));
-
-    const unsubUsers = onSnapshot(usersQuery, (usersSnapshot) => {
-      const barbersData: BarberWithStats[] = [];
-      const newBankUnsubs = new Map<string, () => void>();
-
-      for (const docSnap of usersSnapshot.docs) {
-        const userData = docSnap.data();
-        const role = userData.role || "barber";
+    const q = query(collection(db, "users"), orderBy("name"));
+    const unsub = onSnapshot(q, (snap) => {
+      const list: BarberWithStats[] = [];
+      for (const docSnap of snap.docs) {
+        const data = docSnap.data();
+        const role = data.role || "barber";
         if (role === "superadmin") continue;
-        const uid = docSnap.id;
-
-        const entry: BarberWithStats = {
-          uid,
-          name: userData.name || "Sin nombre",
-          email: userData.email || "",
+        list.push({
+          uid: docSnap.id,
+          name: data.name || "Sin nombre",
+          email: data.email || "",
           role,
           totalServices: 0,
           totalRevenue: 0,
           balance: 0,
           periodEarnings: 0,
-        };
-
-        barbersData.push(entry);
-
-        // Suscribirse al banco de este barbero si no hay listener activo
-        if (!bankUnsubsRef.current.has(uid)) {
-          const unsubBank = onSnapshot(doc(db, "bank", uid), (bankSnap) => {
-            const bankData = bankSnap.exists() ? bankSnap.data() : null;
-            setBarbers((prev) =>
-              prev.map((b) =>
-                b.uid === uid
-                  ? {
-                      ...b,
-                      totalRevenue: bankData?.totalEarned || 0,
-                      balance: bankData?.balance || 0,
-                    }
-                  : b
-              )
-            );
-          });
-          newBankUnsubs.set(uid, unsubBank);
-        }
+        });
       }
-
-      // Cleanup de listeners de banco para barberos que ya no están
-      for (const [uid, unsub] of bankUnsubsRef.current.entries()) {
-        const stillExists = barbersData.some((b) => b.uid === uid);
-        if (!stillExists) {
-          unsub();
-          bankUnsubsRef.current.delete(uid);
-        }
-      }
-
-      // Añadir nuevos listeners
-      for (const [uid, unsub] of newBankUnsubs.entries()) {
-        bankUnsubsRef.current.set(uid, unsub);
-      }
-
-      // Preservar balance y stats previos al refrescar la lista
-      setBarbers((prev) => {
-        const prevMap = new Map(prev.map((b) => [b.uid, b]));
-        return barbersData.map((bd) => ({
-          ...bd,
-          balance: prevMap.get(bd.uid)?.balance ?? 0,
-          totalRevenue: prevMap.get(bd.uid)?.totalRevenue ?? 0,
-          totalServices: prevMap.get(bd.uid)?.totalServices ?? 0,
-          periodEarnings: prevMap.get(bd.uid)?.periodEarnings ?? 0,
-        }));
-      });
+      setBarbers(list);
       setLoading(false);
     },
-    (error) => {
-      console.error("Error escuchando usuarios:", error);
+    (err) => {
+      console.error("Error escuchando usuarios:", err);
       setLoading(false);
     });
 
-    return () => {
-      unsubUsers();
-      // Limpiar todos los listeners de banco
-      for (const unsub of bankUnsubsRef.current.values()) {
-        unsub();
-      }
-      bankUnsubsRef.current.clear();
-    };
+    return () => unsub();
   }, [isAdmin]);
 
-  // Estadísticas desde finances (servicios + ganancia del periodo)
+  // 2. Listener de balances bancarios — un solo onSnapshot para toda la colección
   useEffect(() => {
-    if (!isAdmin || barbers.length === 0) return;
+    if (!isAdmin) return;
 
-    const financesQuery = query(
-      collection(db, "finances"),
-      where("date", ">=", currentPeriod.inicio),
-      orderBy("date", "desc")
-    );
+    const unsub = onSnapshot(collection(db, "bank"), (snap) => {
+      const balances: Record<string, { totalEarned: number; balance: number }> = {};
+      snap.forEach((doc) => {
+        const data = doc.data();
+        balances[doc.id] = {
+          totalEarned: data.totalEarned || 0,
+          balance: data.balance || 0,
+        };
+      });
+      setBankBalances(balances);
+    });
 
-    const unsub = onSnapshot(financesQuery, (snapshot) => {
-      const statsByBarber = snapshot.docs.reduce((acc, doc) => {
+    return () => unsub();
+  }, [isAdmin]);
+
+  // 3. Estadísticas desde finances
+  useEffect(() => {
+    if (!isAdmin) return;
+
+    const q = query(collection(db, "finances"), orderBy("date", "desc"));
+
+    const unsub = onSnapshot(q, (snap) => {
+      const statsByBarber: Record<string, { services: number; periodEarnings: number }> = {};
+      snap.forEach((doc) => {
         const data = doc.data();
         const barberId = data.barberId;
+        const date = data.date;
+        const isWithinPeriod = date >= currentPeriod.inicio && date <= currentPeriod.fin;
 
-        if (!acc[barberId]) {
-          acc[barberId] = { services: 0, periodEarnings: 0 };
+        if (!statsByBarber[barberId]) {
+          statsByBarber[barberId] = { services: 0, periodEarnings: 0 };
         }
-
-        acc[barberId].services++;
-        acc[barberId].periodEarnings += data.barberShare || 0;
-        return acc;
-      }, {} as Record<string, { services: number; periodEarnings: number }>);
+        statsByBarber[barberId].services++;
+        if (isWithinPeriod) {
+          statsByBarber[barberId].periodEarnings += data.barberShare || 0;
+        }
+      });
 
       setBarbers((prev) =>
         prev.map((b) => ({
@@ -176,9 +146,9 @@ export default function PersonalPage() {
     });
 
     return () => unsub();
-  }, [isAdmin, barbers.length, currentPeriod]);
+  }, [isAdmin, currentPeriod]);
 
-  // Transacciones (historial de pagos) - sin where para evitar índice
+  // 4. Historial de transacciones
   useEffect(() => {
     if (!isAdmin) return;
 
@@ -187,8 +157,8 @@ export default function PersonalPage() {
       orderBy("createdAt", "desc")
     );
 
-    const unsub = onSnapshot(q, (snapshot) => {
-      const data = snapshot.docs
+    const unsub = onSnapshot(q, (snap) => {
+      const data = snap.docs
         .filter((doc) => doc.data().type === "withdrawal")
         .map((doc) => ({
           id: doc.id,
@@ -199,7 +169,6 @@ export default function PersonalPage() {
             ? new Date(doc.data().createdAt)
             : undefined,
         })) as BankTransaction[];
-
       setTransactions(data);
     });
 
@@ -217,9 +186,9 @@ export default function PersonalPage() {
     return transaccionesDelPeriodo.reduce((acc, t) => acc + (t.amount || 0), 0);
   }, [transaccionesDelPeriodo]);
 
-  const totalTeamServices = barbers.reduce((acc, b) => acc + b.totalServices, 0);
-  const totalBalance = barbers.reduce((acc, b) => acc + b.balance, 0);
-  const avgServicesPerBarber = barbers.length > 0 ? Math.round(totalTeamServices / barbers.length) : 0;
+  const totalTeamServices = barbersWithBank.reduce((acc, b) => acc + b.totalServices, 0);
+  const totalBalance = barbersWithBank.reduce((acc, b) => acc + b.balance, 0);
+  const avgServicesPerBarber = barbersWithBank.length > 0 ? Math.round(totalTeamServices / barbersWithBank.length) : 0;
 
   if (!isAdmin) {
     return (
@@ -260,7 +229,7 @@ export default function PersonalPage() {
           </div>
           <div className="min-w-0">
             <p className="text-text-muted text-[8px] md:text-xs font-bold uppercase tracking-widest">Total Equipo</p>
-            <p className="font-display text-xl md:text-3xl text-white">{barbers.length}</p>
+            <p className="font-display text-xl md:text-3xl text-white">{barbersWithBank.length}</p>
           </div>
         </div>
 
@@ -297,7 +266,7 @@ export default function PersonalPage() {
 
       {/* Cards de barberos */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6">
-        {barbers.map((barber) => (
+        {barbersWithBank.map((barber) => (
           <div key={barber.uid} className="card-premium overflow-hidden group hover:-translate-y-1 transition-all duration-300">
             <div className="p-4 md:p-6">
               <div className="flex items-center gap-3 md:gap-4 mb-4 md:mb-6">
@@ -361,7 +330,7 @@ export default function PersonalPage() {
         ))}
       </div>
 
-      {barbers.length === 0 && (
+      {barbersWithBank.length === 0 && (
         <div className="card-premium p-12 text-center">
           <Users size={48} className="text-text-muted mx-auto mb-4" />
           <p className="text-text-muted">No hay barberos registrados</p>
@@ -377,7 +346,6 @@ export default function PersonalPage() {
             Historial de Pagos
           </h3>
 
-          {/* Navegador de periodo */}
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
               <button
