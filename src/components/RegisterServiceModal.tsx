@@ -413,15 +413,15 @@ export default function RegisterServiceModal({ isOpen, onClose }: RegisterServic
               ? serviciosDisponibles.find(s => s.id === formData.serviceId)
               : null;
             const tieneDivisa = servicioSel?.priceDivisa != null;
-            const mostrarMetodosPago = !servicioSel || tieneDivisa;
-
-            if (!mostrarMetodosPago) return null;
+            const metodosPago = tieneDivisa
+              ? PAYMENT_METHODS
+              : PAYMENT_METHODS.filter(m => m.value === "bcv");
 
             return (
               <div>
                 <label className="block text-[10px] font-bold text-text-muted uppercase tracking-[0.2em] mb-2">Método de Pago</label>
-                <div className="grid grid-cols-3 gap-2">
-                  {PAYMENT_METHODS.map((m) => (
+                <div className={`grid gap-2 ${tieneDivisa ? "grid-cols-3" : "grid-cols-1"}`}>
+                  {metodosPago.map((m) => (
                     <button
                       key={m.value}
                       type="button"
