@@ -21,6 +21,7 @@ export default function DashboardPage() {
   const { datosUsuario, authLoading, rolLoading } = useAuth();
   const isAdmin = (datosUsuario?.rol === "admin" || datosUsuario?.rol === "superadmin");
   const [records, setRecords] = useState<FinancialRecord[]>([]);
+  const [allRecords, setAllRecords] = useState<FinancialRecord[]>([]);
   const [today, setToday] = useState(getLocalDateString());
   const [loading, setLoading] = useState(true);
   const [position, setPosition] = useState(0);
@@ -61,6 +62,21 @@ export default function DashboardPage() {
     return () => unsubscribe();
   }, [isAdmin, datosUsuario?.uid]);
 
+  // Fetch all records para ranking (solo barberos)
+  useEffect(() => {
+    if (!datosUsuario?.uid || isAdmin) return;
+
+    const q = query(collection(db, "finances"), orderBy("date", "desc"));
+    const unsubscribe = onSnapshot(q, (snapshot) => {
+      const data = snapshot.docs.map(doc => ({
+        id: doc.id,
+        ...doc.data()
+      })) as FinancialRecord[];
+      setAllRecords(data);
+    });
+    return () => unsubscribe();
+  }, [isAdmin, datosUsuario?.uid]);
+
   // Resumen rápido (siempre período actual)
   const startOfMonthStr = getStartOfMonthString();
   const todayRecords = records.filter(r => r.date === today);
@@ -80,14 +96,20 @@ export default function DashboardPage() {
 
   const todayServices = todayRecords.length;
 
+  const rankingSource = useMemo(() => {
+    if (isAdmin) return weeklyFilteredRecords;
+    return allRecords.filter(r => r.date >= periodo.inicio && r.date <= periodo.fin);
+  }, [isAdmin, weeklyFilteredRecords, allRecords, periodo]);
+
   const topBarbers = useMemo(() => {
-    if (!isAdmin) return [];
-    const revenueByBarber = weeklyFilteredRecords.reduce((acc: Record<string, number>, r: FinancialRecord) => {
-      acc[r.barberName] = (acc[r.barberName] || 0) + r.totalAmount;
+    const source = rankingSource;
+    if (source.length === 0) return [];
+    const revenueByBarber = source.reduce((acc: Record<string, number>, r: FinancialRecord) => {
+      acc[r.barberName] = (acc[r.barberName] || 0) + r.barberShare;
       return acc;
     }, {} as Record<string, number>);
     return Object.entries(revenueByBarber).sort((a, b) => b[1] - a[1]);
-  }, [isAdmin, weeklyFilteredRecords]);
+  }, [rankingSource]);
 
   if (loading) {
     return (
@@ -445,7 +467,6 @@ export default function DashboardPage() {
 
   // Datos semanales del barbero
   const weeklyBarberShare = weeklyFilteredRecords.reduce((sum, r) => sum + r.barberShare, 0);
-  const weeklyBarberiaShare = weeklyFilteredRecords.reduce((sum, r) => sum + r.barberiaShare, 0);
   const weeklyTotalRevenue = weeklyFilteredRecords.reduce((sum, r) => sum + r.totalAmount, 0);
 
   const stats = [
@@ -535,7 +556,7 @@ export default function DashboardPage() {
           </h3>
           {weeklyFilteredRecords.length > 0 ? (
             <div className="bg-surface-high/50 p-5 rounded-xl border border-border-subtle hover:border-primary/30 transition-all duration-300 group w-full">
-              <div className="grid grid-cols-1 lg:grid-cols-[220px_minmax(0,1fr)_260px] gap-6 items-stretch">
+              <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 items-stretch">
                 <div className="flex items-center gap-3">
                   <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center border border-primary/20 group-hover:bg-primary/20 transition-colors">
                     <Scissors size={18} className="text-primary" />
@@ -550,15 +571,9 @@ export default function DashboardPage() {
                   </div>
                 </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div className="flex justify-between items-center border border-white/5 rounded-lg bg-void/20 px-4 py-4">
-                    <span className="text-text-secondary text-[11px] uppercase tracking-widest font-bold">Tu Parte <span className="text-text-muted/50 font-normal">(60%)</span></span>
-                    <span className="font-display text-2xl text-emerald-400">${weeklyBarberShare.toFixed(2)}</span>
-                  </div>
-                  <div className="flex justify-between items-center border border-white/5 rounded-lg bg-void/20 px-4 py-4">
-                    <span className="text-text-secondary text-[11px] uppercase tracking-widest font-bold">Barbería <span className="text-text-muted/50 font-normal">(40%)</span></span>
-                    <span className="font-display text-2xl text-blue-400">${weeklyBarberiaShare.toFixed(2)}</span>
-                  </div>
+                <div className="flex justify-between items-center border border-white/5 rounded-lg bg-void/20 px-4 py-4">
+                  <span className="text-text-secondary text-[11px] uppercase tracking-widest font-bold">Tu Parte <span className="text-text-muted/50 font-normal">(60%)</span></span>
+                  <span className="font-display text-2xl text-emerald-400">${weeklyBarberShare.toFixed(2)}</span>
                 </div>
 
                 <div className="mt-auto flex justify-between items-center bg-void/40 p-4 rounded-lg border border-white/5 relative overflow-hidden group-hover:border-white/10 transition-colors">
@@ -573,6 +588,38 @@ export default function DashboardPage() {
               <Wallet size={32} className="text-text-muted/30 mb-3" />
               <p className="text-text-muted text-sm uppercase tracking-widest font-bold text-[10px]">No hay ganancias registradas en la semana seleccionada</p>
             </div>
+          )}
+        </div>
+
+        {/* Ranking Barberos */}
+        <div className="card-premium p-6">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
+            <h3 className="font-display text-lg sm:text-2xl text-text-primary flex items-center gap-3 tracking-[0.05em] uppercase">
+              <Users size={22} className="text-primary" />
+              RANKING <span className="text-primary">BARBEROS</span>
+            </h3>
+          </div>
+          {topBarbers.length > 0 ? (
+            <div className="space-y-3">
+              {topBarbers.map(([name, amount], index) => (
+                <div key={name} className="flex items-center gap-4 p-3 rounded-lg bg-surface-high/30 border border-white/5">
+                  <div className={`w-8 h-8 rounded-full flex items-center justify-center font-display text-lg font-bold ${
+                    index === 0 ? "bg-amber-500/20 text-amber-400" :
+                    index === 1 ? "bg-gray-400/20 text-gray-300" :
+                    index === 2 ? "bg-amber-700/20 text-amber-600" :
+                    "bg-surface-high text-text-muted"
+                  }`}>
+                    {index + 1}
+                  </div>
+                  <div className="flex-1">
+                    <p className="font-display text-lg text-text-primary leading-none tracking-wide">{name.toUpperCase()}</p>
+                  </div>
+                  <p className="font-display text-xl text-emerald-400 tracking-wider">${amount.toFixed(2)}</p>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <p className="text-text-muted">No hay datos disponibles</p>
           )}
         </div>
 

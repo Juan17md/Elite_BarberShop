@@ -37,7 +37,8 @@ export default function RegisterServiceModal({ isOpen, onClose }: RegisterServic
     serviceId: "",
     clientName: "",
     barberId: "",
-    paymentMethod: "bcv" as PaymentMethod
+    paymentMethod: "bcv" as PaymentMethod,
+    numeroReferencia: "",
   });
 
   const [serviciosDisponibles, setServiciosDisponibles] = useState<Service[]>(SERVICES);
@@ -109,7 +110,8 @@ export default function RegisterServiceModal({ isOpen, onClose }: RegisterServic
         serviceId: "",
         clientName: "",
         barberId: esAdmin ? "" : (datosUsuario?.uid || ""),
-        paymentMethod: "bcv"
+        paymentMethod: "bcv",
+        numeroReferencia: "",
       });
     }
   }, [isOpen, esAdmin, datosUsuario]);
@@ -162,6 +164,7 @@ export default function RegisterServiceModal({ isOpen, onClose }: RegisterServic
         createdAt: new Date(),
         paymentMethod,
         ...(bcvRate != null ? { bcvRate } : {}),
+        ...(formData.numeroReferencia.trim() ? { numeroReferencia: formData.numeroReferencia.trim() } : {}),
       });
 
       // 2. Actualizar banco del barbero
@@ -375,6 +378,18 @@ export default function RegisterServiceModal({ isOpen, onClose }: RegisterServic
               placeholder="Nombre del cliente"
               value={formData.clientName}
               onChange={(e) => setFormData({ ...formData, clientName: e.target.value })}
+            />
+          </div>
+
+          <div>
+            <label className="block text-[10px] font-bold text-text-muted uppercase tracking-[0.2em] mb-2">N° Referencia (opcional)</label>
+            <input 
+              type="text" 
+              className="w-full bg-void/50 border border-white/10 rounded-md px-4 py-3 text-white focus:border-primary/50 focus:ring-1 focus:ring-primary/20 transition-all outline-none placeholder:text-text-muted/50"
+              placeholder="Últimos 4 dígitos"
+              maxLength={4}
+              value={formData.numeroReferencia}
+              onChange={(e) => setFormData({ ...formData, numeroReferencia: e.target.value.replace(/\D/g, "").slice(-4) })}
             />
           </div>
 

@@ -141,6 +141,7 @@ CLAUDE.md
 createAdmin.js
 resetDatabase.js
 resetCompleto.js
+resetDataNoUsuarios.js
 migrar-*.js
 migrar-*.mjs
 migrar-*.cjs
