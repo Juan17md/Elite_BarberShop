@@ -158,7 +158,7 @@ export default function ServiciosPage() {
                     </p>
                     {servicio.priceDivisa != null && (
                       <p className="text-xs text-amber-400 font-bold tracking-wide">
-                        USD/USDT: ${servicio.priceDivisa}
+                        USD/<span className="text-red-500">USDT</span>: ${servicio.priceDivisa}
                       </p>
                     )}
                   </div>
