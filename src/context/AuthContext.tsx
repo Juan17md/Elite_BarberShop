@@ -1,7 +1,7 @@
 "use client";
 
 import { createContext, useContext, useEffect, useState, useRef, ReactNode } from "react";
-import { onAuthStateChanged, User } from "firebase/auth";
+import { onAuthStateChanged, onIdTokenChanged, User } from "firebase/auth";
 import { doc, onSnapshot } from "firebase/firestore";
 import { auth, db } from "@/lib/firebase";
 import type { RolUsuario } from "@/lib/types";
@@ -128,6 +128,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       if (unsubFirestore) unsubFirestore();
       if (timeoutRef.current) clearTimeout(timeoutRef.current);
     };
+  }, []);
+
+  useEffect(() => {
+    const unsubToken = onIdTokenChanged(auth, async (firebaseUser) => {
+      if (firebaseUser) {
+        const token = await firebaseUser.getIdToken();
+        document.cookie = `firebase-token=${token}; path=/; max-age=3600`;
+      } else {
+        document.cookie = "firebase-token=; path=/; max-age=0";
+      }
+    });
+
+    return () => unsubToken();
   }, []);
 
   return (

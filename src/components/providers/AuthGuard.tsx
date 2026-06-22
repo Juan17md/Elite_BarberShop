@@ -1,7 +1,7 @@
 "use client";
 
 import { useRouter, usePathname } from "next/navigation";
-import { useEffect, ReactNode } from "react";
+import { useEffect, useRef, ReactNode } from "react";
 import { useAuth } from "@/context/AuthContext";
 
 const RUTAS_PUBLICAS = ["/login", "/bloqueado", "/cambiar-contrasena"];
@@ -15,11 +15,32 @@ export default function AuthGuard({ children }: { children: ReactNode }) {
   const autenticado = !!usuario;
   const esRutaPublica = RUTAS_PUBLICAS.includes(pathname);
 
+  const estabaAutenticado = useRef(false);
+  const redirectTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
   useEffect(() => {
+    if (autenticado) {
+      estabaAutenticado.current = true;
+    }
+  }, [autenticado]);
+
+  useEffect(() => {
+    if (redirectTimer.current) {
+      clearTimeout(redirectTimer.current);
+      redirectTimer.current = null;
+    }
+
     if (loading) return;
 
     if (!autenticado && !esRutaPublica) {
-      router.replace("/login");
+      if (estabaAutenticado.current) {
+        redirectTimer.current = setTimeout(() => {
+          redirectTimer.current = null;
+          router.replace("/login");
+        }, 1500);
+      } else {
+        router.replace("/login");
+      }
       return;
     }
 
