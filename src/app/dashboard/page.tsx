@@ -384,12 +384,12 @@ export default function DashboardPage() {
     {
       label: "Registrar Servicio",
       descripcion: "Agrega un nuevo servicio al registro",
-      href: "/dashboard/finanzas",
       icon: DollarSign,
       colorIcono: "text-emerald-400",
       bgIcono: "bg-emerald-400/10",
       bordeIcono: "border-emerald-400/20",
       hoverCard: "hover:border-emerald-400/30 hover:bg-emerald-400/5",
+      esModal: true,
     },
     {
       label: "Servicios",
@@ -475,12 +475,8 @@ export default function DashboardPage() {
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
           {accionesRapidas.map((accion) => {
             const Icono = accion.icon;
-            return (
-              <Link
-                key={accion.href}
-                href={accion.href}
-                className={`group card-premium p-5 flex items-center gap-4 transition-all duration-300 border border-border-subtle ${accion.hoverCard}`}
-              >
+            const contenido = (
+              <>
                 <div className={`w-12 h-12 rounded-xl ${accion.bgIcono} border ${accion.bordeIcono} flex items-center justify-center shrink-0 transition-all duration-300 group-hover:scale-110`}>
                   <Icono size={22} className={accion.colorIcono} />
                 </div>
@@ -489,6 +485,28 @@ export default function DashboardPage() {
                   <p className="text-text-muted text-[11px] mt-1 leading-snug">{accion.descripcion}</p>
                 </div>
                 <ArrowRight size={16} className="text-text-muted group-hover:text-text-primary group-hover:translate-x-1 transition-all duration-300 shrink-0" />
+              </>
+            );
+
+            if (accion.esModal) {
+              return (
+                <button
+                  key={accion.label}
+                  onClick={() => setIsRegisterModalOpen(true)}
+                  className={`group card-premium p-5 flex items-center gap-4 transition-all duration-300 border border-border-subtle ${accion.hoverCard} w-full text-left cursor-pointer`}
+                >
+                  {contenido}
+                </button>
+              );
+            }
+
+            return (
+              <Link
+                key={(accion as any).href}
+                href={(accion as any).href}
+                className={`group card-premium p-5 flex items-center gap-4 transition-all duration-300 border border-border-subtle ${accion.hoverCard}`}
+              >
+                {contenido}
               </Link>
             );
           })}
@@ -624,6 +642,11 @@ export default function DashboardPage() {
           </div>
         </div>
       </div>
+
+      <RegisterServiceModal 
+        isOpen={isRegisterModalOpen} 
+        onClose={() => setIsRegisterModalOpen(false)} 
+      />
     </div>
   );
 }
