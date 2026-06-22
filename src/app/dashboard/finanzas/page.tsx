@@ -288,7 +288,7 @@ export default function FinanzasPage() {
         </button>
       </div>
 
-      <div className="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-4 gap-3 md:gap-6 animate-fade-in-up">
+      <div className={`grid grid-cols-2 ${isAdmin ? 'lg:grid-cols-4' : 'lg:grid-cols-3'} gap-3 md:gap-6 animate-fade-in-up`}>
         {/* Card Servicios Count */}
         <div className="card-premium p-5 md:p-6 flex flex-col justify-between">
           <div className="flex items-center gap-3 md:gap-3 mb-3 md:mb-4">
@@ -319,7 +319,8 @@ export default function FinanzasPage() {
           </div>
         </div>
 
-        {/* Card Barbería (40%) */}
+        {/* Card Barbería (40%) — solo admin */}
+        {isAdmin && (
         <div className="card-premium p-5 md:p-6 flex flex-col justify-between">
           <div className="flex items-center gap-3 md:gap-3 mb-3 md:mb-4">
             <div className="w-12 h-12 md:w-12 md:h-12 rounded-xl md:rounded-xl bg-blue-500/10 border border-blue-500/20 flex items-center justify-center text-blue-400 shadow-inner">
@@ -332,6 +333,7 @@ export default function FinanzasPage() {
             <p className="text-[10px] md:text-[9px] text-text-muted uppercase tracking-widest font-bold mt-1 md:mt-2">40% de Comisiones</p>
           </div>
         </div>
+        )}
 
         {/* Card Total Generado */}
         <div className="card-premium p-5 md:p-6 flex flex-col justify-between border-l-2 md:border-l-4 border-l-primary/40">
@@ -381,7 +383,7 @@ export default function FinanzasPage() {
               Ingresos de la <span className="text-primary">semana</span>
             </h3>
             <p className="text-text-muted text-sm">
-              Comparativa entre lo generado para cada barbero y lo correspondiente a la barbería.
+              {isAdmin ? "Comparativa entre lo generado para cada barbero y lo correspondiente a la barbería." : "Desglose de tus ingresos personales en el periodo."}
             </p>
           </div>
           <span className="text-white font-display text-lg tracking-wider">
@@ -429,6 +431,7 @@ export default function FinanzasPage() {
                     </span>
                   </div>
 
+                  {isAdmin && (
                   <div className="grid grid-cols-1 md:grid-cols-[140px_1fr_110px] items-center gap-3">
                     <span className="text-cyan-400 text-[10px] font-bold uppercase tracking-[0.18em]">
                       Barbería
@@ -443,6 +446,7 @@ export default function FinanzasPage() {
                       ${stats.barberiaShare.toFixed(2)}
                     </span>
                   </div>
+                  )}
                 </div>
               </div>
             ))}
