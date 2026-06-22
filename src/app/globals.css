@@ -1,5 +1,36 @@
 @import "tailwindcss";
 
+/* Scrollbar personalizada (fuera de @layer para evitar problemas con pseudo-elementos) */
+.scrollbar-personalizada {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(255, 255, 255, 0.1) transparent;
+}
+.scrollbar-personalizada::-webkit-scrollbar {
+  width: 5px;
+  height: 5px;
+}
+.scrollbar-personalizada::-webkit-scrollbar-track {
+  background: transparent;
+  border: none;
+}
+.scrollbar-personalizada::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 999px;
+  border: none;
+  min-height: 32px;
+}
+.scrollbar-personalizada::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.2);
+}
+.scrollbar-personalizada::-webkit-scrollbar-button {
+  display: none;
+  width: 0;
+  height: 0;
+}
+.scrollbar-personalizada::-webkit-scrollbar-corner {
+  background: transparent;
+}
+
 /* ========================================
    URBAN PREMIUM DESIGN SYSTEM
    Elite BarberShop — Black, Red, White
@@ -246,4 +277,5 @@
     -ms-overflow-style: none;
     scrollbar-width: none;
   }
+
 }
