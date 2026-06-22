@@ -212,9 +212,10 @@ export default function RegisterServiceModal({ isOpen, onClose }: RegisterServic
 
       const paymentMethod = formData.paymentMethod || "bcv";
       const esDivisa = paymentMethod !== "bcv";
-      const totalAmount = esDivisa && service.priceDivisa != null
+      const rawTotal = esDivisa && service.priceDivisa != null
         ? service.priceDivisa
         : service.price;
+      const totalAmount = Number(rawTotal) || 0;
       const barberShareAmount = totalAmount * 0.6;
       const barberiaShareAmount = totalAmount * 0.4;
       const date = getLocalDateString();
@@ -422,9 +423,10 @@ export default function RegisterServiceModal({ isOpen, onClose }: RegisterServic
             const selectedService = serviciosDisponibles.find(s => s.id === formData.serviceId);
             if (!selectedService) return null;
             const esDivisa = formData.paymentMethod !== "bcv";
-            const precio = esDivisa && selectedService.priceDivisa != null
+            const rawPrecio = esDivisa && selectedService.priceDivisa != null
               ? selectedService.priceDivisa
               : selectedService.price;
+            const precio = Number(rawPrecio) || 0;
             return (
               <div className="bg-primary/5 border border-primary/10 rounded-md p-4">
                 <p className="text-[10px] font-bold text-text-muted uppercase tracking-[0.2em] mb-1">Precio a Cobrar</p>
