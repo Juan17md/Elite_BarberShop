@@ -392,6 +392,16 @@ export default function DashboardPage() {
       esModal: true,
     },
     {
+      label: "Mis Finanzas",
+      descripcion: "Control de ingresos y ganancias",
+      href: "/dashboard/finanzas",
+      icon: Wallet,
+      colorIcono: "text-cyan-400",
+      bgIcono: "bg-cyan-400/10",
+      bordeIcono: "border-cyan-400/20",
+      hoverCard: "hover:border-cyan-400/30 hover:bg-cyan-400/5",
+    },
+    {
       label: "Servicios",
       descripcion: "Catálogo de servicios disponibles",
       href: "/dashboard/servicios",
