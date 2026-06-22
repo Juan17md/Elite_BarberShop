@@ -349,7 +349,7 @@ export default function RegisterServiceModal({ isOpen, onClose }: RegisterServic
       }
 
       // Cerrar modal
-      toast.success("Servicio registrado exitosamente");
+      toast.success("Servicio registrado exitosamente", { duration: 2000, closeButton: false });
       onClose();
 
     } catch (error) {
