@@ -28,6 +28,7 @@ interface RegisterServiceModalProps {
 }
 
 const normalizarNombreServicio = (nombre: string) => nombre.trim().toLowerCase();
+const obtenerNombreBarbero = (b: any) => b?.nombre ?? b?.name ?? "Barbero";
 
 export default function RegisterServiceModal({ isOpen, onClose }: RegisterServiceModalProps) {
   const { datosUsuario } = useAuth();
@@ -225,7 +226,7 @@ export default function RegisterServiceModal({ isOpen, onClose }: RegisterServic
         serviceId: service.id,
         serviceName: service.name,
         barberId: finalBarberId,
-        barberName: finalBarber.name,
+        barberName: obtenerNombreBarbero(finalBarber),
         clientName: formData.clientName || "Cliente",
         totalAmount,
         barberShare: barberShareAmount,
@@ -250,7 +251,7 @@ export default function RegisterServiceModal({ isOpen, onClose }: RegisterServic
       } else {
         await setDoc(barberBankRef, {
           userId: finalBarberId,
-          userName: finalBarber.name,
+          userName: obtenerNombreBarbero(finalBarber),
           balance: barberShareAmount,
           totalEarned: barberShareAmount,
           totalPaid: 0,
@@ -261,7 +262,7 @@ export default function RegisterServiceModal({ isOpen, onClose }: RegisterServic
       // 3. Agregar transacción al historial del banco del barbero
       await addDoc(collection(db, "bank_transactions"), {
         userId: finalBarberId,
-        userName: finalBarber.name,
+        userName: obtenerNombreBarbero(finalBarber),
         type: "earning",
         amount: barberShareAmount,
         description: `Servicio: ${service.name}`,
@@ -295,7 +296,7 @@ export default function RegisterServiceModal({ isOpen, onClose }: RegisterServic
         userName: "Elite BarberShop",
         type: "earning",
         amount: barberiaShareAmount,
-        description: `Servicio: ${service.name} (${finalBarber.name})`,
+        description: `Servicio: ${service.name} (${obtenerNombreBarbero(finalBarber)})`,
         date,
         createdAt: new Date()
       });
