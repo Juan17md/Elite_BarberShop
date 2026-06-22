@@ -21,6 +21,7 @@ import { db } from "@/lib/firebase";
 import { Check, Loader2, X, Upload } from "lucide-react";
 import { Select } from "@/components/ui";
 import { getLocalDateString } from "@/lib/utils";
+import { toast } from "sonner";
 
 interface RegisterServiceModalProps {
   isOpen: boolean;
@@ -338,6 +339,7 @@ export default function RegisterServiceModal({ isOpen, onClose }: RegisterServic
       }
 
       // Cerrar modal
+      toast.success("Servicio registrado exitosamente");
       onClose();
 
     } catch (error) {
