@@ -44,7 +44,7 @@ import {
 import SearchInput from "@/components/ui/search-input";
 import { getLocalDateString, getPeriodFromPosition } from "@/lib/utils";
 
-const ITEMS_POR_PAGINA = 15;
+const ITEMS_POR_PAGINA = 10;
 
 export default function HistorialPage() {
   const { datosUsuario, authLoading, rolLoading } = useAuth();
