@@ -915,6 +915,30 @@ export default function HistorialPage() {
         )}
       </div>
 
+      {/* LIGHTBOX DE CAPTURA */}
+      {capturaModalUrl && (
+        <div
+          className="fixed inset-0 bg-void/95 backdrop-blur-md z-50 flex items-center justify-center p-4"
+          onClick={() => setCapturaModalUrl("")}
+        >
+          <div className="relative max-w-3xl w-full max-h-[90vh] flex items-center justify-center">
+            <button
+              onClick={() => setCapturaModalUrl("")}
+              className="absolute -top-12 right-0 p-2 rounded-md text-text-muted hover:text-white hover:bg-white/10 transition-colors z-10"
+              aria-label="Cerrar"
+            >
+              <X size={24} />
+            </button>
+            <img
+              src={capturaModalUrl}
+              alt="Captura de pago"
+              className="max-w-full max-h-[85vh] rounded-lg shadow-2xl border border-white/10 object-contain"
+              onClick={(e) => e.stopPropagation()}
+            />
+          </div>
+        </div>
+      )}
+
       {/* MODAL DE EDICIÓN */}
       {isEditModalOpen && recordToEdit && (
         <div className="fixed inset-0 bg-void/90 backdrop-blur-md z-50 flex items-center justify-center p-4">
