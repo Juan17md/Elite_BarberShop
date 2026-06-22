@@ -18,7 +18,7 @@ import {
   increment
 } from "firebase/firestore";
 import { db } from "@/lib/firebase";
-import { Check, Loader2, X } from "lucide-react";
+import { Check, Loader2, X, Upload } from "lucide-react";
 import { Select } from "@/components/ui";
 import { getLocalDateString } from "@/lib/utils";
 
@@ -45,6 +45,10 @@ export default function RegisterServiceModal({ isOpen, onClose }: RegisterServic
   const [barbers, setBarbers] = useState<any[]>([]);
   const [bcvRateDb, setBcvRateDb] = useState<number | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [capturaFile, setCapturaFile] = useState<File | null>(null);
+  const [capturaSubiendo, setCapturaSubiendo] = useState(false);
+  const [capturaPreview, setCapturaPreview] = useState<string>("");
+  const [dragOver, setDragOver] = useState(false);
 
   // Escuchar la tasa BCV en tiempo real de la base de datos
   useEffect(() => {
@@ -113,8 +117,54 @@ export default function RegisterServiceModal({ isOpen, onClose }: RegisterServic
         paymentMethod: "bcv",
         numeroReferencia: "",
       });
+      setCapturaFile(null);
+      setCapturaPreview("");
     }
   }, [isOpen, esAdmin, datosUsuario]);
+
+  // Crear preview URL para la captura
+  useEffect(() => {
+    if (!capturaFile) {
+      setCapturaPreview("");
+      return;
+    }
+    const url = URL.createObjectURL(capturaFile);
+    setCapturaPreview(url);
+    return () => URL.revokeObjectURL(url);
+  }, [capturaFile]);
+
+  // Drag & drop handlers
+  const handleDragOver = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setDragOver(true);
+  };
+
+  const handleDragLeave = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setDragOver(false);
+  };
+
+  const handleDrop = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setDragOver(false);
+    const file = e.dataTransfer.files?.[0];
+    if (file && file.type.startsWith("image/")) {
+      setCapturaFile(file);
+    }
+  };
+
+  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setCapturaFile(e.target.files?.[0] || null);
+  };
+
+  const limpiarCaptura = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    setCapturaFile(null);
+    setCapturaPreview("");
+  };
 
   const handleRegisterService = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -138,6 +188,26 @@ export default function RegisterServiceModal({ isOpen, onClose }: RegisterServic
 
     setIsSubmitting(true);
     try {
+      let capturaURL = "";
+      let capturaFileId = "";
+      if (capturaFile) {
+        setCapturaSubiendo(true);
+        const uploadFormData = new FormData();
+        uploadFormData.append("file", capturaFile);
+        const res = await fetch("/api/upload-captura", {
+          method: "POST",
+          body: uploadFormData,
+        });
+        if (!res.ok) {
+          const err = await res.json();
+          throw new Error(err.error || "Error al subir la captura");
+        }
+        const uploadResult = await res.json();
+        capturaURL = uploadResult.url;
+        capturaFileId = uploadResult.fileId;
+        setCapturaSubiendo(false);
+      }
+
       const paymentMethod = formData.paymentMethod || "bcv";
       const esDivisa = paymentMethod !== "bcv";
       const totalAmount = esDivisa && service.priceDivisa != null
@@ -165,6 +235,7 @@ export default function RegisterServiceModal({ isOpen, onClose }: RegisterServic
         paymentMethod,
         ...(bcvRate != null ? { bcvRate } : {}),
         ...(formData.numeroReferencia.trim() ? { numeroReferencia: formData.numeroReferencia.trim() } : {}),
+        ...(capturaURL ? { capturaURL, capturaFileId } : {}),
       });
 
       // 2. Actualizar banco del barbero
@@ -393,6 +464,71 @@ export default function RegisterServiceModal({ isOpen, onClose }: RegisterServic
             />
           </div>
 
+          <div>
+            <label className="block text-[10px] font-bold text-text-muted uppercase tracking-[0.2em] mb-2">Captura de pago (opcional)</label>
+            <div
+              onDragOver={handleDragOver}
+              onDragLeave={handleDragLeave}
+              onDrop={handleDrop}
+              onClick={() => document.getElementById("captura-input")?.click()}
+              className={`
+                relative flex flex-col items-center justify-center gap-2 w-full
+                border-2 border-dashed rounded-md px-4 py-5 cursor-pointer
+                transition-all duration-200
+                ${dragOver
+                  ? "border-primary bg-primary/10 scale-[1.02]"
+                  : capturaFile
+                    ? "border-primary/50 bg-primary/5"
+                    : "border-white/10 bg-void/50 hover:border-white/30 hover:bg-white/5"
+                }
+              `}
+            >
+              <input
+                id="captura-input"
+                type="file"
+                accept="image/*"
+                className="hidden"
+                onChange={handleFileSelect}
+              />
+
+              {capturaFile && capturaPreview ? (
+                <div className="flex items-center gap-4 w-full">
+                  <div className="relative w-16 h-16 shrink-0 rounded-lg overflow-hidden border border-white/10">
+                    <img
+                      src={capturaPreview}
+                      alt="Vista previa"
+                      className="w-full h-full object-cover"
+                    />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm text-white font-medium truncate">{capturaFile.name}</p>
+                    <p className="text-[11px] text-text-muted mt-0.5">
+                      {(capturaFile.size / 1024).toFixed(1)} KB
+                    </p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={limpiarCaptura}
+                    className="p-1.5 rounded-md text-text-muted hover:text-white hover:bg-white/10 transition-colors shrink-0"
+                    aria-label="Quitar imagen"
+                  >
+                    <X size={16} />
+                  </button>
+                </div>
+              ) : (
+                <>
+                  <div className="p-3 rounded-full bg-white/5 border border-white/10">
+                    <Upload size={20} className="text-text-muted" />
+                  </div>
+                  <p className="text-sm text-text-muted">
+                    <span className="text-white font-medium">Haz clic</span> o arrastra una imagen
+                  </p>
+                  <p className="text-[11px] text-text-muted/50">PNG, JPG, WebP — Máx 5 MB</p>
+                </>
+              )}
+            </div>
+          </div>
+
           <div className="flex gap-4 mt-8 pt-4 border-t border-white/5">
             <button 
               type="button" 
@@ -407,7 +543,7 @@ export default function RegisterServiceModal({ isOpen, onClose }: RegisterServic
               className="flex-1 btn-primary text-sm py-3 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
             >
               {isSubmitting ? (
-                <><Loader2 size={18} className="animate-spin" /> Registrando...</>
+                <><Loader2 size={18} className="animate-spin" /> {capturaSubiendo ? "Subiendo..." : "Registrando..."}</>
               ) : (
                 <><Check size={18} /> Registrar</>
               )}

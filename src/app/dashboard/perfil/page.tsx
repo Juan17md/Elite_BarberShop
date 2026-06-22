@@ -5,7 +5,6 @@ import { useAuth } from "@/context/AuthContext";
 import { type BankAccount, type BankTransaction } from "@/lib/types";
 import {
   collection,
-  addDoc,
   onSnapshot,
   query,
   orderBy,
@@ -24,8 +23,6 @@ import {
   ArrowDownRight,
   Phone,
 } from "lucide-react";
-import { getLocalDateString } from "@/lib/utils";
-
 export default function PerfilPage() {
   const { datosUsuario } = useAuth();
   const esBarbero = datosUsuario?.rol === "barber";
@@ -34,8 +31,6 @@ export default function PerfilPage() {
   const [passwordData, setPasswordData] = useState({ nueva: "" });
   const [bankAccount, setBankAccount] = useState<BankAccount | null>(null);
   const [transactions, setTransactions] = useState<BankTransaction[]>([]);
-  const [modalRetiroAbierto, setModalRetiroAbierto] = useState(false);
-  const [montoRetiro, setMontoRetiro] = useState(0);
 
   useEffect(() => {
     if (datosUsuario) {
@@ -113,38 +108,6 @@ export default function PerfilPage() {
       alert("Perfil actualizado");
     } catch (error) {
       console.error("Error guardando perfil:", error);
-    }
-  };
-
-  const handleRetiro = async () => {
-    if (!datosUsuario?.uid || !bankAccount || montoRetiro <= 0) return;
-    if (montoRetiro > bankAccount.balance) {
-      alert("No tienes suficiente saldo");
-      return;
-    }
-
-    try {
-      await updateDoc(doc(db, "bank", datosUsuario.uid), {
-        balance: bankAccount.balance - montoRetiro,
-        totalPaid: bankAccount.totalPaid + montoRetiro,
-        lastUpdated: new Date(),
-      });
-
-      await addDoc(collection(db, "bank_transactions"), {
-        userId: datosUsuario.uid,
-        userName: datosUsuario.nombre,
-        type: "withdrawal",
-        amount: montoRetiro,
-        description: "Retiro de ganancias",
-        date: getLocalDateString(),
-        createdAt: new Date(),
-      });
-
-      setModalRetiroAbierto(false);
-      setMontoRetiro(0);
-      alert("Retiro realizado exitosamente");
-    } catch (error) {
-      console.error("Error al procesar retiro:", error);
     }
   };
 
@@ -272,18 +235,11 @@ export default function PerfilPage() {
 
         {esBarbero && (
           <div className="card-premium p-8">
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-8">
+            <div className="flex items-center gap-4 mb-8">
               <h3 className="font-display text-xl text-white flex items-center gap-2">
                 <Wallet size={20} className="text-primary" />
                 Tu Banca
               </h3>
-              <button
-                onClick={() => setModalRetiroAbierto(true)}
-                disabled={!bankAccount || bankAccount.balance <= 0}
-                className="btn-primary w-full sm:w-auto text-xs py-3 sm:py-2 disabled:opacity-50 uppercase tracking-widest"
-              >
-                Retirar
-              </button>
             </div>
 
             {bankAccount ? (
@@ -319,7 +275,7 @@ export default function PerfilPage() {
             {transactions.length > 0 && (
               <div className="mt-6">
                 <h4 className="text-text-secondary text-sm mb-3">Historial Reciente</h4>
-                <div className="space-y-2 max-h-48 overflow-y-auto">
+                <div className="space-y-2 max-h-48 overflow-y-auto scrollbar-personalizada pr-1">
                   {transactions.slice(0, 5).map((t) => (
                     <div
                       key={t.id}
@@ -350,48 +306,7 @@ export default function PerfilPage() {
         )}
       </div>
 
-      {/* Modal de Retiro */}
-      {modalRetiroAbierto && (
-        <div className="fixed inset-0 bg-void/90 backdrop-blur-md z-50 flex items-center justify-center p-4">
-          <div className="card-premium p-6 sm:p-8 w-full max-w-md border-primary/20 shadow-red-strong">
-            <h2 className="font-display text-3xl text-white mb-8 tracking-widest uppercase">
-              Retirar Ganancias
-            </h2>
-            <div className="mb-6">
-              <p className="text-[10px] font-bold text-text-muted uppercase tracking-[0.2em] mb-2">
-                Balance disponible
-              </p>
-              <p className="font-display text-4xl text-white">
-                ${bankAccount?.balance.toFixed(2)}
-              </p>
-            </div>
-            <div>
-              <label className="block text-[10px] font-bold text-text-muted uppercase tracking-[0.2em] mb-2">
-                Monto a retirar
-              </label>
-              <input
-                type="number"
-                className="w-full bg-void/50 border border-white/10 rounded-md px-4 py-3 text-white focus:border-primary/50 focus:ring-1 focus:ring-primary/20 transition-all outline-none font-display tracking-widest"
-                placeholder="0.00"
-                value={montoRetiro}
-                onChange={(e) => setMontoRetiro(Number(e.target.value))}
-              />
-            </div>
-            <div className="flex gap-4 mt-8 pt-4 border-t border-white/5">
-              <button
-                type="button"
-                onClick={() => setModalRetiroAbierto(false)}
-                className="flex-1 px-4 py-3 rounded-md text-[10px] font-bold uppercase tracking-widest text-text-muted hover:text-white transition-colors border border-white/5 bg-white/5"
-              >
-                Cancelar
-              </button>
-              <button onClick={handleRetiro} className="flex-1 btn-primary">
-                CONFIRMAR RETIRO
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+
     </div>
   );
 }
