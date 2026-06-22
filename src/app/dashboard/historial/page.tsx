@@ -30,7 +30,8 @@ import {
   Pencil,
   Trash2,
   Check,
-  CalendarDays
+  CalendarDays,
+  Image as ImageIcon
 } from "lucide-react";
 import {
   Table,
@@ -75,6 +76,9 @@ export default function HistorialPage() {
   const [formData, setFormData] = useState({ serviceId: "", clientName: "", barberId: "", paymentMethod: "bcv" as PaymentMethod, bcvRate: "" });
   const [serviciosDisponibles, setServiciosDisponibles] = useState<Service[]>(SERVICES);
   const [barbers, setBarbers] = useState<any[]>([]);
+
+  // Estado para lightbox de captura
+  const [capturaModalUrl, setCapturaModalUrl] = useState("");
 
   // Efecto para registros
   useEffect(() => {
@@ -667,6 +671,7 @@ export default function HistorialPage() {
                     <TableHead>Servicio</TableHead>
                     <TableHead>Cliente</TableHead>
                     <TableHead align="center">Pago</TableHead>
+                    <TableHead align="center">Captura</TableHead>
                     <TableHead align="right">Total</TableHead>
                     <TableHead align="right">
                       {esAdmin ? "Barbero (60%)" : "Tu Parte"}
@@ -698,6 +703,19 @@ export default function HistorialPage() {
                         }`}>
                           {getPaymentBadge(r.paymentMethod).label}
                         </span>
+                      </TableCell>
+                      <TableCell className="text-center">
+                        {r.capturaURL ? (
+                          <button
+                            onClick={() => setCapturaModalUrl(r.capturaURL!)}
+                            className="inline-flex items-center justify-center w-8 h-8 rounded-md border border-white/10 bg-void/50 hover:border-primary/50 hover:bg-primary/10 transition-all group"
+                            title="Ver captura"
+                          >
+                            <ImageIcon size={14} className="text-text-muted group-hover:text-primary transition-colors" />
+                          </button>
+                        ) : (
+                          <span className="text-text-muted/30 text-[10px]">—</span>
+                        )}
                       </TableCell>
                       <TableCell className="text-right font-display text-white tracking-wider">
                         ${r.totalAmount.toFixed(2)}
@@ -791,6 +809,20 @@ export default function HistorialPage() {
                         <p className="text-text-secondary">
                           {r.barberName}
                         </p>
+                      </div>
+                    )}
+                    {r.capturaURL && (
+                      <div className="space-y-1">
+                        <p className="text-text-muted uppercase text-[9px] tracking-widest font-bold">
+                          Captura
+                        </p>
+                        <button
+                          onClick={() => setCapturaModalUrl(r.capturaURL!)}
+                          className="inline-flex items-center gap-1.5 px-2 py-1 rounded-md border border-white/10 bg-void/50 hover:border-primary/50 hover:bg-primary/10 transition-all group text-xs"
+                        >
+                          <ImageIcon size={12} className="text-text-muted group-hover:text-primary transition-colors" />
+                          <span className="text-text-muted group-hover:text-white transition-colors">Ver</span>
+                        </button>
                       </div>
                     )}
                   </div>
