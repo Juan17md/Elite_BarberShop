@@ -592,7 +592,7 @@ export default function HistorialPage() {
       </div>
 
       {/* Tarjetas de métricas */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4">
+      <div className={`grid grid-cols-2 ${esAdmin ? 'lg:grid-cols-4' : 'lg:grid-cols-3'} gap-3 md:gap-4`}>
         <div className="card-premium p-4 md:p-5 group hover:border-primary/20 transition-colors">
           <div className="flex items-center gap-2 mb-2 md:mb-3">
             <Scissors size={14} className="text-primary md:w-[18px] md:h-[18px]" />
@@ -629,6 +629,7 @@ export default function HistorialPage() {
           </p>
         </div>
 
+        {esAdmin && (
         <div className="card-premium p-4 md:p-5 group hover:border-amber-400/20 transition-colors">
           <div className="flex items-center gap-2 mb-2 md:mb-3">
             <Wallet size={14} className="text-amber-400 md:w-[18px] md:h-[18px]" />
@@ -640,6 +641,7 @@ export default function HistorialPage() {
             ${totalBarberia.toFixed(2)}
           </p>
         </div>
+        )}
       </div>
 
       {/* Tabla */}
@@ -669,7 +671,7 @@ export default function HistorialPage() {
                     <TableHead align="right">
                       {esAdmin ? "Barbero (60%)" : "Tu Parte"}
                     </TableHead>
-                    <TableHead align="right">Barbería (40%)</TableHead>
+                    {esAdmin && <TableHead align="right">Barbería (40%)</TableHead>}
                     <TableHead align="center">Acciones</TableHead>
                   </TableRow>
                 </TableHeader>
@@ -703,9 +705,11 @@ export default function HistorialPage() {
                       <TableCell className="text-right font-display text-emerald-400 tracking-wider">
                         ${r.barberShare.toFixed(2)}
                       </TableCell>
+                      {esAdmin && (
                       <TableCell className="text-right font-display text-blue-400 tracking-wider">
                         ${r.barberiaShare.toFixed(2)}
                       </TableCell>
+                      )}
                       <TableCell className="text-center">
                         <div className="flex items-center justify-center gap-2">
                           <button
@@ -791,7 +795,7 @@ export default function HistorialPage() {
                     )}
                   </div>
 
-                  <div className="grid grid-cols-2 gap-3 pt-2">
+                  <div className={`grid ${esAdmin ? 'grid-cols-2' : 'grid-cols-1'} gap-3 pt-2`}>
                     <div className="bg-void/40 p-2 rounded-lg border border-white/5">
                       <p className="text-text-muted text-[9px] uppercase tracking-widest font-bold mb-1">
                         {esAdmin ? "Barbero (60%)" : "Tu Parte"}
@@ -800,6 +804,7 @@ export default function HistorialPage() {
                         ${r.barberShare.toFixed(2)}
                       </p>
                     </div>
+                    {esAdmin && (
                     <div className="bg-void/40 p-2 rounded-lg border border-white/5">
                       <p className="text-text-muted text-[9px] uppercase tracking-widest font-bold mb-1">
                         Barbería (40%)
@@ -808,6 +813,7 @@ export default function HistorialPage() {
                         ${r.barberiaShare.toFixed(2)}
                       </p>
                     </div>
+                    )}
                   </div>
                 </div>
               ))}
