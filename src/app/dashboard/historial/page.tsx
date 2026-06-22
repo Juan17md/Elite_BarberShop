@@ -95,12 +95,12 @@ export default function HistorialPage() {
     if (!datosUsuario?.uid) return;
     let q;
     if (esAdmin) {
-      q = query(collection(db, "finances"), orderBy("date", "desc"));
+      q = query(collection(db, "finances"), orderBy("createdAt", "desc"));
     } else {
       q = query(
         collection(db, "finances"),
         where("barberId", "==", datosUsuario?.uid),
-        orderBy("date", "desc")
+        orderBy("createdAt", "desc")
       );
     }
 
