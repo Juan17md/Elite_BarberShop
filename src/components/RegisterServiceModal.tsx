@@ -311,11 +311,9 @@ export default function RegisterServiceModal({ isOpen, onClose }: RegisterServic
           <div>
             <label className="block text-[10px] font-bold text-text-muted uppercase tracking-[0.2em] mb-2">Servicio realizado</label>
             <Select
-              options={serviciosDisponibles.map(s => {
-                const precioBase = `$${s.price.toFixed(2)}`;
-                const precioDivisa = s.priceDivisa != null ? ` / $${s.priceDivisa.toFixed(2)} USD` : "";
-                return { value: s.id, label: `${precioBase}${precioDivisa} - ${s.name}` };
-              })}
+              options={serviciosDisponibles.map(s => ({
+                value: s.id, label: s.name
+              }))}
               value={formData.serviceId}
               onChange={(val: string) => setFormData({ ...formData, serviceId: val })}
               placeholder="Seleccionar servicio..."
