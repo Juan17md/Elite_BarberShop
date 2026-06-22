@@ -125,7 +125,7 @@ export default function FinanzasPage() {
     
     const consulta = query(
       collection(db, "users"), 
-      where("role", "==", "barber"),
+      where("role", "in", ["barber", "admin"]),
       orderBy("name")
     );
     const unsubscribe = onSnapshot(consulta, (snapshot) => {
