@@ -139,7 +139,7 @@ export default function RegisterServiceModal({ isOpen, onClose }: RegisterServic
   useEffect(() => {
     if (!formData.serviceId) return;
     const servicio = serviciosDisponibles.find(s => s.id === formData.serviceId);
-    if (servicio && servicio.priceDivisa == null && formData.paymentMethod !== "bcv") {
+    if (servicio && !servicio.priceDivisa && formData.paymentMethod !== "bcv") {
       setFormData(prev => ({ ...prev, paymentMethod: "bcv" }));
     }
   }, [formData.serviceId, serviciosDisponibles, formData.paymentMethod]);
@@ -221,7 +221,7 @@ export default function RegisterServiceModal({ isOpen, onClose }: RegisterServic
 
       const paymentMethod = formData.paymentMethod || "bcv";
       const esDivisa = paymentMethod !== "bcv";
-      const rawTotal = esDivisa && service.priceDivisa != null
+      const rawTotal = esDivisa && service.priceDivisa
         ? service.priceDivisa
         : service.price;
       const totalAmount = Number(rawTotal) || 0;
@@ -412,7 +412,7 @@ export default function RegisterServiceModal({ isOpen, onClose }: RegisterServic
             const servicioSel = formData.serviceId
               ? serviciosDisponibles.find(s => s.id === formData.serviceId)
               : null;
-            const tieneDivisa = servicioSel?.priceDivisa != null;
+            const tieneDivisa = !!servicioSel?.priceDivisa;
             const metodosPago = tieneDivisa
               ? PAYMENT_METHODS
               : PAYMENT_METHODS.filter(m => m.value === "bcv");
@@ -444,7 +444,7 @@ export default function RegisterServiceModal({ isOpen, onClose }: RegisterServic
             const selectedService = serviciosDisponibles.find(s => s.id === formData.serviceId);
             if (!selectedService) return null;
             const esDivisa = formData.paymentMethod !== "bcv";
-            const rawPrecio = esDivisa && selectedService.priceDivisa != null
+            const rawPrecio = esDivisa && selectedService.priceDivisa
               ? selectedService.priceDivisa
               : selectedService.price;
             const precio = Number(rawPrecio) || 0;
