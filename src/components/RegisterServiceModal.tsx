@@ -460,8 +460,7 @@ export default function RegisterServiceModal({ isOpen, onClose }: RegisterServic
                   )}
                 </p>
                 <div className="flex gap-4 mt-2 text-xs">
-                  <span className="text-emerald-400">Barbero 60%: ${(precio * 0.6).toFixed(2)}</span>
-                  <span className="text-blue-400">Barbería 40%: ${(precio * 0.4).toFixed(2)}</span>
+                  <span className="text-emerald-400">60%: ${(precio * 0.6).toFixed(2)}</span>
                 </div>
               </div>
             );
