@@ -135,6 +135,15 @@ export default function RegisterServiceModal({ isOpen, onClose }: RegisterServic
     return () => URL.revokeObjectURL(url);
   }, [capturaFile]);
 
+  // Resetear método de pago a BCV si el servicio no tiene divisa
+  useEffect(() => {
+    if (!formData.serviceId) return;
+    const servicio = serviciosDisponibles.find(s => s.id === formData.serviceId);
+    if (servicio && servicio.priceDivisa == null && formData.paymentMethod !== "bcv") {
+      setFormData(prev => ({ ...prev, paymentMethod: "bcv" }));
+    }
+  }, [formData.serviceId, serviciosDisponibles, formData.paymentMethod]);
+
   // Drag & drop handlers
   const handleDragOver = (e: React.DragEvent) => {
     e.preventDefault();
@@ -399,25 +408,37 @@ export default function RegisterServiceModal({ isOpen, onClose }: RegisterServic
             />
           </div>
 
-          <div>
-            <label className="block text-[10px] font-bold text-text-muted uppercase tracking-[0.2em] mb-2">Método de Pago</label>
-            <div className="grid grid-cols-3 gap-2">
-              {PAYMENT_METHODS.map((m) => (
-                <button
-                  key={m.value}
-                  type="button"
-                  onClick={() => setFormData({ ...formData, paymentMethod: m.value })}
-                  className={`px-3 py-3 rounded-md text-[10px] font-bold uppercase tracking-wider transition-all border ${
-                    formData.paymentMethod === m.value
-                      ? "bg-primary/20 border-primary text-white shadow-red-glow"
-                      : "bg-void/50 border-white/10 text-text-muted hover:text-white hover:border-white/20"
-                  }`}
-                >
-                  {m.label}
-                </button>
-              ))}
-            </div>
-          </div>
+          {(() => {
+            const servicioSel = formData.serviceId
+              ? serviciosDisponibles.find(s => s.id === formData.serviceId)
+              : null;
+            const tieneDivisa = servicioSel?.priceDivisa != null;
+            const mostrarMetodosPago = !servicioSel || tieneDivisa;
+
+            if (!mostrarMetodosPago) return null;
+
+            return (
+              <div>
+                <label className="block text-[10px] font-bold text-text-muted uppercase tracking-[0.2em] mb-2">Método de Pago</label>
+                <div className="grid grid-cols-3 gap-2">
+                  {PAYMENT_METHODS.map((m) => (
+                    <button
+                      key={m.value}
+                      type="button"
+                      onClick={() => setFormData({ ...formData, paymentMethod: m.value })}
+                      className={`px-3 py-3 rounded-md text-[10px] font-bold uppercase tracking-wider transition-all border ${
+                        formData.paymentMethod === m.value
+                          ? "bg-primary/20 border-primary text-white shadow-red-glow"
+                          : "bg-void/50 border-white/10 text-text-muted hover:text-white hover:border-white/20"
+                      }`}
+                    >
+                      {m.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            );
+          })()}
 
           {formData.serviceId && (() => {
             const selectedService = serviciosDisponibles.find(s => s.id === formData.serviceId);
