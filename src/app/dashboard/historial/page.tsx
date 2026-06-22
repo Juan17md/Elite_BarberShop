@@ -694,6 +694,7 @@ export default function HistorialPage() {
                     <TableHead>Cliente</TableHead>
                     <TableHead align="center">Pago</TableHead>
                     <TableHead align="center">Captura</TableHead>
+                    <TableHead align="center">N° Ref.</TableHead>
                     <TableHead align="right">Total</TableHead>
                     <TableHead align="right">
                       {esAdmin ? "Barbero (60%)" : "Tu Parte"}
@@ -735,6 +736,15 @@ export default function HistorialPage() {
                           >
                             <ImageIcon size={14} className="text-text-muted group-hover:text-primary transition-colors" />
                           </button>
+                        ) : (
+                          <span className="text-text-muted/30 text-[10px]">—</span>
+                        )}
+                      </TableCell>
+                      <TableCell className="text-center">
+                        {r.numeroReferencia ? (
+                          <span className="font-mono text-[11px] text-white tracking-wider bg-void/60 px-2 py-0.5 rounded border border-white/5">
+                            {r.numeroReferencia}
+                          </span>
                         ) : (
                           <span className="text-text-muted/30 text-[10px]">—</span>
                         )}
@@ -845,6 +855,16 @@ export default function HistorialPage() {
                           <ImageIcon size={12} className="text-text-muted group-hover:text-primary transition-colors" />
                           <span className="text-text-muted group-hover:text-white transition-colors">Ver</span>
                         </button>
+                      </div>
+                    )}
+                    {r.numeroReferencia && (
+                      <div className="space-y-1">
+                        <p className="text-text-muted uppercase text-[9px] tracking-widest font-bold">
+                          N° Ref.
+                        </p>
+                        <p className="font-mono text-text-secondary text-xs tracking-wider">
+                          {r.numeroReferencia}
+                        </p>
                       </div>
                     )}
                   </div>

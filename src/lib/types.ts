@@ -80,6 +80,7 @@ export interface FinancialRecord {
   bcvRate?: number; // tasa BCV al momento del pago (solo si paymentMethod = "bcv")
   capturaURL?: string; // URL de la captura de pago en ImageKit
   capturaFileId?: string; // fileId interno de ImageKit para limpieza CRON
+  numeroReferencia?: string; // últimos 4 dígitos del número de referencia
 }
 
 export interface BankAccount {
