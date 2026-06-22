@@ -5,7 +5,7 @@ import AuthGuard from "@/components/providers/AuthGuard";
 import { Toaster } from "@/components/ui/sonner";
 
 export const viewport: Viewport = {
-  themeColor: "#8B0000",
+  themeColor: "#050507",
   width: "device-width",
   initialScale: 1,
   maximumScale: 1,
