@@ -80,6 +80,16 @@ export default function HistorialPage() {
   // Estado para lightbox de captura
   const [capturaModalUrl, setCapturaModalUrl] = useState("");
 
+  // Bloquear scroll al abrir lightbox
+  useEffect(() => {
+    if (capturaModalUrl) {
+      document.body.style.overflow = "hidden";
+    } else {
+      document.body.style.overflow = "";
+    }
+    return () => { document.body.style.overflow = ""; };
+  }, [capturaModalUrl]);
+
   // Efecto para registros
   useEffect(() => {
     if (!datosUsuario?.uid) return;
