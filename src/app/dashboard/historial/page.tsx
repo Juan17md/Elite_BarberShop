@@ -44,6 +44,7 @@ import {
 } from "@/components/ui";
 import SearchInput from "@/components/ui/search-input";
 import { getLocalDateString, getPeriodFromPosition } from "@/lib/utils";
+import { toast } from "sonner";
 
 const ITEMS_POR_PAGINA = 10;
 
@@ -80,15 +81,18 @@ export default function HistorialPage() {
   // Estado para lightbox de captura
   const [capturaModalUrl, setCapturaModalUrl] = useState("");
 
-  // Bloquear scroll al abrir lightbox
+  // Estado para confirmación de eliminación
+  const [recordAEliminar, setRecordAEliminar] = useState<FinancialRecord | null>(null);
+
+  // Bloquear scroll al abrir modales
   useEffect(() => {
-    if (capturaModalUrl) {
+    if (capturaModalUrl || recordAEliminar) {
       document.body.style.overflow = "hidden";
     } else {
       document.body.style.overflow = "";
     }
     return () => { document.body.style.overflow = ""; };
-  }, [capturaModalUrl]);
+  }, [capturaModalUrl, recordAEliminar]);
 
   // Efecto para registros
   useEffect(() => {
@@ -158,8 +162,14 @@ export default function HistorialPage() {
   }, [esAdmin]);
 
   // Eliminar Registro
-  const handleDelete = async (record: FinancialRecord) => {
-    if (!window.confirm("¿Estás seguro de eliminar este registro? Se revertirán los saldos de ganancias asociados.")) return;
+  const handleDelete = (record: FinancialRecord) => {
+    setRecordAEliminar(record);
+  };
+
+  const confirmarEliminacion = async () => {
+    const record = recordAEliminar;
+    if (!record) return;
+    setRecordAEliminar(null);
 
     try {
       // 1. Revertir saldo del barbero
@@ -234,9 +244,11 @@ export default function HistorialPage() {
       // 6. Eliminar el documento de finances
       await deleteDoc(doc(db, "finances", record.id));
 
+      toast.success("Registro eliminado correctamente", { duration: 2000, closeButton: false });
+
     } catch (error) {
       console.error("Error al eliminar el registro:", error);
-      alert("Hubo un error al eliminar.");
+      toast.error("Error al eliminar el registro", { duration: 3000, closeButton: false });
     }
   };
 
@@ -924,6 +936,44 @@ export default function HistorialPage() {
           </div>
         )}
       </div>
+
+      {/* MODAL CONFIRMAR ELIMINACIÓN */}
+      {recordAEliminar && (
+        <div
+          className="fixed inset-0 bg-void/90 backdrop-blur-md z-50 flex items-center justify-center p-4"
+          onClick={() => setRecordAEliminar(null)}
+        >
+          <div
+            className="card-premium p-8 w-full max-w-md border-danger/30 shadow-red-strong"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <h2 className="font-display text-2xl text-white mb-2 tracking-widest uppercase">Eliminar Registro</h2>
+            <p className="text-text-muted text-sm mb-6">
+              ¿Estás seguro de eliminar este registro? Se revertirán los saldos de ganancias asociados.
+            </p>
+
+            <div className="bg-void/40 rounded-lg p-4 border border-white/5 mb-6 space-y-1">
+              <p className="text-white text-sm font-medium">{recordAEliminar.serviceName}</p>
+              <p className="text-text-muted text-xs">{recordAEliminar.clientName} · ${recordAEliminar.totalAmount.toFixed(2)}</p>
+            </div>
+
+            <div className="flex gap-4">
+              <button
+                onClick={() => setRecordAEliminar(null)}
+                className="flex-1 px-4 py-3 rounded-md text-[10px] font-bold uppercase tracking-widest text-text-muted hover:text-white transition-colors border border-white/5 bg-white/5"
+              >
+                Cancelar
+              </button>
+              <button
+                onClick={confirmarEliminacion}
+                className="flex-1 px-4 py-3 rounded-md text-[10px] font-bold uppercase tracking-widest text-white bg-danger/80 hover:bg-danger transition-colors"
+              >
+                Eliminar
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* LIGHTBOX DE CAPTURA */}
       {capturaModalUrl && (
