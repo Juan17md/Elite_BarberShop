@@ -720,48 +720,68 @@ export default function FinanzasPage() {
             </table>
           </div>
 
-          {/* Cards (móvil) */}
+          {/* Cards (móvil) — estilo historial */}
           <div className="md:hidden space-y-3">
             {porCobrarRecords.map((record) => (
-              <div key={record.id} className="card-premium p-4 flex flex-col gap-3 border-l-4 border-l-purple-500/60">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <span className="font-display text-white text-sm tracking-wider">{record.serviceName}</span>
-                    <span className="px-1.5 py-0.5 rounded-full bg-purple-500/10 border border-purple-500/20 text-purple-400 text-[8px] font-bold uppercase">Fiado</span>
+              <div key={record.id} className="p-4 space-y-4 rounded-xl border border-white/5 bg-void/20 hover:bg-surface-high/20 hover:border-white/10 transition-all">
+                <div className="flex justify-between items-start">
+                  <div>
+                    <p className="text-white font-medium text-sm">
+                      {record.clientName}
+                    </p>
+                    <p className="text-text-muted text-[10px] uppercase tracking-wider font-bold mt-0.5">
+                      {record.date}
+                    </p>
+                    <span className="inline-block mt-1 px-1.5 py-0.5 rounded-full bg-purple-500/10 border border-purple-500/20 text-purple-400 text-[9px] font-bold uppercase tracking-wider">
+                      Fiado
+                    </span>
                   </div>
-                  <span className="font-display text-base text-white">${record.totalAmount.toFixed(2)}</span>
+                  <div className="flex items-center gap-3">
+                    <div className="px-2 py-1 rounded bg-primary/10 border border-primary/20">
+                      <span className="text-white font-display text-sm tracking-wider">
+                        ${record.totalAmount.toFixed(2)}
+                      </span>
+                    </div>
+                    <div className="flex gap-1">
+                      <button
+                        onClick={() => handleEliminarFiado(record)}
+                        className="p-1.5 text-text-muted hover:text-red-400 transition-colors"
+                        title="Eliminar"
+                      >
+                        <Trash2 size={14} />
+                      </button>
+                    </div>
+                  </div>
                 </div>
-                <div className="flex flex-wrap gap-x-3 gap-y-1 text-[11px] text-text-muted">
-                  <span>Barbero: <strong className="text-white/80">{record.barberName}</strong></span>
-                  <span>Cliente: <strong className="text-white/80">{record.clientName}</strong></span>
-                  <span>Fecha: <strong className="text-white/80">{record.date}</strong></span>
-                  {record.paymentMethod === "bcv" && record.bcvRate ? (
-                    <span>Pago: <strong className="text-white/80">BCV</strong></span>
+
+                <div className="flex flex-wrap gap-y-3 gap-x-6 text-xs">
+                  <div className="space-y-1">
+                    <p className="text-text-muted uppercase text-[9px] tracking-widest font-bold">Servicio</p>
+                    <p className="text-text-secondary">{record.serviceName}</p>
+                  </div>
+                  <div className="space-y-1">
+                    <p className="text-text-muted uppercase text-[9px] tracking-widest font-bold">Barbero</p>
+                    <p className="text-text-secondary">{record.barberName}</p>
+                  </div>
+                  {record.propina ? (
+                    <div className="space-y-1">
+                      <p className="text-text-muted uppercase text-[9px] tracking-widest font-bold">Propina</p>
+                      <p className="text-amber-400 font-display text-xs tracking-wider">+${record.propina.toFixed(2)}</p>
+                    </div>
+                  ) : null}
+                </div>
+
+                <button
+                  onClick={() => handleMarcarPagado(record)}
+                  disabled={procesandoPago === record.id}
+                  className="w-full px-3 py-2 rounded-md bg-emerald-500/20 border border-emerald-500/30 text-emerald-400 hover:bg-emerald-500/30 hover:border-emerald-500/50 text-[10px] font-bold uppercase tracking-[0.15em] transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                >
+                  {procesandoPago === record.id ? (
+                    <><Loader2 size={12} className="animate-spin" /> Procesando</>
                   ) : (
-                    <span>Pago: <strong className="text-white/80">Divisa</strong></span>
+                    <><CheckCircle2 size={12} /> Pagado</>
                   )}
-                  {record.propina ? <span>Propina: <strong className="text-amber-400">+${record.propina.toFixed(2)}</strong></span> : null}
-                </div>
-                <div className="flex gap-2">
-                  <button
-                    onClick={() => handleMarcarPagado(record)}
-                    disabled={procesandoPago === record.id}
-                    className="flex-1 px-3 py-2 rounded-md bg-emerald-500/20 border border-emerald-500/30 text-emerald-400 hover:bg-emerald-500/30 hover:border-emerald-500/50 text-[10px] font-bold uppercase tracking-[0.15em] transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
-                  >
-                    {procesandoPago === record.id ? (
-                      <><Loader2 size={12} className="animate-spin" /> Procesando</>
-                    ) : (
-                      <><CheckCircle2 size={12} /> Pagado</>
-                    )}
-                  </button>
-                  <button
-                    onClick={() => handleEliminarFiado(record)}
-                    className="px-3 py-2 rounded-md border border-red-500/30 text-red-400 hover:bg-red-500/10 transition-all"
-                    title="Eliminar"
-                  >
-                    <Trash2 size={14} />
-                  </button>
-                </div>
+                </button>
               </div>
             ))}
           </div>
