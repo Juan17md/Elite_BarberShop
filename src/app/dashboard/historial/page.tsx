@@ -31,7 +31,7 @@ import {
   Trash2,
   Check,
   CalendarDays,
-  Image as ImageIcon
+  Camera
 } from "lucide-react";
 import {
   Table,
@@ -283,11 +283,12 @@ export default function HistorialPage() {
       : recordToEdit.barberName;
 
     const paymentMethod = formData.paymentMethod || "bcv";
-    const newTotalAmount = paymentMethod !== "bcv" && selService.priceDivisa != null
-      ? selService.priceDivisa
-      : selService.price;
-    const newBarberShare = newTotalAmount * 0.6;
-    const newBarberiaShare = newTotalAmount * 0.4;
+        const propinaExistente = recordToEdit.propina || 0;
+        const newTotalAmount = paymentMethod !== "bcv" && selService.priceDivisa != null
+          ? selService.priceDivisa
+          : selService.price;
+        const newBarberShare = newTotalAmount * 0.6 + propinaExistente;
+        const newBarberiaShare = newTotalAmount * 0.4;
     
     try {
       // Si cambia el monto o el barbero, hacemos reversiones de banco
@@ -446,6 +447,8 @@ export default function HistorialPage() {
   // Registros filtrados por semana seleccionada
   const registrosFiltrados = useMemo(() => {
     return registros.filter((r) => {
+      // Filtrar servicios fiados no cobrados
+      if (r.estado === "pendiente") return false;
       // Filtro semanal
       if (r.date < periodo.inicio || r.date > periodo.fin) return false;
       if (esAdmin && filtroBarbero !== "todos" && r.barberName !== filtroBarbero)
@@ -693,74 +696,63 @@ export default function HistorialPage() {
                     <TableHead>Servicio</TableHead>
                     <TableHead>Cliente</TableHead>
                     <TableHead align="center">Pago</TableHead>
-                    <TableHead align="center">Captura</TableHead>
-                    <TableHead align="center">N° Ref.</TableHead>
                     <TableHead align="right">Total</TableHead>
-                    <TableHead align="right">
-                      {esAdmin ? "Barbero (60%)" : "Tu Parte"}
-                    </TableHead>
-                    {esAdmin && <TableHead align="right">Barbería (40%)</TableHead>}
+                    {esAdmin && <TableHead align="right">60% / 40%</TableHead>}
                     <TableHead align="center">Acciones</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {registrosPagina.map((r) => (
                     <TableRow key={r.id} className="hover:bg-surface-high/30">
-                      <TableCell className="text-text-secondary text-sm">
+                      <TableCell className="text-text-secondary text-sm whitespace-nowrap">
                         {r.date}
                       </TableCell>
                       {esAdmin && (
-                        <TableCell className="text-white text-sm font-medium">
+                        <TableCell className="text-white text-sm font-medium whitespace-nowrap">
                           {r.barberName}
                         </TableCell>
                       )}
-                      <TableCell className="text-white text-sm">
+                      <TableCell className="text-white text-sm whitespace-nowrap">
                         {r.serviceName}
                       </TableCell>
-                      <TableCell className="text-text-secondary text-sm">
+                      <TableCell className="text-text-secondary text-sm whitespace-nowrap">
                         {r.clientName}
                       </TableCell>
-                      <TableCell className="text-center">
-                        <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider ${
-                          getPaymentBadge(r.paymentMethod).colorClass
-                        }`}>
-                          {getPaymentBadge(r.paymentMethod).label}
-                        </span>
-                      </TableCell>
-                      <TableCell className="text-center">
-                        {r.capturaURL ? (
-                          <button
-                            onClick={() => setCapturaModalUrl(r.capturaURL!)}
-                            className="inline-flex items-center justify-center w-8 h-8 rounded-md border border-white/10 bg-void/50 hover:border-primary/50 hover:bg-primary/10 transition-all group"
-                            title="Ver captura"
-                          >
-                            <ImageIcon size={14} className="text-text-muted group-hover:text-primary transition-colors" />
-                          </button>
-                        ) : (
-                          <span className="text-text-muted/30 text-[10px]">—</span>
-                        )}
-                      </TableCell>
-                      <TableCell className="text-center">
-                        {r.numeroReferencia ? (
-                          <span className="font-mono text-[11px] text-white tracking-wider bg-void/60 px-2 py-0.5 rounded border border-white/5">
-                            {r.numeroReferencia}
+                      <TableCell className="text-center whitespace-nowrap">
+                        <div className="flex flex-col items-center gap-1">
+                          <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider ${
+                            getPaymentBadge(r.paymentMethod).colorClass
+                          }`}>
+                            {getPaymentBadge(r.paymentMethod).label}
                           </span>
-                        ) : (
-                          <span className="text-text-muted/30 text-[10px]">—</span>
-                        )}
+                          {r.numeroReferencia && (
+                            <span className="font-mono text-[11px] text-white tracking-wider bg-void/80 px-2 py-0.5 rounded border border-white/10 font-semibold">
+                              #{r.numeroReferencia}
+                            </span>
+                          )}
+                          {r.capturaURL && (
+                            <button
+                              onClick={() => setCapturaModalUrl(r.capturaURL!)}
+                              className="inline-flex items-center justify-center w-6 h-6 rounded border border-white/10 bg-void/50 hover:border-primary/50 hover:bg-primary/10 transition-all group"
+                              title="Ver captura"
+                            >
+                              <Camera size={10} className="text-text-muted group-hover:text-primary transition-colors" />
+                            </button>
+                          )}
+                        </div>
                       </TableCell>
-                      <TableCell className="text-right font-display text-white tracking-wider">
+                      <TableCell className="text-right font-display text-white tracking-wider whitespace-nowrap">
                         ${r.totalAmount.toFixed(2)}
-                      </TableCell>
-                      <TableCell className="text-right font-display text-emerald-400 tracking-wider">
-                        ${r.barberShare.toFixed(2)}
+                        {r.propina ? <span className="text-amber-400 text-[11px] ml-1">(+${r.propina.toFixed(2)})</span> : null}
                       </TableCell>
                       {esAdmin && (
-                      <TableCell className="text-right font-display text-blue-400 tracking-wider">
-                        ${r.barberiaShare.toFixed(2)}
+                      <TableCell className="text-right font-display tracking-wider whitespace-nowrap">
+                        <span className="text-emerald-400">${r.barberShare.toFixed(2)}</span>
+                        <span className="text-text-muted/50 text-[10px] mx-1">|</span>
+                        <span className="text-blue-400">${r.barberiaShare.toFixed(2)}</span>
                       </TableCell>
                       )}
-                      <TableCell className="text-center">
+                      <TableCell className="text-center whitespace-nowrap">
                         <div className="flex items-center justify-center gap-2">
                           <button
                             onClick={() => openEditModal(r)}
@@ -852,7 +844,7 @@ export default function HistorialPage() {
                           onClick={() => setCapturaModalUrl(r.capturaURL!)}
                           className="inline-flex items-center gap-1.5 px-2 py-1 rounded-md border border-white/10 bg-void/50 hover:border-primary/50 hover:bg-primary/10 transition-all group text-xs"
                         >
-                          <ImageIcon size={12} className="text-text-muted group-hover:text-primary transition-colors" />
+                          <Camera size={12} className="text-text-muted group-hover:text-primary transition-colors" />
                           <span className="text-text-muted group-hover:text-white transition-colors">Ver</span>
                         </button>
                       </div>
@@ -867,6 +859,16 @@ export default function HistorialPage() {
                         </p>
                       </div>
                     )}
+                    {r.propina ? (
+                      <div className="space-y-1">
+                        <p className="text-text-muted uppercase text-[9px] tracking-widest font-bold">
+                          Propina
+                        </p>
+                        <p className="text-amber-400 font-display text-xs tracking-wider">
+                          +${r.propina.toFixed(2)}
+                        </p>
+                      </div>
+                    ) : null}
                   </div>
 
                   <div className={`grid ${esAdmin ? 'grid-cols-2' : 'grid-cols-1'} gap-3 pt-2`}>

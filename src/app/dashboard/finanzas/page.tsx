@@ -8,7 +8,15 @@ import {
   onSnapshot,
   query,
   orderBy,
-  where
+  where,
+  doc,
+  getDoc,
+  updateDoc,
+  setDoc,
+  increment,
+  addDoc,
+  getDocs,
+  deleteDoc
 } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import { 
@@ -19,8 +27,13 @@ import {
   TrendingUp,
   ChevronLeft,
   ChevronRight,
-  RotateCcw
+  RotateCcw,
+  HandCoins,
+  CheckCircle2,
+  Loader2,
+  Trash2
 } from "lucide-react";
+import { toast } from "sonner";
 
 import { getLocalDateString, getPeriodFromPosition } from "@/lib/utils";
 import RegisterServiceModal from "@/components/RegisterServiceModal";
@@ -50,6 +63,8 @@ export default function FinanzasPage() {
 
 
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [porCobrarRecords, setPorCobrarRecords] = useState<FinancialRecord[]>([]);
+  const [procesandoPago, setProcesandoPago] = useState<string | null>(null);
   
   // Estado para pago a barbero
   const [selectedBarberForPayout, setSelectedBarberForPayout] = useState<{
@@ -80,6 +95,30 @@ export default function FinanzasPage() {
         createdAt: doc.data().createdAt?.toDate(),
       })) as FinancialRecord[];
       setRecords(data);
+    });
+
+    return () => unsubscribe();
+  }, [isAdmin, datosUsuario?.uid]);
+
+  useEffect(() => {
+    if (!datosUsuario?.uid) return;
+
+    const consulta = isAdmin
+      ? query(collection(db, "finances"), where("estado", "==", "pendiente"), orderBy("date", "desc"))
+      : query(
+          collection(db, "finances"),
+          where("barberId", "==", datosUsuario.uid),
+          where("estado", "==", "pendiente"),
+          orderBy("date", "desc")
+        );
+
+    const unsubscribe = onSnapshot(consulta, (snapshot) => {
+      const data = snapshot.docs.map((doc) => ({
+        id: doc.id,
+        ...doc.data(),
+        createdAt: doc.data().createdAt?.toDate(),
+      })) as FinancialRecord[];
+      setPorCobrarRecords(data);
     });
 
     return () => unsubscribe();
@@ -139,12 +178,13 @@ export default function FinanzasPage() {
   }, [isAdmin]);
 
   const filteredRecords = useMemo(() => {
-    return records.filter(r => r.date >= periodo.inicio && r.date <= periodo.fin);
+    return records.filter(r => r.date >= periodo.inicio && r.date <= periodo.fin && r.estado !== "pendiente");
   }, [records, periodo]);
 
   const totalRevenue = filteredRecords.reduce((sum: number, r: FinancialRecord) => sum + r.totalAmount, 0);
   const barberShare = filteredRecords.reduce((sum: number, r: FinancialRecord) => sum + r.barberShare, 0);
   const barberiaShare = filteredRecords.reduce((sum: number, r: FinancialRecord) => sum + r.barberiaShare, 0);
+  const propinaTotal = filteredRecords.reduce((sum: number, r: FinancialRecord) => sum + (r.propina || 0), 0);
 
   // Global totals for Balance Neto
   const globalBarberiaShare = records.reduce((sum: number, r: FinancialRecord) => sum + r.barberiaShare, 0);
@@ -185,19 +225,20 @@ export default function FinanzasPage() {
   const desgloseBarbers = useMemo(() => {
     const desglose = filteredRecords.reduce((acc, r) => {
       if (!acc[r.barberName]) {
-        acc[r.barberName] = { barberId: r.barberId, barberShare: 0, barberiaShare: 0, total: 0 };
+        acc[r.barberName] = { barberId: r.barberId, barberShare: 0, barberiaShare: 0, total: 0, propina: 0 };
       }
       acc[r.barberName].barberShare += r.barberShare;
       acc[r.barberName].barberiaShare += r.barberiaShare;
       acc[r.barberName].total += r.totalAmount;
+      acc[r.barberName].propina += (r.propina || 0);
       return acc;
-    }, {} as Record<string, { barberId: string; barberShare: number; barberiaShare: number; total: number }>);
+    }, {} as Record<string, { barberId: string; barberShare: number; barberiaShare: number; total: number; propina: number }>);
 
     // Asegurar que todos los barberos registrados aparezcan (si es admin)
     if (isAdmin) {
       barbers.forEach((barber: any) => {
         if (!desglose[barber.name]) {
-          desglose[barber.name] = { barberId: barber.id, barberShare: 0, barberiaShare: 0, total: 0 };
+          desglose[barber.name] = { barberId: barber.id, barberShare: 0, barberiaShare: 0, total: 0, propina: 0 };
         }
       });
     }
@@ -210,8 +251,127 @@ export default function FinanzasPage() {
     1
   );
 
+  const handleEliminarFiado = async (record: FinancialRecord) => {
+    if (!confirm(`¿Eliminar servicio fiado de ${record.barberName} por $${record.totalAmount.toFixed(2)}?`)) return;
+    try {
+      await deleteDoc(doc(db, "finances", record.id));
+      toast.success("Servicio fiado eliminado", { duration: 2000, closeButton: false });
+    } catch (error) {
+      console.error("Error al eliminar:", error);
+      toast.error("Error al eliminar el registro", { duration: 3000, closeButton: false });
+    }
+  };
 
+  const handleMarcarPagado = async (record: FinancialRecord) => {
+    if (procesandoPago) return;
+    setProcesandoPago(record.id);
 
+    try {
+      const date = getLocalDateString();
+
+      await updateDoc(doc(db, "finances", record.id), {
+        estado: "pagado",
+        date,
+      });
+
+      const finalBarberId = record.barberId;
+      const finalBarberName = record.barberName;
+
+      const barberBankRef = doc(db, "bank", finalBarberId);
+      const barberBankDoc = await getDoc(barberBankRef);
+      if (barberBankDoc.exists()) {
+        await updateDoc(barberBankRef, {
+          balance: increment(record.barberShare),
+          totalEarned: increment(record.barberShare),
+          lastUpdated: new Date(),
+        });
+      } else {
+        await setDoc(barberBankRef, {
+          userId: finalBarberId,
+          userName: finalBarberName,
+          balance: record.barberShare,
+          totalEarned: record.barberShare,
+          totalPaid: 0,
+          lastUpdated: new Date(),
+        });
+      }
+
+      await addDoc(collection(db, "bank_transactions"), {
+        userId: finalBarberId,
+        userName: finalBarberName,
+        type: "earning",
+        amount: record.barberShare,
+        description: `Pago fiado - Servicio: ${record.serviceName}${record.propina ? ` (incl. propina $${record.propina.toFixed(2)})` : ""}`,
+        date,
+        createdAt: new Date(),
+      });
+
+      const barberiaBankRef = doc(db, "bank", "barbershop");
+      const barberiaBankDoc = await getDoc(barberiaBankRef);
+      if (barberiaBankDoc.exists()) {
+        await updateDoc(barberiaBankRef, {
+          balance: increment(record.barberiaShare),
+          totalEarned: increment(record.barberiaShare),
+          lastUpdated: new Date(),
+        });
+      } else {
+        await setDoc(barberiaBankRef, {
+          userId: "barbershop",
+          userName: "Elite BarberShop",
+          balance: record.barberiaShare,
+          totalEarned: record.barberiaShare,
+          totalPaid: 0,
+          lastUpdated: new Date(),
+        });
+      }
+
+      await addDoc(collection(db, "bank_transactions"), {
+        userId: "barbershop",
+        userName: "Elite BarberShop",
+        type: "earning",
+        amount: record.barberiaShare,
+        description: `Pago fiado - Servicio: ${record.serviceName} (${finalBarberName})`,
+        date,
+        createdAt: new Date(),
+      });
+
+      try {
+        const objectivesQuery = query(collection(db, "objectives"));
+        const objectivesSnapshot = await getDocs(objectivesQuery);
+        const now = new Date();
+
+        for (const objDoc of objectivesSnapshot.docs) {
+          const objData = objDoc.data();
+          const endDate = objData.endDate?.toDate();
+
+          if (endDate && endDate >= now) {
+            const isBarberObjective = objData.barberoId && objData.barberoId === finalBarberId;
+            const isGeneralObjective = !objData.barberoId;
+
+            if (isBarberObjective || isGeneralObjective) {
+              const currentAmount = objData.currentAmount || 0;
+              const newAmount = isBarberObjective
+                ? currentAmount + record.barberShare
+                : currentAmount + record.totalAmount;
+
+              await updateDoc(doc(db, "objectives", objDoc.id), {
+                currentAmount: newAmount,
+              });
+            }
+          }
+        }
+      } catch (objError) {
+        console.error("Error al actualizar objetivos:", objError);
+      }
+
+      toast.success("Servicio cobrado exitosamente", { duration: 2000, closeButton: false });
+    } catch (error) {
+      console.error("Error al procesar el pago:", error);
+      toast.error("Error al procesar el pago", { duration: 3000, closeButton: false });
+    } finally {
+      setProcesandoPago(null);
+    }
+  };
 
   return (
     <div className="space-y-6 pb-10">
@@ -288,7 +448,7 @@ export default function FinanzasPage() {
         </button>
       </div>
 
-      <div className={`grid grid-cols-2 ${isAdmin ? 'lg:grid-cols-4' : 'lg:grid-cols-3'} gap-3 md:gap-6 animate-fade-in-up`}>
+      <div className={`grid grid-cols-2 ${isAdmin ? 'lg:grid-cols-5' : 'lg:grid-cols-4'} gap-3 md:gap-6 animate-fade-in-up`}>
         {/* Card Servicios Count */}
         <div className="card-premium p-5 md:p-6 flex flex-col justify-between">
           <div className="flex items-center gap-3 md:gap-3 mb-3 md:mb-4">
@@ -334,6 +494,20 @@ export default function FinanzasPage() {
           </div>
         </div>
         )}
+
+        {/* Card Propina */}
+        <div className="card-premium p-5 md:p-6 flex flex-col justify-between">
+          <div className="flex items-center gap-3 md:gap-3 mb-3 md:mb-4">
+            <div className="w-12 h-12 md:w-12 md:h-12 rounded-xl md:rounded-xl bg-amber-500/10 border border-amber-500/20 flex items-center justify-center text-amber-400 shadow-inner">
+              <TrendingUp size={22} className="md:size-6" />
+            </div>
+            <p className="text-[10px] md:text-[10px] font-bold text-text-muted uppercase tracking-[0.15em] md:tracking-[0.2em]">Propina</p>
+          </div>
+          <div className="mt-auto">
+            <p className="font-display text-2xl md:text-5xl text-white font-bold tracking-tighter leading-none">${propinaTotal.toFixed(2).split('.')[0]}<span className="text-sm md:text-2xl opacity-50">.{propinaTotal.toFixed(2).split('.')[1]}</span></p>
+            <p className="text-[10px] md:text-[9px] text-text-muted uppercase tracking-widest font-bold mt-1 md:mt-2">100% para el barbero</p>
+          </div>
+        </div>
 
         {/* Card Total Generado */}
         <div className="card-premium p-5 md:p-6 flex flex-col justify-between border-l-2 md:border-l-4 border-l-primary/40">
@@ -431,6 +605,21 @@ export default function FinanzasPage() {
                     </span>
                   </div>
 
+                  <div className="grid grid-cols-1 md:grid-cols-[140px_1fr_110px] items-center gap-3">
+                    <span className="text-amber-400 text-[10px] font-bold uppercase tracking-[0.18em]">
+                      Propina
+                    </span>
+                    <div className="h-2.5 bg-void/40 rounded-full overflow-hidden border border-amber-500/20 shadow-inner">
+                      <div
+                        className="h-full bg-linear-to-r from-amber-700 to-amber-400 rounded-full transition-all duration-1000 shadow-amber-glow"
+                        style={{ width: `${maxBarValue > 0 ? (stats.propina / maxBarValue) * 100 : 0}%` }}
+                      />
+                    </div>
+                    <span className="text-white font-display text-lg text-left md:text-right tracking-wider">
+                      +${stats.propina.toFixed(2)}
+                    </span>
+                    </div>
+
                   {isAdmin && (
                   <div className="grid grid-cols-1 md:grid-cols-[140px_1fr_110px] items-center gap-3">
                     <span className="text-cyan-400 text-[10px] font-bold uppercase tracking-[0.18em]">
@@ -453,6 +642,132 @@ export default function FinanzasPage() {
         </div>
       </div>
 
+      {/* ──────── POR COBRAR ──────── */}
+      <div className="card-premium p-6 sm:p-8 animate-fade-in-up">
+        <div className="flex items-center gap-3 mb-6">
+          <h3 className="font-display text-2xl text-white tracking-[0.05em] uppercase">
+            Por <span className="text-purple-400">Cobrar</span>
+          </h3>
+          {porCobrarRecords.length > 0 && (
+            <span className="inline-flex items-center justify-center min-w-[22px] h-[22px] px-1.5 rounded-full bg-purple-500/20 border border-purple-500/30 text-purple-300 text-[10px] font-bold">
+              {porCobrarRecords.length}
+            </span>
+          )}
+        </div>
+        {porCobrarRecords.length === 0 ? (
+          <div className="flex flex-col items-center justify-center gap-4 py-8 text-center">
+            <div className="w-14 h-14 rounded-full bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center">
+              <CheckCircle2 size={28} className="text-emerald-400" />
+            </div>
+            <p className="text-text-muted text-sm">No hay servicios fiados pendientes de cobro</p>
+          </div>
+        ) : (
+          <>
+          {/* Tabla (escritorio) */}
+          <div className="hidden md:block overflow-x-auto">
+            <table className="w-full">
+              <thead>
+                <tr className="border-b border-white/5">
+                  <th className="text-left py-3 px-4 text-[10px] font-bold text-text-muted uppercase tracking-widest">Servicio</th>
+                  <th className="text-left py-3 px-4 text-[10px] font-bold text-text-muted uppercase tracking-widest">Barbero</th>
+                  <th className="text-left py-3 px-4 text-[10px] font-bold text-text-muted uppercase tracking-widest">Cliente</th>
+                  <th className="text-left py-3 px-4 text-[10px] font-bold text-text-muted uppercase tracking-widest">Fecha</th>
+                  <th className="text-left py-3 px-4 text-[10px] font-bold text-text-muted uppercase tracking-widest">Monto</th>
+                  <th className="text-left py-3 px-4 text-[10px] font-bold text-text-muted uppercase tracking-widest">Acción</th>
+                </tr>
+              </thead>
+              <tbody>
+                {porCobrarRecords.map((record) => (
+                  <tr key={record.id} className="border-b border-white/5 hover:bg-white/[0.02] transition-colors">
+                    <td className="py-3 px-4">
+                      <div className="flex items-center gap-2">
+                        <span className="text-white text-sm">{record.serviceName}</span>
+                        <span className="px-1.5 py-0.5 rounded-full bg-purple-500/10 border border-purple-500/20 text-purple-400 text-[8px] font-bold uppercase">Fiado</span>
+                      </div>
+                    </td>
+                    <td className="py-3 px-4 text-text-secondary text-sm">{record.barberName}</td>
+                    <td className="py-3 px-4 text-text-secondary text-sm">{record.clientName}</td>
+                    <td className="py-3 px-4 text-text-muted text-sm">{record.date}</td>
+                    <td className="py-3 px-4">
+                      <span className="font-display text-base text-white">${record.totalAmount.toFixed(2)}</span>
+                      {record.propina ? <span className="text-amber-400 text-[10px] ml-1">(+${record.propina.toFixed(2)})</span> : null}
+                    </td>
+                    <td className="py-3 px-4">
+                      <div className="flex items-center justify-start gap-2">
+                        <button
+                          onClick={() => handleMarcarPagado(record)}
+                          disabled={procesandoPago === record.id}
+                          className="px-3 py-1.5 rounded-md bg-emerald-500/20 border border-emerald-500/30 text-emerald-400 hover:bg-emerald-500/30 hover:border-emerald-500/50 text-[10px] font-bold uppercase tracking-[0.15em] transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-1.5"
+                        >
+                          {procesandoPago === record.id ? (
+                            <><Loader2 size={11} className="animate-spin" /> Procesando</>
+                          ) : (
+                            <><CheckCircle2 size={11} /> Pagado</>
+                          )}
+                        </button>
+                        <button
+                          onClick={() => handleEliminarFiado(record)}
+                          className="p-1.5 rounded-md border border-red-500/30 text-red-400 hover:bg-red-500/10 transition-all"
+                          title="Eliminar"
+                        >
+                          <Trash2 size={14} />
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+
+          {/* Cards (móvil) */}
+          <div className="md:hidden space-y-3">
+            {porCobrarRecords.map((record) => (
+              <div key={record.id} className="card-premium p-4 flex flex-col gap-3 border-l-4 border-l-purple-500/60">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <span className="font-display text-white text-sm tracking-wider">{record.serviceName}</span>
+                    <span className="px-1.5 py-0.5 rounded-full bg-purple-500/10 border border-purple-500/20 text-purple-400 text-[8px] font-bold uppercase">Fiado</span>
+                  </div>
+                  <span className="font-display text-base text-white">${record.totalAmount.toFixed(2)}</span>
+                </div>
+                <div className="flex flex-wrap gap-x-3 gap-y-1 text-[11px] text-text-muted">
+                  <span>Barbero: <strong className="text-white/80">{record.barberName}</strong></span>
+                  <span>Cliente: <strong className="text-white/80">{record.clientName}</strong></span>
+                  <span>Fecha: <strong className="text-white/80">{record.date}</strong></span>
+                  {record.paymentMethod === "bcv" && record.bcvRate ? (
+                    <span>Pago: <strong className="text-white/80">BCV</strong></span>
+                  ) : (
+                    <span>Pago: <strong className="text-white/80">Divisa</strong></span>
+                  )}
+                  {record.propina ? <span>Propina: <strong className="text-amber-400">+${record.propina.toFixed(2)}</strong></span> : null}
+                </div>
+                <div className="flex gap-2">
+                  <button
+                    onClick={() => handleMarcarPagado(record)}
+                    disabled={procesandoPago === record.id}
+                    className="flex-1 px-3 py-2 rounded-md bg-emerald-500/20 border border-emerald-500/30 text-emerald-400 hover:bg-emerald-500/30 hover:border-emerald-500/50 text-[10px] font-bold uppercase tracking-[0.15em] transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                  >
+                    {procesandoPago === record.id ? (
+                      <><Loader2 size={12} className="animate-spin" /> Procesando</>
+                    ) : (
+                      <><CheckCircle2 size={12} /> Pagado</>
+                    )}
+                  </button>
+                  <button
+                    onClick={() => handleEliminarFiado(record)}
+                    className="px-3 py-2 rounded-md border border-red-500/30 text-red-400 hover:bg-red-500/10 transition-all"
+                    title="Eliminar"
+                  >
+                    <Trash2 size={14} />
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
+          </>
+        )}
+      </div>
 
       <RegisterServiceModal 
         isOpen={isModalOpen} 

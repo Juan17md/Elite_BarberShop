@@ -25,6 +25,7 @@ interface BarberWithStats {
   periodRevenue: number;
   balance: number;
   periodEarnings: number;
+  periodPropina: number;
 }
 
 export default function PersonalPage() {
@@ -82,6 +83,7 @@ export default function PersonalPage() {
           periodRevenue: 0,
           balance: 0,
           periodEarnings: 0,
+          periodPropina: 0,
         });
       }
       setBarbers(list);
@@ -121,21 +123,23 @@ export default function PersonalPage() {
     const q = query(collection(db, "finances"), orderBy("date", "desc"));
 
     const unsub = onSnapshot(q, (snap) => {
-      const statsByBarber: Record<string, { totalServices: number; servicesInPeriod: number; totalAmountInPeriod: number; periodEarnings: number }> = {};
+      const statsByBarber: Record<string, { totalServices: number; servicesInPeriod: number; totalAmountInPeriod: number; periodEarnings: number; periodPropina: number }> = {};
       snap.forEach((doc) => {
         const data = doc.data();
+        if (data.estado === "pendiente") return;
         const barberId = data.barberId;
         const date = data.date;
         const isWithinPeriod = date >= periodo.inicio && date <= periodo.fin;
 
         if (!statsByBarber[barberId]) {
-          statsByBarber[barberId] = { totalServices: 0, servicesInPeriod: 0, totalAmountInPeriod: 0, periodEarnings: 0 };
+          statsByBarber[barberId] = { totalServices: 0, servicesInPeriod: 0, totalAmountInPeriod: 0, periodEarnings: 0, periodPropina: 0 };
         }
         statsByBarber[barberId].totalServices++;
         if (isWithinPeriod) {
           statsByBarber[barberId].servicesInPeriod++;
           statsByBarber[barberId].totalAmountInPeriod += data.totalAmount || 0;
           statsByBarber[barberId].periodEarnings += data.barberShare || 0;
+          statsByBarber[barberId].periodPropina += data.propina || 0;
         }
       });
 
@@ -146,6 +150,7 @@ export default function PersonalPage() {
           periodServices: statsByBarber[b.uid]?.servicesInPeriod || 0,
           periodRevenue: statsByBarber[b.uid]?.totalAmountInPeriod || 0,
           periodEarnings: statsByBarber[b.uid]?.periodEarnings || 0,
+          periodPropina: statsByBarber[b.uid]?.periodPropina || 0,
         }))
       );
     });
@@ -349,22 +354,28 @@ export default function PersonalPage() {
                   <span className="text-text-muted text-[10px] md:text-xs uppercase tracking-widest flex items-center gap-2">
                     <DollarSign size={12} className="md:size-[14px]" /> Ingresos
                   </span>
-                  <span className="font-display text-lg md:text-xl text-green-400">${(barber.periodRevenue || 0).toFixed(0)}</span>
+                  <span className="font-display text-lg md:text-xl text-green-400">${(barber.periodEarnings || 0).toFixed(2)}</span>
                 </div>
                 <div className="flex justify-between items-center py-1.5 md:py-2 border-b border-white/5">
                   <span className="text-text-muted text-[10px] md:text-xs uppercase tracking-widest flex items-center gap-2">
-                    <Award size={12} className="md:size-[14px]" /> Saldo Acumulado
+                    <Award size={12} className="md:size-[14px] text-amber-400" /> Propina
+                  </span>
+                  <span className="font-display text-lg md:text-xl text-amber-400">+${(barber.periodPropina || 0).toFixed(2)}</span>
+                </div>
+                <div className="flex justify-between items-center py-1.5 md:py-2 border-b border-white/5">
+                  <span className="text-text-muted text-[10px] md:text-xs uppercase tracking-widest flex items-center gap-2">
+                    <Wallet size={12} className="md:size-[14px]" /> Saldo Acumulado
                   </span>
                   <span className={`font-display text-lg md:text-xl ${barber.balance > 0 ? "text-cyan-400" : "text-text-secondary"}`}>
                     ${(barber.balance || 0).toFixed(2)}
                   </span>
                 </div>
-                <div className="flex justify-between items-center py-1.5 md:py-2">
+                <div className="flex justify-between items-center py-1.5 md:py-2 bg-primary/5 -mx-4 md:-mx-6 px-4 md:px-6 rounded-b-[inherit] mt-1">
                   <span className="text-text-muted text-[10px] md:text-xs uppercase tracking-widest flex items-center gap-2">
-                    <Activity size={12} className="md:size-[14px] text-primary" /> {periodo.isSunday ? "Ganado este Domingo" : "Ganado esta Semana"}
+                    <TrendingUp size={12} className="md:size-[14px] text-primary" /> Total Generado
                   </span>
-                  <span className="font-display text-sm md:text-base text-primary">
-                    ${(barber.periodEarnings || 0).toFixed(2)}
+                  <span className="font-display text-xl md:text-2xl text-white">
+                    ${((barber.periodEarnings || 0) + (barber.periodPropina || 0)).toFixed(2)}
                   </span>
                 </div>
               </div>

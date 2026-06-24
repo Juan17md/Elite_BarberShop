@@ -51,6 +51,9 @@ export default function RegisterServiceModal({ isOpen, onClose }: RegisterServic
   const [capturaSubiendo, setCapturaSubiendo] = useState(false);
   const [capturaPreview, setCapturaPreview] = useState<string>("");
   const [dragOver, setDragOver] = useState(false);
+  const [incluyePropina, setIncluyePropina] = useState(false);
+  const [montoPropina, setMontoPropina] = useState("");
+  const [esFiado, setEsFiado] = useState(false);
 
   // Escuchar la tasa BCV en tiempo real de la base de datos
   useEffect(() => {
@@ -121,6 +124,9 @@ export default function RegisterServiceModal({ isOpen, onClose }: RegisterServic
       });
       setCapturaFile(null);
       setCapturaPreview("");
+      setIncluyePropina(false);
+      setMontoPropina("");
+      setEsFiado(false);
     }
   }, [isOpen, esAdmin, datosUsuario]);
 
@@ -136,6 +142,7 @@ export default function RegisterServiceModal({ isOpen, onClose }: RegisterServic
   }, [capturaFile]);
 
   // Resetear método de pago a BCV si el servicio no tiene divisa
+  const propinaAmount = incluyePropina ? (Number(montoPropina) || 0) : 0;
   useEffect(() => {
     if (!formData.serviceId) return;
     const servicio = serviciosDisponibles.find(s => s.id === formData.serviceId);
@@ -225,7 +232,8 @@ export default function RegisterServiceModal({ isOpen, onClose }: RegisterServic
         ? service.priceDivisa
         : service.price;
       const totalAmount = Number(rawTotal) || 0;
-      const barberShareAmount = totalAmount * 0.6;
+      const propinaFinal = propinaAmount;
+      const barberShareAmount = totalAmount * 0.6 + propinaFinal;
       const barberiaShareAmount = totalAmount * 0.4;
       const date = getLocalDateString();
 
@@ -245,10 +253,18 @@ export default function RegisterServiceModal({ isOpen, onClose }: RegisterServic
         date,
         createdAt: new Date(),
         paymentMethod,
+        estado: esFiado ? "pendiente" : "pagado",
         ...(bcvRate != null ? { bcvRate } : {}),
         ...(formData.numeroReferencia.trim() ? { numeroReferencia: formData.numeroReferencia.trim() } : {}),
         ...(capturaURL ? { capturaURL, capturaFileId } : {}),
+        ...(propinaFinal > 0 ? { propina: propinaFinal } : {}),
       });
+
+      if (esFiado) {
+        toast.success("Servicio fiado registrado", { duration: 2000, closeButton: false });
+        onClose();
+        return;
+      }
 
       // 2. Actualizar banco del barbero
       const barberBankRef = doc(db, "bank", finalBarberId);
@@ -276,7 +292,7 @@ export default function RegisterServiceModal({ isOpen, onClose }: RegisterServic
         userName: obtenerNombreBarbero(finalBarber),
         type: "earning",
         amount: barberShareAmount,
-        description: `Servicio: ${service.name}`,
+        description: `Servicio: ${service.name}${propinaFinal > 0 ? ` (incl. propina $${propinaFinal.toFixed(2)})` : ""}`,
         date,
         createdAt: new Date()
       });
@@ -335,7 +351,7 @@ export default function RegisterServiceModal({ isOpen, onClose }: RegisterServic
             if (isBarberObjective || isGeneralObjective) {
               const currentAmount = objData.currentAmount || 0;
               const newAmount = isBarberObjective 
-                ? currentAmount + barberShareAmount 
+                ? currentAmount + barberShareAmount
                 : currentAmount + totalAmount;
               
               await updateDoc(doc(db, "objectives", objDoc.id), {
@@ -369,7 +385,7 @@ export default function RegisterServiceModal({ isOpen, onClose }: RegisterServic
 
   return (
     <div className="fixed inset-0 bg-void/90 backdrop-blur-md z-50 flex items-center justify-center p-4">
-      <div className="card-premium p-8 w-full max-w-md border-primary/20 shadow-red-strong relative">
+      <div className="card-premium p-8 w-full max-w-md border-primary/20 shadow-red-strong relative max-h-[90vh] overflow-y-auto no-scrollbar">
         <button 
           onClick={onClose}
           className="absolute top-4 right-4 p-1 rounded-md text-text-muted hover:text-white hover:bg-white/10 transition-colors"
@@ -379,7 +395,7 @@ export default function RegisterServiceModal({ isOpen, onClose }: RegisterServic
           <X size={20} />
         </button>
 
-        <h2 className="font-display text-3xl text-white mb-8 tracking-widest uppercase">Registrar Servicio</h2>
+        <h2 className="font-display text-3xl text-white mb-6 tracking-widest uppercase">Registrar Servicio</h2>
         
         <form onSubmit={handleRegisterService} className="space-y-6">
           {esAdmin && (
@@ -449,8 +465,8 @@ export default function RegisterServiceModal({ isOpen, onClose }: RegisterServic
               : selectedService.price;
             const precio = Number(rawPrecio) || 0;
             return (
-              <div className="bg-primary/5 border border-primary/10 rounded-md p-4">
-                <p className="text-[10px] font-bold text-text-muted uppercase tracking-[0.2em] mb-1">Precio a Cobrar</p>
+              <div className={`${esFiado ? "bg-purple-500/5 border-purple-500/10" : "bg-primary/5 border-primary/10"} border rounded-md p-4`}>
+                <p className="text-[10px] font-bold text-text-muted uppercase tracking-[0.2em] mb-1">{esFiado ? "Monto Fiado" : "Precio a Cobrar"}</p>
                 <p className="font-display text-3xl text-white tracking-wider">
                   ${precio.toFixed(2)}
                   {formData.paymentMethod === "bcv" && bcvRateDb && (
@@ -461,6 +477,9 @@ export default function RegisterServiceModal({ isOpen, onClose }: RegisterServic
                 </p>
                 <div className="flex gap-4 mt-2 text-xs">
                   <span className="text-emerald-400">60%: ${(precio * 0.6).toFixed(2)}</span>
+                  {incluyePropina && propinaAmount > 0 && (
+                    <span className="text-amber-400">Propina: +${propinaAmount.toFixed(2)}</span>
+                  )}
                 </div>
               </div>
             );
@@ -487,6 +506,49 @@ export default function RegisterServiceModal({ isOpen, onClose }: RegisterServic
               value={formData.numeroReferencia}
               onChange={(e) => setFormData({ ...formData, numeroReferencia: e.target.value.replace(/\D/g, "").slice(-4) })}
             />
+          </div>
+
+          <div className="space-y-3">
+            <button
+              type="button"
+              onClick={() => setIncluyePropina(!incluyePropina)}
+              className={`w-full flex items-center justify-between px-4 py-3 rounded-md text-[10px] font-bold uppercase tracking-wider transition-all border ${
+                incluyePropina
+                  ? "bg-amber-500/20 border-amber-500 text-white shadow-amber-glow"
+                  : "bg-void/50 border-white/10 text-text-muted hover:text-white hover:border-white/20"
+              }`}
+            >
+              <span className="flex items-center gap-2">
+                {incluyePropina ? "✓" : "+"} Incluir Propina
+              </span>
+            </button>
+            {incluyePropina && (
+              <input
+                type="number"
+                className="w-full bg-void/50 border border-amber-500/30 rounded-md px-4 py-3 text-white focus:border-amber-500/50 focus:ring-1 focus:ring-amber-500/20 transition-all outline-none placeholder:text-text-muted/50"
+                placeholder="Monto de la propina ($)"
+                value={montoPropina}
+                onChange={(e) => setMontoPropina(e.target.value.replace(/^0+/, ""))}
+                min="0"
+                step="0.01"
+              />
+            )}
+          </div>
+
+          <div className="space-y-3">
+            <button
+              type="button"
+              onClick={() => setEsFiado(!esFiado)}
+              className={`w-full flex items-center justify-between px-4 py-3 rounded-md text-[10px] font-bold uppercase tracking-wider transition-all border ${
+                esFiado
+                  ? "bg-purple-500/20 border-purple-500 text-white shadow-[0_0_12px_rgba(168,85,247,0.2)]"
+                  : "bg-void/50 border-white/10 text-text-muted hover:text-white hover:border-white/20"
+              }`}
+            >
+              <span className="flex items-center gap-2">
+                {esFiado ? "✓" : "+"} Fiado (Paga después)
+              </span>
+            </button>
           </div>
 
           <div>

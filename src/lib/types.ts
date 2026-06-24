@@ -81,6 +81,8 @@ export interface FinancialRecord {
   capturaURL?: string; // URL de la captura de pago en ImageKit
   capturaFileId?: string; // fileId interno de ImageKit para limpieza CRON
   numeroReferencia?: string; // últimos 4 dígitos del número de referencia
+  propina?: number; // propina voluntaria 100% para el barbero
+  estado?: "pendiente" | "pagado"; // fiado: pendiente = no cobrado, pagado/undefined = cobrado
 }
 
 export interface BankAccount {

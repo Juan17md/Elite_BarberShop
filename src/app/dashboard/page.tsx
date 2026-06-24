@@ -77,15 +77,15 @@ export default function DashboardPage() {
     return () => unsubscribe();
   }, [isAdmin, datosUsuario?.uid]);
 
-  // Resumen rápido (siempre período actual)
+  // Resumen rápido (siempre período actual) — excluye fiados no cobrados
   const startOfMonthStr = getStartOfMonthString();
-  const todayRecords = records.filter(r => r.date === today);
-  const weekRecords = records.filter(r => r.date >= getPeriodFromPosition(0).inicio);
-  const monthRecords = records.filter(r => r.date >= startOfMonthStr);
+  const todayRecords = records.filter(r => r.date === today && r.estado !== "pendiente");
+  const weekRecords = records.filter(r => r.date >= getPeriodFromPosition(0).inicio && r.estado !== "pendiente");
+  const monthRecords = records.filter(r => r.date >= startOfMonthStr && r.estado !== "pendiente");
 
   // Registros filtrados por la semana seleccionada (navegador)
   const weeklyFilteredRecords = useMemo(() => {
-    return records.filter(r => r.date >= periodo.inicio && r.date <= periodo.fin);
+    return records.filter(r => r.date >= periodo.inicio && r.date <= periodo.fin && r.estado !== "pendiente");
   }, [records, periodo]);
 
   const dailyRevenue = todayRecords.reduce((sum: number, r: FinancialRecord) => sum + r.totalAmount, 0);
@@ -105,7 +105,7 @@ export default function DashboardPage() {
     const source = rankingSource;
     if (source.length === 0) return [];
     const revenueByBarber = source.reduce((acc: Record<string, number>, r: FinancialRecord) => {
-      acc[r.barberName] = (acc[r.barberName] || 0) + r.barberShare;
+      acc[r.barberName] = (acc[r.barberName] || 0) + (r.barberShare - (r.propina || 0));
       return acc;
     }, {} as Record<string, number>);
     return Object.entries(revenueByBarber).sort((a, b) => b[1] - a[1]);
@@ -182,13 +182,14 @@ export default function DashboardPage() {
     ];
 
     const earningsByBarber = weeklyFilteredRecords.reduce((acc, r) => {
-      if (!acc[r.barberName]) acc[r.barberName] = { share: 0, barberiaShare: 0, generated: 0, services: 0 };
+      if (!acc[r.barberName]) acc[r.barberName] = { share: 0, barberiaShare: 0, generated: 0, services: 0, propina: 0 };
       acc[r.barberName].share += r.barberShare;
       acc[r.barberName].barberiaShare += r.barberiaShare;
       acc[r.barberName].generated += r.totalAmount;
       acc[r.barberName].services += 1;
+      acc[r.barberName].propina += (r.propina || 0);
       return acc;
-    }, {} as Record<string, { share: number; barberiaShare: number; generated: number; services: number }>);
+    }, {} as Record<string, { share: number; barberiaShare: number; generated: number; services: number; propina: number }>);
     const barberEntries = Object.entries(earningsByBarber);
 
     return (
@@ -252,10 +253,16 @@ export default function DashboardPage() {
                     </div>
                   </div>
                   
-                  <div className="space-y-3 flex-1 mb-5">
+                    <div className="space-y-3 flex-1 mb-5">
                     <div className="flex justify-between items-center border-b border-white/5 pb-2">
                       <span className="text-text-secondary text-[11px] uppercase tracking-widest font-bold">Barbero <span className="text-text-muted/50 font-normal">(60%)</span></span>
                       <span className="font-display text-xl text-emerald-400">${data.share.toFixed(2)}</span>
+                    </div>
+                    <div className="flex justify-between items-center border-b border-amber-500/20 pb-2">
+                      <span className="text-text-secondary text-[11px] uppercase tracking-widest font-bold">Propina</span>
+                      <span className="font-display text-xl text-amber-400">
+                        {data.propina > 0 ? `+$${data.propina.toFixed(2)}` : "$0.00"}
+                      </span>
                     </div>
                     <div className="flex justify-between items-center border-b border-white/5 pb-2">
                       <span className="text-text-secondary text-[11px] uppercase tracking-widest font-bold">Barbería <span className="text-text-muted/50 font-normal">(40%)</span></span>
@@ -468,6 +475,7 @@ export default function DashboardPage() {
   // Datos semanales del barbero
   const weeklyBarberShare = weeklyFilteredRecords.reduce((sum, r) => sum + r.barberShare, 0);
   const weeklyTotalRevenue = weeklyFilteredRecords.reduce((sum, r) => sum + r.totalAmount, 0);
+  const weeklyPropina = weeklyFilteredRecords.reduce((sum, r) => sum + (r.propina || 0), 0);
 
   const stats = [
     { name: "Tus Ingresos Hoy", value: `$${barberDaily.toFixed(2)}`, icon: DollarSign, color: "text-emerald-400" },
@@ -572,9 +580,16 @@ export default function DashboardPage() {
                 </div>
 
                 <div className="flex justify-between items-center border border-white/5 rounded-lg bg-void/20 px-4 py-4">
-                  <span className="text-text-secondary text-[11px] uppercase tracking-widest font-bold">Tu Parte <span className="text-text-muted/50 font-normal">(60%)</span></span>
+                  <span className="text-text-secondary text-[11px] uppercase tracking-widest font-bold">Tu Parte <span className="text-text-muted/50 font-normal">(60% + propina)</span></span>
                   <span className="font-display text-2xl text-emerald-400">${weeklyBarberShare.toFixed(2)}</span>
                 </div>
+
+                {weeklyPropina > 0 && (
+                  <div className="flex justify-between items-center border border-amber-500/20 rounded-lg bg-amber-500/5 px-4 py-3">
+                    <span className="text-text-secondary text-[11px] uppercase tracking-widest font-bold">Propina <span className="text-text-muted/50 font-normal">(100% tuyo)</span></span>
+                    <span className="font-display text-xl text-amber-400">+${weeklyPropina.toFixed(2)}</span>
+                  </div>
+                )}
 
                 <div className="mt-auto flex justify-between items-center bg-void/40 p-4 rounded-lg border border-white/5 relative overflow-hidden group-hover:border-white/10 transition-colors">
                   <div className="absolute inset-0 bg-linear-to-r from-primary/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity"></div>

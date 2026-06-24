@@ -79,15 +79,16 @@ export default function EstadisticasPage() {
   }, [isAdmin, authLoading, rolLoading, datosUsuario?.uid]);
 
 
-  // Registros filtrados por semana seleccionada
+  // Registros filtrados por semana seleccionada (excluye fiados no cobrados)
   const filteredRecords = useMemo(() => {
-    return records.filter((r) => r.date >= periodo.inicio && r.date <= periodo.fin);
+    return records.filter((r) => r.date >= periodo.inicio && r.date <= periodo.fin && r.estado !== "pendiente");
   }, [records, periodo]);
 
   const totalServices = filteredRecords.length;
   const totalRevenue = filteredRecords.reduce((sum, r) => sum + r.totalAmount, 0);
   const ingresosBarbero = filteredRecords.reduce((sum, r) => sum + r.barberShare, 0);
   const ingresosBarberia = filteredRecords.reduce((sum, r) => sum + r.barberiaShare, 0);
+  const totalPropina = filteredRecords.reduce((sum, r) => sum + (r.propina || 0), 0);
   const avgTicket = totalServices > 0 ? totalRevenue / totalServices : 0;
 
   const servicesByType = filteredRecords.reduce((acc, r) => {
@@ -173,7 +174,7 @@ export default function EstadisticasPage() {
         </div>
       </div>
 
-      <div className={`grid grid-cols-2 ${isAdmin ? 'lg:grid-cols-5' : 'lg:grid-cols-4'} gap-3 md:gap-4`}>
+      <div className={`grid grid-cols-2 ${isAdmin ? 'lg:grid-cols-6' : 'lg:grid-cols-5'} gap-3 md:gap-4`}>
         <div className="card-premium p-4 md:p-6 min-h-[140px] md:min-h-[170px] flex flex-col justify-between">
           <div className="flex items-center gap-2 md:gap-3">
             <div className="w-8 h-8 md:w-10 md:h-10 rounded-lg bg-primary/10 flex items-center justify-center border border-primary/20 shrink-0">
@@ -194,6 +195,18 @@ export default function EstadisticasPage() {
             </span>
           </div>
           <p className="font-display text-3xl md:text-5xl text-white tracking-tight leading-none truncate">${ingresosBarbero.toFixed(2)}</p>
+        </div>
+
+        <div className="card-premium p-4 md:p-6 min-h-[140px] md:min-h-[170px] flex flex-col justify-between">
+          <div className="flex items-center gap-2 md:gap-3">
+            <div className="w-8 h-8 md:w-10 md:h-10 rounded-lg bg-amber-500/10 flex items-center justify-center border border-amber-500/20 shrink-0">
+              <DollarSign size={16} className="text-amber-400 md:w-[20px] md:h-[20px]" />
+            </div>
+            <span className="text-text-muted text-[8px] md:text-[10px] font-bold tracking-[0.15em] md:tracking-[0.2em] uppercase opacity-70 shrink-0 truncate">
+              Propina
+            </span>
+          </div>
+          <p className="font-display text-3xl md:text-5xl text-white tracking-tight leading-none truncate">${totalPropina.toFixed(2)}</p>
         </div>
 
         {isAdmin && (
