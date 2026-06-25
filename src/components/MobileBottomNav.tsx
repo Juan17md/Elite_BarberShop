@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useRef, useEffect } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
@@ -183,17 +183,32 @@ function MobileNavSheet({
   onAnimEnd: () => void;
 }) {
   const pathname = usePathname();
+  const sheetRef = useRef<HTMLDivElement>(null);
 
   useLockBodyScroll(true);
 
+  useEffect(() => {
+    if (!closing) return;
+    const el = sheetRef.current;
+    if (!el) return;
+    const handler = () => onAnimEnd();
+    el.addEventListener("animationend", handler, { once: true });
+    return () => el.removeEventListener("animationend", handler);
+  }, [closing, onAnimEnd]);
+
   return (
-    <div className="fixed inset-0 z-40 lg:hidden">
-      <div className={`absolute inset-0 bg-void/80 backdrop-blur-sm ${closing ? "animate-fade-out" : "animate-fade-in"}`} onClick={onClose} />
+    <div className="fixed inset-0 z-40 lg:hidden" style={{ willChange: "transform" }}>
       <div
+        className={`absolute inset-0 transition-opacity duration-300 ${
+          closing ? "opacity-0 pointer-events-none" : "opacity-100 bg-void/80 backdrop-blur-sm"
+        }`}
+        onClick={closing ? undefined : onClose}
+      />
+      <div
+        ref={sheetRef}
         className={`absolute bottom-0 left-0 right-0 bg-surface/95 backdrop-blur-xl border-t border-white/5 rounded-t-2xl max-h-[70vh] overflow-y-auto scrollbar-personalizada ${
           closing ? "animate-slide-down" : "animate-slide-up"
         }`}
-        onAnimationEnd={closing ? onAnimEnd : undefined}
       >
         <div className="flex items-center justify-center pt-3 pb-1">
           <div className="w-10 h-1 rounded-full bg-white/10" />
