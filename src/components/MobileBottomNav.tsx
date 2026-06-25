@@ -56,10 +56,11 @@ export default function MobileBottomNav() {
 
   const closeSheet = () => {
     setClosing(true);
-    setTimeout(() => {
-      setSheetOpen(false);
-      setClosing(false);
-    }, 300);
+  };
+
+  const handleCloseAnimEnd = () => {
+    setSheetOpen(false);
+    setClosing(false);
   };
 
   const toggleSheet = () => {
@@ -132,7 +133,7 @@ export default function MobileBottomNav() {
       </nav>
 
       {sheetOpen && (
-        <MobileNavSheet items={restantes} onClose={closeSheet} closing={closing} />
+        <MobileNavSheet items={restantes} onClose={closeSheet} closing={closing} onAnimEnd={handleCloseAnimEnd} />
       )}
     </>
   );
@@ -174,10 +175,12 @@ function MobileNavSheet({
   items,
   onClose,
   closing,
+  onAnimEnd,
 }: {
   items: NavItem[];
   onClose: () => void;
   closing: boolean;
+  onAnimEnd: () => void;
 }) {
   const pathname = usePathname();
 
@@ -186,9 +189,12 @@ function MobileNavSheet({
   return (
     <div className="fixed inset-0 z-40 lg:hidden">
       <div className={`absolute inset-0 bg-void/80 backdrop-blur-sm ${closing ? "animate-fade-out" : "animate-fade-in"}`} onClick={onClose} />
-      <div className={`absolute bottom-0 left-0 right-0 bg-surface/95 backdrop-blur-xl border-t border-white/5 rounded-t-2xl max-h-[70vh] overflow-y-auto scrollbar-personalizada ${
-        closing ? "animate-slide-down" : "animate-slide-up"
-      }`}>
+      <div
+        className={`absolute bottom-0 left-0 right-0 bg-surface/95 backdrop-blur-xl border-t border-white/5 rounded-t-2xl max-h-[70vh] overflow-y-auto scrollbar-personalizada ${
+          closing ? "animate-slide-down" : "animate-slide-up"
+        }`}
+        onAnimationEnd={closing ? onAnimEnd : undefined}
+      >
         <div className="flex items-center justify-center pt-3 pb-1">
           <div className="w-10 h-1 rounded-full bg-white/10" />
         </div>
