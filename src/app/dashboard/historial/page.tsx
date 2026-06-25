@@ -75,6 +75,8 @@ export default function HistorialPage() {
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [recordToEdit, setRecordToEdit] = useState<FinancialRecord | null>(null);
   const [formData, setFormData] = useState({ serviceId: "", clientName: "", barberId: "", paymentMethod: "bcv" as PaymentMethod, bcvRate: "" });
+  const [incluyePropinaEdit, setIncluyePropinaEdit] = useState(false);
+  const [propinaEditInput, setPropinaEditInput] = useState("");
   const [serviciosDisponibles, setServiciosDisponibles] = useState<Service[]>(SERVICES);
   const [barbers, setBarbers] = useState<any[]>([]);
 
@@ -261,6 +263,20 @@ export default function HistorialPage() {
       paymentMethod: (record.paymentMethod || "bcv") as PaymentMethod,
       bcvRate: record.bcvRate != null ? String(record.bcvRate) : "",
     });
+    const propina = record.propina || 0;
+    if (propina > 0) {
+      setIncluyePropinaEdit(true);
+      const esBCV = (record.paymentMethod || "bcv") === "bcv";
+      const rate = record.bcvRate;
+      if (esBCV && rate) {
+        setPropinaEditInput((propina * rate).toFixed(2));
+      } else {
+        setPropinaEditInput(String(propina));
+      }
+    } else {
+      setIncluyePropinaEdit(false);
+      setPropinaEditInput("");
+    }
     setIsEditModalOpen(true);
   };
 
@@ -283,11 +299,15 @@ export default function HistorialPage() {
       : recordToEdit.barberName;
 
     const paymentMethod = formData.paymentMethod || "bcv";
-        const propinaExistente = recordToEdit.propina || 0;
+        const rawPropinaEdit = incluyePropinaEdit ? (Number(propinaEditInput) || 0) : 0;
+        const bcvRateNum = formData.bcvRate ? Number(formData.bcvRate) : 0;
+        const newPropina = paymentMethod === "bcv" && bcvRateNum > 0
+          ? rawPropinaEdit / bcvRateNum
+          : rawPropinaEdit;
         const newTotalAmount = paymentMethod !== "bcv" && selService.priceDivisa != null
           ? selService.priceDivisa
           : selService.price;
-        const newBarberShare = newTotalAmount * 0.6 + propinaExistente;
+        const newBarberShare = newTotalAmount * 0.6 + newPropina;
         const newBarberiaShare = newTotalAmount * 0.4;
     
     try {
@@ -424,6 +444,7 @@ export default function HistorialPage() {
         barberiaShare: newBarberiaShare,
         paymentMethod,
         ...(bcvRate != null ? { bcvRate } : {}),
+        ...(newPropina > 0 ? { propina: newPropina } : {}),
       });
 
       setIsEditModalOpen(false);
@@ -1109,7 +1130,7 @@ export default function HistorialPage() {
                 );
               })()}
               
-              <div>
+               <div>
                 <label className="block text-[10px] font-bold text-text-muted uppercase tracking-[0.2em] mb-2">Cliente</label>
                 <input 
                   type="text" 
@@ -1118,6 +1139,44 @@ export default function HistorialPage() {
                   value={formData.clientName}
                   onChange={(e) => setFormData({ ...formData, clientName: e.target.value })}
                 />
+              </div>
+
+              <div className="space-y-3">
+                <button
+                  type="button"
+                  onClick={() => setIncluyePropinaEdit(!incluyePropinaEdit)}
+                  className={`w-full flex items-center justify-between px-4 py-3 rounded-md text-[10px] font-bold uppercase tracking-wider transition-all border ${
+                    incluyePropinaEdit
+                      ? "bg-amber-500/20 border-amber-500 text-white shadow-amber-glow"
+                      : "bg-void/50 border-white/10 text-text-muted hover:text-white hover:border-white/20"
+                  }`}
+                >
+                  <span className="flex items-center gap-2">
+                    {incluyePropinaEdit ? "✓" : "+"} Incluir Propina
+                  </span>
+                </button>
+                {incluyePropinaEdit && (
+                  <>
+                    <input
+                      type="number"
+                      className="w-full bg-void/50 border border-amber-500/30 rounded-md px-4 py-3 text-white focus:border-amber-500/50 focus:ring-1 focus:ring-amber-500/20 transition-all outline-none placeholder:text-text-muted/50"
+                      placeholder={formData.paymentMethod !== "bcv" ? "Monto en USD ($)" : "Monto en Bs"}
+                      value={propinaEditInput}
+                      onChange={(e) => setPropinaEditInput(e.target.value.replace(/^0+/, ""))}
+                      min="0"
+                      step="0.01"
+                    />
+                    {formData.paymentMethod === "bcv" && propinaEditInput && (() => {
+                      const rate = Number(formData.bcvRate) || 0;
+                      if (rate <= 0) return null;
+                      return (
+                        <p className="text-[10px] text-amber-400/70">
+                          ≈ ${((Number(propinaEditInput) || 0) / rate).toFixed(2)} (Bs {Number(propinaEditInput).toFixed(2)} ÷ {rate.toFixed(2)})
+                        </p>
+                      );
+                    })()}
+                  </>
+                )}
               </div>
               
               <div className="flex gap-4 mt-8 pt-4 border-t border-white/5">

@@ -142,7 +142,10 @@ export default function RegisterServiceModal({ isOpen, onClose }: RegisterServic
   }, [capturaFile]);
 
   // Resetear método de pago a BCV si el servicio no tiene divisa
-  const propinaAmount = incluyePropina ? (Number(montoPropina) || 0) : 0;
+  const rawPropina = incluyePropina ? (Number(montoPropina) || 0) : 0;
+  const propinaAmount = rawPropina > 0 && formData.paymentMethod === "bcv" && bcvRateDb
+    ? rawPropina / bcvRateDb
+    : rawPropina;
   useEffect(() => {
     if (!formData.serviceId) return;
     const servicio = serviciosDisponibles.find(s => s.id === formData.serviceId);
@@ -542,15 +545,22 @@ export default function RegisterServiceModal({ isOpen, onClose }: RegisterServic
                 </span>
               </button>
               {incluyePropina && (
-                <input
-                  type="number"
-                  className="w-full bg-void/50 border border-amber-500/30 rounded-md px-4 py-3 text-white focus:border-amber-500/50 focus:ring-1 focus:ring-amber-500/20 transition-all outline-none placeholder:text-text-muted/50"
-                  placeholder="Monto de la propina ($)"
-                  value={montoPropina}
-                  onChange={(e) => setMontoPropina(e.target.value.replace(/^0+/, ""))}
-                  min="0"
-                  step="0.01"
-                />
+                <>
+                  <input
+                    type="number"
+                    className="w-full bg-void/50 border border-amber-500/30 rounded-md px-4 py-3 text-white focus:border-amber-500/50 focus:ring-1 focus:ring-amber-500/20 transition-all outline-none placeholder:text-text-muted/50"
+                    placeholder={formData.paymentMethod !== "bcv" ? "Monto en USD ($)" : "Monto en Bs"}
+                    value={montoPropina}
+                    onChange={(e) => setMontoPropina(e.target.value.replace(/^0+/, ""))}
+                    min="0"
+                    step="0.01"
+                  />
+                  {formData.paymentMethod === "bcv" && rawPropina > 0 && bcvRateDb && (
+                    <p className="text-[10px] text-amber-400/70">
+                      ≈ ${propinaAmount.toFixed(2)} (Bs {rawPropina.toFixed(2)} ÷ {bcvRateDb.toFixed(2)})
+                    </p>
+                  )}
+                </>
               )}
             </div>
           )}

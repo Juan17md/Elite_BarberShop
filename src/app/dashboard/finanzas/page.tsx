@@ -342,7 +342,10 @@ export default function FinanzasPage() {
         }
       }
 
-      const propinaAmount = cobroPropina ? (Number(cobroMontoPropina) || 0) : 0;
+      const rawPropina = cobroPropina ? (Number(cobroMontoPropina) || 0) : 0;
+      const propinaAmount = rawPropina > 0 && cobroPaymentMethod === "bcv" && cobroBcvRate
+        ? rawPropina / cobroBcvRate
+        : rawPropina;
       const barberShareTotal = record.barberShare + propinaAmount;
       const bcvRate = cobroPaymentMethod === "bcv" ? cobroBcvRate : null;
 
@@ -998,15 +1001,22 @@ export default function FinanzasPage() {
                 </span>
               </button>
               {cobroPropina && (
-                <input
-                  type="number"
-                  className="w-full bg-void/50 border border-amber-500/30 rounded-md px-4 py-3 text-white focus:border-amber-500/50 focus:ring-1 focus:ring-amber-500/20 transition-all outline-none placeholder:text-text-muted/50"
-                  placeholder="Monto de la propina ($)"
-                  value={cobroMontoPropina}
-                  onChange={(e) => setCobroMontoPropina(e.target.value.replace(/^0+/, ""))}
-                  min="0"
-                  step="0.01"
-                />
+                <>
+                  <input
+                    type="number"
+                    className="w-full bg-void/50 border border-amber-500/30 rounded-md px-4 py-3 text-white focus:border-amber-500/50 focus:ring-1 focus:ring-amber-500/20 transition-all outline-none placeholder:text-text-muted/50"
+                    placeholder={cobroPaymentMethod !== "bcv" ? "Monto en USD ($)" : "Monto en Bs"}
+                    value={cobroMontoPropina}
+                    onChange={(e) => setCobroMontoPropina(e.target.value.replace(/^0+/, ""))}
+                    min="0"
+                    step="0.01"
+                  />
+                  {cobroPaymentMethod === "bcv" && cobroMontoPropina && cobroBcvRate && (
+                    <p className="text-[10px] text-amber-400/70">
+                      ≈ ${((Number(cobroMontoPropina) || 0) / cobroBcvRate).toFixed(2)} (Bs {Number(cobroMontoPropina).toFixed(2)} ÷ {cobroBcvRate.toFixed(2)})
+                    </p>
+                  )}
+                </>
               )}
             </div>
 
