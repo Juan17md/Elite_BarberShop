@@ -119,7 +119,7 @@ export default function Sidebar({ collapsed, isOpen, onToggleCollapse, onClose }
       </div>
 
       {/* Navigation */}
-      <nav className={`flex-1 overflow-y-auto py-4 lg:py-6 grid grid-cols-2 gap-2 lg:flex lg:flex-col lg:space-y-1 ${collapsed ? "px-2" : "px-3"}`}>
+      <nav className={`flex-1 overflow-y-auto scrollbar-personalizada py-4 lg:py-6 grid grid-cols-2 gap-2 lg:flex lg:flex-col lg:space-y-1 ${collapsed ? "px-2" : "px-3"}`}>
         {filteredNavItems.map((item) => {
           const Icon = item.icon;
           const isActive = pathname === item.path;
