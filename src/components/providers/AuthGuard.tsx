@@ -1,7 +1,7 @@
 "use client";
 
 import { useRouter, usePathname } from "next/navigation";
-import { useEffect, useRef, ReactNode } from "react";
+import { useEffect, useRef, useState, ReactNode } from "react";
 import { useAuth } from "@/context/AuthContext";
 
 const RUTAS_PUBLICAS = ["/login", "/bloqueado", "/cambiar-contrasena"];
@@ -10,6 +10,11 @@ export default function AuthGuard({ children }: { children: ReactNode }) {
   const router = useRouter();
   const pathname = usePathname();
   const { usuario, datosUsuario, authLoading, rolLoading } = useAuth();
+  const [isClient, setIsClient] = useState(false);
+
+  useEffect(() => {
+    setIsClient(true);
+  }, []);
 
   const loading = authLoading || rolLoading;
   const autenticado = !!usuario;
@@ -80,13 +85,17 @@ export default function AuthGuard({ children }: { children: ReactNode }) {
     }
   }, [loading, autenticado, esRutaPublica, datosUsuario, pathname, router]);
 
-  if (loading) {
+  if (loading && isClient) {
     return (
       <div className="min-h-screen bg-void flex items-center justify-center">
-        <div className="flex flex-col items-center gap-4">
-          <div className="w-12 h-12 rounded-full border-2 border-primary/20 border-t-primary animate-spin" />
+        <div className="flex flex-col items-center gap-6">
+          <img
+            src="https://ik.imagekit.io/h5w0cdkit/elite_barber_shop/elite_logo.png"
+            alt="Elite BarberShop Logo"
+            className="w-24 h-24 object-contain opacity-20 animate-pulse"
+          />
           <p className="text-text-muted text-[10px] font-bold tracking-widest uppercase">
-            Cargando Sistema...
+            Cargando...
           </p>
         </div>
       </div>

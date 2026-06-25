@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useAuth } from "@/context/AuthContext";
 import Sidebar from "./Sidebar";
 import Header from "./Header";
@@ -8,14 +8,23 @@ import Footer from "./Footer";
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [isClient, setIsClient] = useState(false);
   const { datosUsuario, authLoading, rolLoading } = useAuth();
 
-  if (authLoading || rolLoading) {
+  useEffect(() => {
+    setIsClient(true);
+  }, []);
+
+  if ((authLoading || rolLoading) && isClient) {
     return (
       <div className="min-h-screen bg-void flex items-center justify-center">
-        <div className="flex flex-col items-center gap-4">
-          <div className="w-12 h-12 rounded-full border-2 border-primary/20 border-t-primary animate-spin" />
-          <p className="text-text-muted text-[10px] font-bold tracking-widest uppercase">Cargando Sistema...</p>
+        <div className="flex flex-col items-center gap-6">
+          <img
+            src="https://ik.imagekit.io/h5w0cdkit/elite_barber_shop/elite_logo.png"
+            alt="Elite BarberShop Logo"
+            className="w-24 h-24 object-contain opacity-20 animate-pulse"
+          />
+          <p className="text-text-muted text-[10px] font-bold tracking-widest uppercase">Cargando...</p>
         </div>
       </div>
     );

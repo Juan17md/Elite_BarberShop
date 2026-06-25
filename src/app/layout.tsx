@@ -1,4 +1,5 @@
 import type { Metadata, Viewport } from "next";
+import Script from "next/script";
 import "./globals.css";
 import { AuthProvider } from "@/context/AuthContext";
 import AuthGuard from "@/components/providers/AuthGuard";
@@ -42,10 +43,12 @@ export default function RootLayout({
           href="https://fonts.googleapis.com/css2?family=Anton&family=Bebas+Neue&family=Inter:wght@100;200;300;400;500;600;700;800;900&display=swap"
           rel="stylesheet"
         />
-        <script
+        <Script
+          id="service-worker-reg"
+          strategy="afterInteractive"
           dangerouslySetInnerHTML={{
             __html: `
-              if ('serviceWorker' in navigator) {
+              if ('serviceWorker' in navigator && location.hostname !== 'localhost' && !location.hostname.startsWith('192.168.')) {
                 window.addEventListener('load', function() {
                   navigator.serviceWorker.register('/sw.js').then(function(reg) {
                     console.log('SW registrado:', reg.scope);
