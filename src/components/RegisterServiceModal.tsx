@@ -424,7 +424,34 @@ export default function RegisterServiceModal({ isOpen, onClose }: RegisterServic
             />
           </div>
 
-          {(() => {
+          <div>
+            <label className="block text-[10px] font-bold text-text-muted uppercase tracking-[0.2em] mb-2">Cliente (opcional)</label>
+            <input 
+              type="text" 
+              className="w-full bg-void/50 border border-white/10 rounded-md px-4 py-3 text-white focus:border-primary/50 focus:ring-1 focus:ring-primary/20 transition-all outline-none placeholder:text-text-muted/50"
+              placeholder="Nombre del cliente"
+              value={formData.clientName}
+              onChange={(e) => setFormData({ ...formData, clientName: e.target.value })}
+            />
+          </div>
+
+          <div className="space-y-3">
+            <button
+              type="button"
+              onClick={() => setEsFiado(!esFiado)}
+              className={`w-full flex items-center justify-between px-4 py-3 rounded-md text-[10px] font-bold uppercase tracking-wider transition-all border ${
+                esFiado
+                  ? "bg-purple-500/20 border-purple-500 text-white shadow-[0_0_12px_rgba(168,85,247,0.2)]"
+                  : "bg-void/50 border-white/10 text-text-muted hover:text-white hover:border-white/20"
+              }`}
+            >
+              <span className="flex items-center gap-2">
+                {esFiado ? "✓" : "+"} Fiado (Paga después)
+              </span>
+            </button>
+          </div>
+
+          {!esFiado && (() => {
             const servicioSel = formData.serviceId
               ? serviciosDisponibles.find(s => s.id === formData.serviceId)
               : null;
@@ -459,7 +486,7 @@ export default function RegisterServiceModal({ isOpen, onClose }: RegisterServic
           {formData.serviceId && (() => {
             const selectedService = serviciosDisponibles.find(s => s.id === formData.serviceId);
             if (!selectedService) return null;
-            const esDivisa = formData.paymentMethod !== "bcv";
+            const esDivisa = !esFiado && formData.paymentMethod !== "bcv";
             const rawPrecio = esDivisa && selectedService.priceDivisa
               ? selectedService.priceDivisa
               : selectedService.price;
@@ -469,7 +496,7 @@ export default function RegisterServiceModal({ isOpen, onClose }: RegisterServic
                 <p className="text-[10px] font-bold text-text-muted uppercase tracking-[0.2em] mb-1">{esFiado ? "Monto Fiado" : "Precio a Cobrar"}</p>
                 <p className="font-display text-3xl text-white tracking-wider">
                   ${precio.toFixed(2)}
-                  {formData.paymentMethod === "bcv" && bcvRateDb && (
+                  {!esFiado && formData.paymentMethod === "bcv" && bcvRateDb && (
                     <span className="text-base text-text-muted ml-2">
                       (Bs {(precio * bcvRateDb).toFixed(2)})
                     </span>
@@ -477,7 +504,7 @@ export default function RegisterServiceModal({ isOpen, onClose }: RegisterServic
                 </p>
                 <div className="flex gap-4 mt-2 text-xs">
                   <span className="text-emerald-400">60%: ${(precio * 0.6).toFixed(2)}</span>
-                  {incluyePropina && propinaAmount > 0 && (
+                  {!esFiado && incluyePropina && propinaAmount > 0 && (
                     <span className="text-amber-400">Propina: +${propinaAmount.toFixed(2)}</span>
                   )}
                 </div>
@@ -485,74 +512,52 @@ export default function RegisterServiceModal({ isOpen, onClose }: RegisterServic
             );
           })()}
 
-          <div>
-            <label className="block text-[10px] font-bold text-text-muted uppercase tracking-[0.2em] mb-2">Cliente (opcional)</label>
-            <input 
-              type="text" 
-              className="w-full bg-void/50 border border-white/10 rounded-md px-4 py-3 text-white focus:border-primary/50 focus:ring-1 focus:ring-primary/20 transition-all outline-none placeholder:text-text-muted/50"
-              placeholder="Nombre del cliente"
-              value={formData.clientName}
-              onChange={(e) => setFormData({ ...formData, clientName: e.target.value })}
-            />
-          </div>
-
-          <div>
-            <label className="block text-[10px] font-bold text-text-muted uppercase tracking-[0.2em] mb-2">N° Referencia (opcional)</label>
-            <input 
-              type="text" 
-              className="w-full bg-void/50 border border-white/10 rounded-md px-4 py-3 text-white focus:border-primary/50 focus:ring-1 focus:ring-primary/20 transition-all outline-none placeholder:text-text-muted/50"
-              placeholder="Últimos 4 dígitos"
-              maxLength={4}
-              value={formData.numeroReferencia}
-              onChange={(e) => setFormData({ ...formData, numeroReferencia: e.target.value.replace(/\D/g, "").slice(-4) })}
-            />
-          </div>
-
-          <div className="space-y-3">
-            <button
-              type="button"
-              onClick={() => setIncluyePropina(!incluyePropina)}
-              className={`w-full flex items-center justify-between px-4 py-3 rounded-md text-[10px] font-bold uppercase tracking-wider transition-all border ${
-                incluyePropina
-                  ? "bg-amber-500/20 border-amber-500 text-white shadow-amber-glow"
-                  : "bg-void/50 border-white/10 text-text-muted hover:text-white hover:border-white/20"
-              }`}
-            >
-              <span className="flex items-center gap-2">
-                {incluyePropina ? "✓" : "+"} Incluir Propina
-              </span>
-            </button>
-            {incluyePropina && (
-              <input
-                type="number"
-                className="w-full bg-void/50 border border-amber-500/30 rounded-md px-4 py-3 text-white focus:border-amber-500/50 focus:ring-1 focus:ring-amber-500/20 transition-all outline-none placeholder:text-text-muted/50"
-                placeholder="Monto de la propina ($)"
-                value={montoPropina}
-                onChange={(e) => setMontoPropina(e.target.value.replace(/^0+/, ""))}
-                min="0"
-                step="0.01"
+          {!esFiado && (
+            <div>
+              <label className="block text-[10px] font-bold text-text-muted uppercase tracking-[0.2em] mb-2">N° Referencia (opcional)</label>
+              <input 
+                type="text" 
+                className="w-full bg-void/50 border border-white/10 rounded-md px-4 py-3 text-white focus:border-primary/50 focus:ring-1 focus:ring-primary/20 transition-all outline-none placeholder:text-text-muted/50"
+                placeholder="Últimos 4 dígitos"
+                maxLength={4}
+                value={formData.numeroReferencia}
+                onChange={(e) => setFormData({ ...formData, numeroReferencia: e.target.value.replace(/\D/g, "").slice(-4) })}
               />
-            )}
-          </div>
+            </div>
+          )}
 
-          <div className="space-y-3">
-            <button
-              type="button"
-              onClick={() => setEsFiado(!esFiado)}
-              className={`w-full flex items-center justify-between px-4 py-3 rounded-md text-[10px] font-bold uppercase tracking-wider transition-all border ${
-                esFiado
-                  ? "bg-purple-500/20 border-purple-500 text-white shadow-[0_0_12px_rgba(168,85,247,0.2)]"
-                  : "bg-void/50 border-white/10 text-text-muted hover:text-white hover:border-white/20"
-              }`}
-            >
-              <span className="flex items-center gap-2">
-                {esFiado ? "✓" : "+"} Fiado (Paga después)
-              </span>
-            </button>
-          </div>
+          {!esFiado && (
+            <div className="space-y-3">
+              <button
+                type="button"
+                onClick={() => setIncluyePropina(!incluyePropina)}
+                className={`w-full flex items-center justify-between px-4 py-3 rounded-md text-[10px] font-bold uppercase tracking-wider transition-all border ${
+                  incluyePropina
+                    ? "bg-amber-500/20 border-amber-500 text-white shadow-amber-glow"
+                    : "bg-void/50 border-white/10 text-text-muted hover:text-white hover:border-white/20"
+                }`}
+              >
+                <span className="flex items-center gap-2">
+                  {incluyePropina ? "✓" : "+"} Incluir Propina
+                </span>
+              </button>
+              {incluyePropina && (
+                <input
+                  type="number"
+                  className="w-full bg-void/50 border border-amber-500/30 rounded-md px-4 py-3 text-white focus:border-amber-500/50 focus:ring-1 focus:ring-amber-500/20 transition-all outline-none placeholder:text-text-muted/50"
+                  placeholder="Monto de la propina ($)"
+                  value={montoPropina}
+                  onChange={(e) => setMontoPropina(e.target.value.replace(/^0+/, ""))}
+                  min="0"
+                  step="0.01"
+                />
+              )}
+            </div>
+          )}
 
-          <div>
-            <label className="block text-[10px] font-bold text-text-muted uppercase tracking-[0.2em] mb-2">Captura de pago (opcional)</label>
+          {!esFiado && (
+            <div>
+              <label className="block text-[10px] font-bold text-text-muted uppercase tracking-[0.2em] mb-2">Captura de pago (opcional)</label>
             <div
               onDragOver={handleDragOver}
               onDragLeave={handleDragLeave}
@@ -615,6 +620,7 @@ export default function RegisterServiceModal({ isOpen, onClose }: RegisterServic
               )}
             </div>
           </div>
+          )}
 
           <div className="flex gap-4 mt-8 pt-4 border-t border-white/5">
             <button 

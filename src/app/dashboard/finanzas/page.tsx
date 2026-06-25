@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useMemo } from "react";
 import { useAuth } from "@/context/AuthContext";
-import { type FinancialRecord, SERVICES, type Service, PAYMENT_METHODS } from "@/lib/types";
+import { type FinancialRecord, SERVICES, type Service, type PaymentMethod, PAYMENT_METHODS } from "@/lib/types";
 import { 
   collection, 
   onSnapshot,
@@ -31,7 +31,9 @@ import {
   HandCoins,
   CheckCircle2,
   Loader2,
-  Trash2
+  Trash2,
+  Upload,
+  X
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -66,6 +68,15 @@ export default function FinanzasPage() {
   const [porCobrarRecords, setPorCobrarRecords] = useState<FinancialRecord[]>([]);
   const [procesandoPago, setProcesandoPago] = useState<string | null>(null);
   const [recordAEliminar, setRecordAEliminar] = useState<FinancialRecord | null>(null);
+  const [fiadoACobrar, setFiadoACobrar] = useState<FinancialRecord | null>(null);
+  const [cobroPaymentMethod, setCobroPaymentMethod] = useState<PaymentMethod>("bcv");
+  const [cobroPropina, setCobroPropina] = useState(false);
+  const [cobroMontoPropina, setCobroMontoPropina] = useState("");
+  const [cobroReferencia, setCobroReferencia] = useState("");
+  const [cobroCapturaFile, setCobroCapturaFile] = useState<File | null>(null);
+  const [cobroCapturaPreview, setCobroCapturaPreview] = useState("");
+  const [cobroDragOver, setCobroDragOver] = useState(false);
+  const [cobroBcvRate, setCobroBcvRate] = useState<number | null>(null);
   
   // Estado para pago a barbero
   const [selectedBarberForPayout, setSelectedBarberForPayout] = useState<{
@@ -124,6 +135,26 @@ export default function FinanzasPage() {
 
     return () => unsubscribe();
   }, [isAdmin, datosUsuario?.uid]);
+
+  useEffect(() => {
+    if (!fiadoACobrar) return;
+    const unsub = onSnapshot(doc(db, "settings", "bcv"), (snap) => {
+      if (snap.exists() && snap.data().rate) {
+        setCobroBcvRate(Number(snap.data().rate));
+      }
+    });
+    return () => unsub();
+  }, [fiadoACobrar]);
+
+  useEffect(() => {
+    if (!cobroCapturaFile) {
+      setCobroCapturaPreview("");
+      return;
+    }
+    const url = URL.createObjectURL(cobroCapturaFile);
+    setCobroCapturaPreview(url);
+    return () => URL.revokeObjectURL(url);
+  }, [cobroCapturaFile]);
 
   useEffect(() => {
     const q = query(collection(db, "transacciones"), orderBy("creadoAt", "desc"));
@@ -269,16 +300,61 @@ export default function FinanzasPage() {
     }
   };
 
-  const handleMarcarPagado = async (record: FinancialRecord) => {
+  const handleMarcarPagado = (record: FinancialRecord) => {
+    setFiadoACobrar(record);
+    setCobroPaymentMethod("bcv");
+    setCobroPropina(false);
+    setCobroMontoPropina("");
+    setCobroReferencia("");
+    setCobroCapturaFile(null);
+    setCobroCapturaPreview("");
+    setCobroBcvRate(null);
+  };
+
+  const limpiarCobroCaptura = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    setCobroCapturaFile(null);
+    setCobroCapturaPreview("");
+  };
+
+  const handleConfirmarCobro = async () => {
+    const record = fiadoACobrar;
+    if (!record) return;
     if (procesandoPago) return;
     setProcesandoPago(record.id);
 
     try {
       const date = getLocalDateString();
+      let capturaURL = "";
+      let capturaFileId = "";
+
+      if (cobroCapturaFile) {
+        const uploadFormData = new FormData();
+        uploadFormData.append("file", cobroCapturaFile);
+        const res = await fetch("/api/upload-captura", {
+          method: "POST",
+          body: uploadFormData,
+        });
+        if (res.ok) {
+          const uploadResult = await res.json();
+          capturaURL = uploadResult.url;
+          capturaFileId = uploadResult.fileId;
+        }
+      }
+
+      const propinaAmount = cobroPropina ? (Number(cobroMontoPropina) || 0) : 0;
+      const barberShareTotal = record.barberShare + propinaAmount;
+      const bcvRate = cobroPaymentMethod === "bcv" ? cobroBcvRate : null;
 
       await updateDoc(doc(db, "finances", record.id), {
         estado: "pagado",
         date,
+        paymentMethod: cobroPaymentMethod,
+        barberShare: barberShareTotal,
+        ...(bcvRate != null ? { bcvRate } : {}),
+        ...(propinaAmount > 0 ? { propina: propinaAmount } : {}),
+        ...(cobroReferencia.trim() ? { numeroReferencia: cobroReferencia.trim() } : {}),
+        ...(capturaURL ? { capturaURL, capturaFileId } : {}),
       });
 
       const finalBarberId = record.barberId;
@@ -288,16 +364,16 @@ export default function FinanzasPage() {
       const barberBankDoc = await getDoc(barberBankRef);
       if (barberBankDoc.exists()) {
         await updateDoc(barberBankRef, {
-          balance: increment(record.barberShare),
-          totalEarned: increment(record.barberShare),
+          balance: increment(barberShareTotal),
+          totalEarned: increment(barberShareTotal),
           lastUpdated: new Date(),
         });
       } else {
         await setDoc(barberBankRef, {
           userId: finalBarberId,
           userName: finalBarberName,
-          balance: record.barberShare,
-          totalEarned: record.barberShare,
+          balance: barberShareTotal,
+          totalEarned: barberShareTotal,
           totalPaid: 0,
           lastUpdated: new Date(),
         });
@@ -307,8 +383,8 @@ export default function FinanzasPage() {
         userId: finalBarberId,
         userName: finalBarberName,
         type: "earning",
-        amount: record.barberShare,
-        description: `Pago fiado - Servicio: ${record.serviceName}${record.propina ? ` (incl. propina $${record.propina.toFixed(2)})` : ""}`,
+        amount: barberShareTotal,
+        description: `Pago fiado - Servicio: ${record.serviceName}${propinaAmount > 0 ? ` (incl. propina $${propinaAmount.toFixed(2)})` : ""}`,
         date,
         createdAt: new Date(),
       });
@@ -358,7 +434,7 @@ export default function FinanzasPage() {
             if (isBarberObjective || isGeneralObjective) {
               const currentAmount = objData.currentAmount || 0;
               const newAmount = isBarberObjective
-                ? currentAmount + record.barberShare
+                ? currentAmount + barberShareTotal
                 : currentAmount + record.totalAmount;
 
               await updateDoc(doc(db, "objectives", objDoc.id), {
@@ -371,6 +447,7 @@ export default function FinanzasPage() {
         console.error("Error al actualizar objetivos:", objError);
       }
 
+      setFiadoACobrar(null);
       toast.success("Servicio cobrado exitosamente", { duration: 2000, closeButton: false });
     } catch (error) {
       console.error("Error al procesar el pago:", error);
@@ -828,6 +905,203 @@ export default function FinanzasPage() {
                 className="flex-1 px-4 py-3 rounded-md text-[10px] font-bold uppercase tracking-widest text-white bg-danger/80 hover:bg-danger transition-colors"
               >
                 Eliminar
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* MODAL COBRAR FIADO */}
+      {fiadoACobrar && (
+        <div
+          className="fixed inset-0 bg-void/90 backdrop-blur-md z-50 flex items-center justify-center p-4"
+          onClick={() => setFiadoACobrar(null)}
+        >
+          <div
+            className="card-premium p-8 w-full max-w-md border-primary/20 shadow-red-strong relative max-h-[90vh] overflow-y-auto no-scrollbar"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <button 
+              onClick={() => setFiadoACobrar(null)}
+              className="absolute top-4 right-4 p-1 rounded-md text-text-muted hover:text-white hover:bg-white/10 transition-colors"
+              type="button"
+              aria-label="Cerrar modal"
+            >
+              <X size={20} />
+            </button>
+
+            <h2 className="font-display text-3xl text-white mb-2 tracking-widest uppercase">Cobrar Fiado</h2>
+            <p className="text-text-muted text-[10px] tracking-[0.3em] font-bold mb-6 opacity-70">REGISTRAR PAGO PENDIENTE</p>
+
+            {/* Datos del registro */}
+            <div className="bg-purple-500/5 border border-purple-500/10 rounded-lg p-4 mb-6 space-y-2">
+              <div className="flex justify-between items-center">
+                <span className="text-[10px] font-bold text-text-muted uppercase tracking-[0.2em]">Servicio</span>
+                <span className="text-white text-sm font-medium">{fiadoACobrar.serviceName}</span>
+              </div>
+              <div className="flex justify-between items-center">
+                <span className="text-[10px] font-bold text-text-muted uppercase tracking-[0.2em]">Barbero</span>
+                <span className="text-text-secondary text-sm">{fiadoACobrar.barberName}</span>
+              </div>
+              <div className="flex justify-between items-center">
+                <span className="text-[10px] font-bold text-text-muted uppercase tracking-[0.2em]">Cliente</span>
+                <span className="text-text-secondary text-sm">{fiadoACobrar.clientName}</span>
+              </div>
+              <div className="flex justify-between items-center pt-2 border-t border-purple-500/10">
+                <span className="text-[10px] font-bold text-text-muted uppercase tracking-[0.2em]">Monto</span>
+                <span className="font-display text-xl text-white tracking-wider">${fiadoACobrar.totalAmount.toFixed(2)}</span>
+              </div>
+            </div>
+
+            {/* Método de Pago */}
+            <div className="mb-5">
+              <label className="block text-[10px] font-bold text-text-muted uppercase tracking-[0.2em] mb-2">Método de Pago *</label>
+              <div className="grid grid-cols-3 gap-2">
+                {PAYMENT_METHODS.map((m) => (
+                  <button
+                    key={m.value}
+                    type="button"
+                    onClick={() => setCobroPaymentMethod(m.value)}
+                    className={`px-3 py-3 rounded-md text-[10px] font-bold uppercase tracking-wider transition-all border ${
+                      cobroPaymentMethod === m.value
+                        ? "bg-primary/20 border-primary text-white shadow-red-glow"
+                        : "bg-void/50 border-white/10 text-text-muted hover:text-white hover:border-white/20"
+                    }`}
+                  >
+                    {m.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Tasa BCV (solo si BCV) */}
+            {cobroPaymentMethod === "bcv" && cobroBcvRate && (
+              <div className="mb-5 p-4 rounded-md bg-blue-500/10 border border-blue-500/20">
+                <p className="font-display text-2xl text-blue-400 tracking-wider">Bs {(fiadoACobrar.totalAmount * cobroBcvRate).toFixed(2)}</p>
+                <p className="text-[10px] text-text-muted mt-1">Tasa BCV: Bs {cobroBcvRate.toFixed(2)}</p>
+              </div>
+            )}
+
+            {/* Propina */}
+            <div className="mb-5 space-y-3">
+              <button
+                type="button"
+                onClick={() => setCobroPropina(!cobroPropina)}
+                className={`w-full flex items-center justify-between px-4 py-3 rounded-md text-[10px] font-bold uppercase tracking-wider transition-all border ${
+                  cobroPropina
+                    ? "bg-amber-500/20 border-amber-500 text-white shadow-amber-glow"
+                    : "bg-void/50 border-white/10 text-text-muted hover:text-white hover:border-white/20"
+                }`}
+              >
+                <span className="flex items-center gap-2">
+                  {cobroPropina ? "✓" : "+"} Incluir Propina
+                </span>
+              </button>
+              {cobroPropina && (
+                <input
+                  type="number"
+                  className="w-full bg-void/50 border border-amber-500/30 rounded-md px-4 py-3 text-white focus:border-amber-500/50 focus:ring-1 focus:ring-amber-500/20 transition-all outline-none placeholder:text-text-muted/50"
+                  placeholder="Monto de la propina ($)"
+                  value={cobroMontoPropina}
+                  onChange={(e) => setCobroMontoPropina(e.target.value.replace(/^0+/, ""))}
+                  min="0"
+                  step="0.01"
+                />
+              )}
+            </div>
+
+            {/* N° Referencia */}
+            <div className="mb-5">
+              <label className="block text-[10px] font-bold text-text-muted uppercase tracking-[0.2em] mb-2">N° Referencia (opcional)</label>
+              <input 
+                type="text" 
+                className="w-full bg-void/50 border border-white/10 rounded-md px-4 py-3 text-white focus:border-primary/50 focus:ring-1 focus:ring-primary/20 transition-all outline-none placeholder:text-text-muted/50"
+                placeholder="Últimos 4 dígitos"
+                maxLength={4}
+                value={cobroReferencia}
+                onChange={(e) => setCobroReferencia(e.target.value.replace(/\D/g, "").slice(-4))}
+              />
+            </div>
+
+            {/* Captura de pago */}
+            <div className="mb-6">
+              <label className="block text-[10px] font-bold text-text-muted uppercase tracking-[0.2em] mb-2">Captura de pago (opcional)</label>
+              <div
+                onDragOver={(e) => { e.preventDefault(); setCobroDragOver(true); }}
+                onDragLeave={(e) => { e.preventDefault(); setCobroDragOver(false); }}
+                onDrop={(e) => {
+                  e.preventDefault();
+                  setCobroDragOver(false);
+                  const file = e.dataTransfer.files?.[0];
+                  if (file?.type.startsWith("image/")) setCobroCapturaFile(file);
+                }}
+                onClick={() => document.getElementById("cobro-captura-input")?.click()}
+                className={`
+                  relative flex flex-col items-center justify-center gap-2 w-full
+                  border-2 border-dashed rounded-md px-4 py-5 cursor-pointer
+                  transition-all duration-200
+                  ${cobroDragOver
+                    ? "border-primary bg-primary/10 scale-[1.02]"
+                    : cobroCapturaFile
+                      ? "border-primary/50 bg-primary/5"
+                      : "border-white/10 bg-void/50 hover:border-white/30 hover:bg-white/5"
+                  }
+                `}
+              >
+                <input
+                  id="cobro-captura-input"
+                  type="file"
+                  accept="image/*"
+                  className="hidden"
+                  onChange={(e) => setCobroCapturaFile(e.target.files?.[0] || null)}
+                />
+                {cobroCapturaFile ? (
+                  <div className="flex items-center gap-4 w-full">
+                    <div className="relative w-16 h-16 shrink-0 rounded-lg overflow-hidden border border-white/10">
+                      <img src={cobroCapturaPreview || ""} alt="Vista previa" className="w-full h-full object-cover" />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm text-white font-medium truncate">{cobroCapturaFile.name}</p>
+                      <p className="text-[11px] text-text-muted mt-0.5">{(cobroCapturaFile.size / 1024).toFixed(1)} KB</p>
+                    </div>
+                    <button type="button" onClick={limpiarCobroCaptura} className="p-1.5 rounded-md text-text-muted hover:text-white hover:bg-white/10 transition-colors shrink-0" aria-label="Quitar imagen">
+                      <X size={16} />
+                    </button>
+                  </div>
+                ) : (
+                  <>
+                    <div className="p-3 rounded-full bg-white/5 border border-white/10">
+                      <Upload size={20} className="text-text-muted" />
+                    </div>
+                    <p className="text-sm text-text-muted">
+                      <span className="text-white font-medium">Haz clic</span> o arrastra una imagen
+                    </p>
+                    <p className="text-[11px] text-text-muted/50">PNG, JPG, WebP — Máx 5 MB</p>
+                  </>
+                )}
+              </div>
+            </div>
+
+            {/* Botones */}
+            <div className="flex gap-4 pt-4 border-t border-white/5">
+              <button
+                type="button"
+                onClick={() => setFiadoACobrar(null)}
+                className="flex-1 px-4 py-3 rounded-md text-[10px] font-bold uppercase tracking-widest text-text-muted hover:text-white transition-colors border border-white/5 bg-white/5"
+              >
+                Cancelar
+              </button>
+              <button
+                type="button"
+                onClick={handleConfirmarCobro}
+                disabled={procesandoPago === fiadoACobrar.id}
+                className="flex-1 px-4 py-3 rounded-md text-[10px] font-bold uppercase tracking-widest text-white bg-emerald-600/80 hover:bg-emerald-600 transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+              >
+                {procesandoPago === fiadoACobrar.id ? (
+                  <><Loader2 size={14} className="animate-spin" /> Cobrando...</>
+                ) : (
+                  <><CheckCircle2 size={14} /> Cobrar</>
+                )}
               </button>
             </div>
           </div>
