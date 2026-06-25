@@ -19,7 +19,6 @@ import {
   ChevronDown,
 } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
-import { useLockBodyScroll } from "@/hooks/useLockBodyScroll";
 
 interface NavItem {
   name: string;
@@ -48,6 +47,17 @@ export default function MobileBottomNav() {
   const rol = datosUsuario?.rol || "barber";
   const [sheetOpen, setSheetOpen] = useState(false);
   const [closing, setClosing] = useState(false);
+
+  useEffect(() => {
+    if (sheetOpen) {
+      document.body.style.overflow = "hidden";
+    } else {
+      const timer = setTimeout(() => {
+        document.body.style.overflow = "";
+      }, 100);
+      return () => clearTimeout(timer);
+    }
+  }, [sheetOpen]);
 
   const openSheet = () => {
     setClosing(false);
@@ -184,8 +194,6 @@ function MobileNavSheet({
 }) {
   const pathname = usePathname();
   const sheetRef = useRef<HTMLDivElement>(null);
-
-  useLockBodyScroll(true);
 
   useEffect(() => {
     if (!closing) return;
