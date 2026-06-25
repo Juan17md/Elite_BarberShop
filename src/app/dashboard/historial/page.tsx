@@ -768,12 +768,12 @@ export default function HistorialPage() {
                         </div>
                       </TableCell>
                       <TableCell className="text-right font-display text-white tracking-wider whitespace-nowrap">
-                        ${r.totalAmount.toFixed(2)}
-                        {r.propina ? <span className="text-amber-400 text-[11px] ml-1">(+${r.propina.toFixed(2)})</span> : null}
+                        <div>${r.totalAmount.toFixed(2)}</div>
+                        {r.propina ? <div className="text-amber-400 text-[11px]">+${r.propina.toFixed(2)}</div> : null}
                       </TableCell>
                       {esAdmin && (
                       <TableCell className="text-right font-display tracking-wider whitespace-nowrap">
-                        <span className="text-emerald-400">${r.barberShare.toFixed(2)}</span>
+                        <span className="text-emerald-400">${(r.barberShare - (r.propina || 0)).toFixed(2)}</span>
                         <span className="text-text-muted/50 text-[10px] mx-1">|</span>
                         <span className="text-blue-400">${r.barberiaShare.toFixed(2)}</span>
                       </TableCell>
@@ -903,7 +903,7 @@ export default function HistorialPage() {
                         {esAdmin ? "Barbero (60%)" : "Tu Parte"}
                       </p>
                       <p className="text-emerald-400 font-display text-sm">
-                        ${r.barberShare.toFixed(2)}
+                        ${(r.barberShare - (r.propina || 0)).toFixed(2)}
                       </p>
                     </div>
                     {esAdmin && (
