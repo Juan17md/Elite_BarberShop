@@ -5,6 +5,7 @@ import { useAuth } from "@/context/AuthContext";
 import Sidebar from "./Sidebar";
 import Header from "./Header";
 import Footer from "./Footer";
+import MobileBottomNav from "./MobileBottomNav";
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
@@ -56,11 +57,11 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       {/* Main content */}
       <main className="flex-1 flex flex-col min-w-0 relative z-10 lg:ml-64">
         {/* Header */}
-        <Header onOpenSidebar={() => setSidebarOpen(true)} />
+        <Header />
 
         {/* Page content */}
         <div className="flex-1 overflow-y-auto w-full flex flex-col min-h-0">
-          <div className="flex-1 p-8 lg:p-12 max-w-7xl mx-auto w-full animate-fade-in">
+          <div className="flex-1 p-8 lg:p-12 pb-24 lg:pb-12 max-w-7xl mx-auto w-full animate-fade-in">
             {children}
           </div>
           
@@ -68,6 +69,8 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
           <Footer />
         </div>
       </main>
+
+      <MobileBottomNav />
     </div>
   );
 }

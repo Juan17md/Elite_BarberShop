@@ -1,15 +1,10 @@
 "use client";
 
 import { usePathname } from "next/navigation";
-import { Menu, DollarSign } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
 import { useState, useEffect } from "react";
 import { doc, onSnapshot } from "firebase/firestore";
 import { db } from "@/lib/firebase";
-
-interface HeaderProps {
-  onOpenSidebar: () => void;
-}
 
 const SEIS_HORAS = 6 * 60 * 60 * 1000;
 
@@ -25,7 +20,7 @@ const navItems = [
   { name: "Personal", path: "/dashboard/perfil" },
 ];
 
-export default function Header({ onOpenSidebar }: HeaderProps) {
+export default function Header() {
   const pathname = usePathname();
   const { datosUsuario, authLoading, rolLoading } = useAuth();
   const isAdmin = (datosUsuario?.rol === "admin" || datosUsuario?.rol === "superadmin");
@@ -156,13 +151,6 @@ export default function Header({ onOpenSidebar }: HeaderProps) {
       </div>
 
       <div className="flex items-center gap-3 md:gap-4">
-        <button 
-          onClick={onOpenSidebar}
-          className="lg:hidden p-3 rounded-xl bg-surface-high text-text-muted hover:text-white transition-all border border-white/5 shadow-md"
-        >
-          <Menu size={20} />
-        </button>
-
         <div className="hidden md:flex flex-col items-end gap-1.5 border border-white/5 rounded-xl px-4 py-2 bg-void/50 backdrop-blur-xl">
           <div className="flex items-center gap-3">
             <div className="w-2.5 h-2.5 rounded-full bg-emerald-500 shadow-[0_0_12px_#10B981] animate-pulse" />
