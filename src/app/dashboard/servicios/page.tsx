@@ -26,7 +26,17 @@ export default function ServiciosPage() {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [bcvRate, setBcvRate] = useState<number | null>(null);
   const [formData, setFormData] = useState({ name: "", price: "", priceDivisa: "", duration: 45, description: "" });
+
+  useEffect(() => {
+    const unsub = onSnapshot(doc(db, "settings", "bcv"), (snap) => {
+      if (snap.exists()) {
+        setBcvRate(snap.data().rate as number);
+      }
+    });
+    return () => unsub();
+  }, []);
 
   useEffect(() => {
     const q = query(collection(db, "services"), orderBy("name"));
@@ -156,6 +166,11 @@ export default function ServiciosPage() {
                     <p className="font-display text-3xl leading-none tracking-wide text-emerald-400 text-right">
                       ${servicio.price}
                     </p>
+                    {bcvRate != null && (
+                      <p className="text-xs text-sky-400/80 font-medium -mt-0.5">
+                        Bs {(servicio.price * bcvRate).toFixed(2)}
+                      </p>
+                    )}
                     {servicio.priceDivisa != null && (
                       <p className="text-xs text-white font-bold tracking-wide">
                         USD/USDT: ${servicio.priceDivisa}
@@ -195,16 +210,23 @@ export default function ServiciosPage() {
                 <label className="block text-[10px] font-bold text-text-muted uppercase tracking-[0.2em] mb-2">
                   Precio BCV ($)
                 </label>
-                <input
-                  type="number"
-                  placeholder="7"
-                  value={formData.price}
-                  onChange={(e) => setFormData({ ...formData, price: e.target.value })}
-                  min="0"
-                  step="0.01"
-                  className="w-full bg-void/50 border border-white/10 rounded-md px-4 py-3 text-white focus:border-primary/50 focus:ring-1 focus:ring-primary/20 transition-all outline-none placeholder:text-text-muted/50"
-                  required
-                />
+                <div className="relative">
+                  <input
+                    type="number"
+                    placeholder="7"
+                    value={formData.price}
+                    onChange={(e) => setFormData({ ...formData, price: e.target.value })}
+                    min="0"
+                    step="0.01"
+                    className="w-full bg-void/50 border border-white/10 rounded-md px-4 py-3 pr-24 text-white focus:border-primary/50 focus:ring-1 focus:ring-primary/20 transition-all outline-none placeholder:text-text-muted/50"
+                    required
+                  />
+                  {bcvRate != null && formData.price && Number(formData.price) > 0 && (
+                    <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-sky-400/80 font-medium pointer-events-none">
+                      Bs {(Number(formData.price) * bcvRate).toFixed(2)}
+                    </span>
+                  )}
+                </div>
               </div>
 
               <div>
