@@ -4,9 +4,6 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
-    "dev:emu": "NEXT_PUBLIC_USE_EMULATOR=true next dev",
-    "emu": "firebase emulators:start --only auth,firestore",
-    "emu:seed": "node scripts/seed-emulator.mjs",
     "build": "next build",
     "start": "next start",
     "lint": "eslint"
