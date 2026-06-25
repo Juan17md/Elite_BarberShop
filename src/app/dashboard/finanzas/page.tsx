@@ -65,6 +65,7 @@ export default function FinanzasPage() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [porCobrarRecords, setPorCobrarRecords] = useState<FinancialRecord[]>([]);
   const [procesandoPago, setProcesandoPago] = useState<string | null>(null);
+  const [recordAEliminar, setRecordAEliminar] = useState<FinancialRecord | null>(null);
   
   // Estado para pago a barbero
   const [selectedBarberForPayout, setSelectedBarberForPayout] = useState<{
@@ -251,8 +252,14 @@ export default function FinanzasPage() {
     1
   );
 
-  const handleEliminarFiado = async (record: FinancialRecord) => {
-    if (!confirm(`¿Eliminar servicio fiado de ${record.barberName} por $${record.totalAmount.toFixed(2)}?`)) return;
+  const handleEliminarFiado = (record: FinancialRecord) => {
+    setRecordAEliminar(record);
+  };
+
+  const confirmarEliminacionFiado = async () => {
+    const record = recordAEliminar;
+    if (!record) return;
+    setRecordAEliminar(null);
     try {
       await deleteDoc(doc(db, "finances", record.id));
       toast.success("Servicio fiado eliminado", { duration: 2000, closeButton: false });
@@ -788,6 +795,44 @@ export default function FinanzasPage() {
           </>
         )}
       </div>
+
+      {/* MODAL CONFIRMAR ELIMINACIÓN FIADO */}
+      {recordAEliminar && (
+        <div
+          className="fixed inset-0 bg-void/90 backdrop-blur-md z-50 flex items-center justify-center p-4"
+          onClick={() => setRecordAEliminar(null)}
+        >
+          <div
+            className="card-premium p-8 w-full max-w-md border-danger/30 shadow-red-strong"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <h2 className="font-display text-2xl text-white mb-2 tracking-widest uppercase">Eliminar Fiado</h2>
+            <p className="text-text-muted text-sm mb-6">
+              ¿Estás seguro de eliminar este servicio fiado? Esta acción no se puede deshacer.
+            </p>
+
+            <div className="bg-void/40 rounded-lg p-4 border border-white/5 mb-6 space-y-1">
+              <p className="text-white text-sm font-medium">{recordAEliminar.serviceName}</p>
+              <p className="text-text-muted text-xs">{recordAEliminar.barberName} · {recordAEliminar.clientName} · ${recordAEliminar.totalAmount.toFixed(2)}</p>
+            </div>
+
+            <div className="flex gap-4">
+              <button
+                onClick={() => setRecordAEliminar(null)}
+                className="flex-1 px-4 py-3 rounded-md text-[10px] font-bold uppercase tracking-widest text-text-muted hover:text-white transition-colors border border-white/5 bg-white/5"
+              >
+                Cancelar
+              </button>
+              <button
+                onClick={confirmarEliminacionFiado}
+                className="flex-1 px-4 py-3 rounded-md text-[10px] font-bold uppercase tracking-widest text-white bg-danger/80 hover:bg-danger transition-colors"
+              >
+                Eliminar
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       <RegisterServiceModal 
         isOpen={isModalOpen} 

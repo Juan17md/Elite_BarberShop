@@ -38,3 +38,9 @@
 - **Poda Activa y Depuración (Vault Pruning):** La documentación debe tratarse con el mismo rigor que el código fuente. Si eliminamos una función técnica, cambiamos una base de datos o refactorizamos masivamente el proyecto, la IA debe ir obligatoriamente a la bóveda de Obsidian y marcar las notas antiguas con la etiqueta Frontmatter `status: obsoleto` o `deprecated`. Nunca se debe conservar documentación técnica de código eliminado o sin uso como si fuera la actual.
 - **Registro de Entorno, Configuración y Snippets:** Cualquier configuración compleja de variables de entorno (`.env`), arreglos de dependencias ocultas (NPM conflicts), comandos densos de Firebase CLI o configuraciones de Vercel/Hosting que logremos hacer funcionar, deben registrarse de inmediato en un archivo de entorno (ej. `03_Entorno_Snippets.md`). La IA extraerá siempre los comandos complejos ejecutados con éxito hacia Obsidian.
 - **Notas de Lanzamiento (Release Notes & Changelog Automático):** Cuando se alcance un hito de producción o se realice un despliegue principal a la rama principal (Deploy), la IA se encargará de cruzar las tareas tachadas en los `Backlogs`, purgar el documento y transformarlo en una `Release_Note` estructurada, documentando para un registro general qué características exactas componen la nueva versión del ecosistema.
+
+# Reglas de UI/UX
+- Si el proyecto ya cuenta con diseños establecidos, no crees nuevos sin consultar primero. Prioriza la consistencia visual y la armonía con el estilo existente.
+- Evita controles nativos del navegador; usa componentes personalizados para alertas, selectores, desplegables y calendarios.
+- Crea y reutiliza componentes siempre que sea posible para mantener el código modular, limpio y fácil de mantener.
+- Siempre utiliza notificaciones de tipo toast al realizar acciones necesarias.
