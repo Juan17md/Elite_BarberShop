@@ -48,6 +48,8 @@ export default function MobileBottomNav() {
   const rol = datosUsuario?.rol || "barber";
   const [sheetOpen, setSheetOpen] = useState(false);
 
+  const toggleSheet = () => setSheetOpen((prev) => !prev);
+
   const principales: NavItem[] = [
     { name: "Resumen", path: "/dashboard", icon: LayoutDashboard, roles: ["superadmin", "admin", "barber"] },
     { name: "Finanzas", path: "/dashboard/finanzas", icon: Wallet, roles: ["superadmin", "admin", "barber"] },
@@ -65,8 +67,9 @@ export default function MobileBottomNav() {
 
   return (
     <>
-      <nav className="fixed bottom-0 left-0 right-0 z-50 lg:hidden">
-        <div className="flex items-center justify-around bg-surface/95 backdrop-blur-xl border-t border-white/5 px-2 py-1 safe-area-inset-bottom">
+      <nav className="fixed bottom-0 left-0 right-0 z-50 lg:hidden pointer-events-none">
+        <div className="mx-auto max-w-md pointer-events-auto">
+          <div className="flex items-center justify-around bg-surface/95 backdrop-blur-xl border border-white/5 rounded-2xl px-2 py-1 mx-3 mb-4 shadow-[0_8px_32px_rgba(0,0,0,0.4)] safe-area-inset-bottom">
           <NavBtn
             href="/dashboard"
             icon={LayoutDashboard}
@@ -80,7 +83,7 @@ export default function MobileBottomNav() {
             active={pathname === "/dashboard/finanzas"}
           />
           <button
-            onClick={() => setSheetOpen(true)}
+            onClick={toggleSheet}
             className="flex flex-col items-center gap-0.5 relative -mt-3"
           >
             <div className={`w-14 h-14 rounded-full flex items-center justify-center transition-all duration-300 shadow-lg ${
@@ -104,6 +107,7 @@ export default function MobileBottomNav() {
             label={barberosVisible ? "Barberos" : "Perfil"}
             active={pathname === (barberosVisible ? "/dashboard/personal" : "/dashboard/perfil")}
           />
+        </div>
         </div>
       </nav>
 
