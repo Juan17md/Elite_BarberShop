@@ -41,6 +41,8 @@ const navItems: NavItem[] = [
   { name: "Usuarios", path: "/dashboard/usuarios", icon: ShieldCheck, roles: ["superadmin"] },
 ];
 
+const DURACION_SHEET_MS = 300;
+
 export default function MobileBottomNav() {
   const pathname = usePathname();
   const { datosUsuario } = useAuth();
@@ -48,13 +50,15 @@ export default function MobileBottomNav() {
   const [sheetOpen, setSheetOpen] = useState(false);
   const [closing, setClosing] = useState(false);
 
+  const menuExpandido = sheetOpen && !closing;
+
   useEffect(() => {
     if (sheetOpen) {
       document.body.style.overflow = "hidden";
     } else {
       const timer = setTimeout(() => {
         document.body.style.overflow = "";
-      }, 100);
+      }, DURACION_SHEET_MS);
       return () => clearTimeout(timer);
     }
   }, [sheetOpen]);
@@ -65,6 +69,7 @@ export default function MobileBottomNav() {
   };
 
   const closeSheet = () => {
+    if (!sheetOpen || closing) return;
     setClosing(true);
   };
 
@@ -74,21 +79,14 @@ export default function MobileBottomNav() {
   };
 
   const toggleSheet = () => {
-    if (sheetOpen) {
+    if (menuExpandido) {
       closeSheet();
-    } else {
+    } else if (!sheetOpen) {
       openSheet();
     }
   };
 
-  const principales: NavItem[] = [
-    { name: "Resumen", path: "/dashboard", icon: LayoutDashboard, roles: ["superadmin", "admin", "barber"] },
-    { name: "Finanzas", path: "/dashboard/finanzas", icon: Wallet, roles: ["superadmin", "admin", "barber"] },
-    { name: "Estadísticas", path: "/dashboard/estadisticas", icon: BarChart3, roles: ["superadmin", "admin", "barber"] },
-    { name: "Barberos", path: "/dashboard/personal", icon: UserCog, roles: ["superadmin", "admin"] },
-  ];
-
-  const barberosVisible = principales[3].roles.includes(rol);
+  const barberosVisible = navItems.find((item) => item.name === "Barberos")!.roles.includes(rol);
 
   const restantes = navItems.filter(
     (item) =>
@@ -101,49 +99,61 @@ export default function MobileBottomNav() {
       <nav className="fixed bottom-0 left-0 right-0 z-50 lg:hidden pointer-events-none">
         <div className="mx-auto max-w-md pointer-events-auto">
           <div className="grid grid-cols-5 items-center bg-surface/95 backdrop-blur-xl border border-white/5 rounded-2xl px-1 py-1 mx-3 mb-4 shadow-[0_8px_32px_rgba(0,0,0,0.4)] safe-area-inset-bottom">
-          <NavBtn
-            href="/dashboard"
-            icon={LayoutDashboard}
-            label="Resumen"
-            active={pathname === "/dashboard"}
-          />
-          <NavBtn
-            href="/dashboard/finanzas"
-            icon={Wallet}
-            label="Finanzas"
-            active={pathname === "/dashboard/finanzas"}
-          />
-          <button
-            onClick={toggleSheet}
-            className="flex flex-col items-center gap-0.5 relative -mt-3"
-          >
-            <div className={`w-14 h-14 rounded-full flex items-center justify-center transition-all duration-300 shadow-lg ${
-              sheetOpen
-                ? "bg-primary text-white scale-110 shadow-[0_0_25px_rgba(255,0,0,0.3)]"
-                : "bg-primary/80 text-white shadow-[0_0_15px_rgba(255,0,0,0.15)]"
-            }`}>
-              <ChevronDown size={24} className={`transition-transform duration-300 ${sheetOpen ? "rotate-180" : ""}`} />
-            </div>
-            <span className="text-[9px] font-bold tracking-widest text-text-muted uppercase">Menú</span>
-          </button>
-          <NavBtn
-            href="/dashboard/estadisticas"
-            icon={BarChart3}
-            label="Estadísticas"
-            active={pathname === "/dashboard/estadisticas"}
-          />
-          <NavBtn
-            href={barberosVisible ? "/dashboard/personal" : "/dashboard/perfil"}
-            icon={barberosVisible ? UserCog : User}
-            label={barberosVisible ? "Barberos" : "Perfil"}
-            active={pathname === (barberosVisible ? "/dashboard/personal" : "/dashboard/perfil")}
-          />
-        </div>
+            <NavBtn
+              href="/dashboard"
+              icon={LayoutDashboard}
+              label="Resumen"
+              active={pathname === "/dashboard"}
+            />
+            <NavBtn
+              href="/dashboard/finanzas"
+              icon={Wallet}
+              label="Finanzas"
+              active={pathname === "/dashboard/finanzas"}
+            />
+            <button
+              onClick={toggleSheet}
+              className="flex flex-col items-center gap-0.5 relative -mt-3"
+              aria-expanded={menuExpandido}
+              aria-label="Menú de navegación"
+            >
+              <div
+                className={`w-14 h-14 rounded-full flex items-center justify-center transition-all duration-300 shadow-lg ${
+                  menuExpandido
+                    ? "bg-primary text-white scale-110 shadow-[0_0_25px_rgba(255,0,0,0.3)]"
+                    : "bg-primary/80 text-white shadow-[0_0_15px_rgba(255,0,0,0.15)]"
+                }`}
+              >
+                <ChevronDown
+                  size={24}
+                  className={`transition-transform duration-300 ${menuExpandido ? "rotate-180" : ""}`}
+                />
+              </div>
+              <span className="text-[9px] font-bold tracking-widest text-text-muted uppercase">Menú</span>
+            </button>
+            <NavBtn
+              href="/dashboard/estadisticas"
+              icon={BarChart3}
+              label="Estadísticas"
+              active={pathname === "/dashboard/estadisticas"}
+            />
+            <NavBtn
+              href={barberosVisible ? "/dashboard/personal" : "/dashboard/perfil"}
+              icon={barberosVisible ? UserCog : User}
+              label={barberosVisible ? "Barberos" : "Perfil"}
+              active={pathname === (barberosVisible ? "/dashboard/personal" : "/dashboard/perfil")}
+            />
+          </div>
         </div>
       </nav>
 
       {sheetOpen && (
-        <MobileNavSheet items={restantes} onClose={closeSheet} closing={closing} onAnimEnd={handleCloseAnimEnd} />
+        <MobileNavSheet
+          items={restantes}
+          closing={closing}
+          onClose={closeSheet}
+          onAnimEnd={handleCloseAnimEnd}
+        />
       )}
     </>
   );
@@ -161,20 +171,19 @@ function NavBtn({
   active: boolean;
 }) {
   return (
-    <Link
-      href={href}
-      className="flex flex-col items-center gap-0.5 py-1 min-w-0"
-    >
-      <div className={`p-2 rounded-xl transition-all duration-300 ${
-        active
-          ? "bg-primary/15 text-primary"
-          : "text-text-muted"
-      }`}>
+    <Link href={href} className="flex flex-col items-center gap-0.5 py-1 min-w-0">
+      <div
+        className={`p-2 rounded-xl transition-all duration-300 ${
+          active ? "bg-primary/15 text-primary" : "text-text-muted"
+        }`}
+      >
         <Icon size={20} />
       </div>
-      <span className={`text-[9px] font-bold tracking-widest uppercase transition-colors duration-300 ${
-        active ? "text-primary" : "text-text-muted"
-      }`}>
+      <span
+        className={`text-[9px] font-bold tracking-widest uppercase transition-colors duration-300 ${
+          active ? "text-primary" : "text-text-muted"
+        }`}
+      >
         {label}
       </span>
     </Link>
@@ -194,29 +203,40 @@ function MobileNavSheet({
 }) {
   const pathname = usePathname();
   const sheetRef = useRef<HTMLDivElement>(null);
+  const [entradaLista, setEntradaLista] = useState(false);
+
+  const sheetVisible = entradaLista && !closing;
+
+  useEffect(() => {
+    const frame = requestAnimationFrame(() => setEntradaLista(true));
+    return () => cancelAnimationFrame(frame);
+  }, []);
 
   useEffect(() => {
     if (!closing) return;
     const el = sheetRef.current;
     if (!el) return;
-    const handler = () => onAnimEnd();
-    el.addEventListener("animationend", handler, { once: true });
-    return () => el.removeEventListener("animationend", handler);
+
+    const handler = (event: TransitionEvent) => {
+      if (event.target !== el || event.propertyName !== "transform") return;
+      onAnimEnd();
+    };
+
+    el.addEventListener("transitionend", handler);
+    return () => el.removeEventListener("transitionend", handler);
   }, [closing, onAnimEnd]);
 
   return (
-    <div className="fixed inset-0 z-40 lg:hidden" style={{ willChange: "transform" }}>
+    <div className="fixed inset-0 z-40 lg:hidden">
       <div
-        className={`absolute inset-0 transition-opacity duration-300 ${
-          closing ? "opacity-0 pointer-events-none" : "opacity-100 bg-void/80 backdrop-blur-sm"
-        }`}
-        onClick={closing ? undefined : onClose}
+        className="absolute inset-0 bg-void/80 backdrop-blur-sm transition-opacity duration-300 ease-out"
+        style={{ opacity: sheetVisible ? 1 : 0, pointerEvents: sheetVisible ? "auto" : "none" }}
+        onClick={onClose}
       />
       <div
         ref={sheetRef}
-        className={`absolute bottom-0 left-0 right-0 bg-surface/95 backdrop-blur-xl border-t border-white/5 rounded-t-2xl max-h-[70vh] overflow-y-auto scrollbar-personalizada ${
-          closing ? "animate-slide-down" : "animate-slide-up"
-        }`}
+        className="absolute bottom-0 left-0 right-0 bg-surface/95 backdrop-blur-xl border-t border-white/5 rounded-t-2xl max-h-[70vh] overflow-y-auto scrollbar-personalizada transition-transform duration-300 ease-[cubic-bezier(0.175,0.885,0.32,1.1)]"
+        style={{ transform: sheetVisible ? "translateY(0)" : "translateY(100%)" }}
       >
         <div className="flex items-center justify-center pt-3 pb-1">
           <div className="w-10 h-1 rounded-full bg-white/10" />
@@ -230,16 +250,18 @@ function MobileNavSheet({
                 key={item.path}
                 href={item.path}
                 onClick={onClose}
-                className={`flex flex-col items-center gap-1.5 p-3 rounded-xl transition-all duration-200 ${
+                className={`flex flex-col items-center gap-1.5 p-3 rounded-xl transition-colors duration-200 ${
                   isActive
                     ? "bg-primary/10 text-primary border border-primary/20"
                     : "text-text-muted hover:text-text-primary hover:bg-white/5"
                 }`}
               >
                 <Icon size={22} />
-                <span className={`text-[9px] font-bold tracking-widest uppercase text-center leading-tight ${
-                  isActive ? "text-primary" : ""
-                }`}>
+                <span
+                  className={`text-[9px] font-bold tracking-widest uppercase text-center leading-tight ${
+                    isActive ? "text-primary" : ""
+                  }`}
+                >
                   {item.name}
                 </span>
               </Link>
