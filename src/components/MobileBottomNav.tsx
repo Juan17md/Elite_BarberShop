@@ -89,7 +89,7 @@ export default function MobileBottomNav() {
     <>
       <nav className="fixed bottom-0 left-0 right-0 z-50 lg:hidden pointer-events-none">
         <div className="mx-auto max-w-md pointer-events-auto">
-          <div className="flex items-center justify-around bg-surface/95 backdrop-blur-xl border border-white/5 rounded-2xl px-2 py-1 mx-3 mb-4 shadow-[0_8px_32px_rgba(0,0,0,0.4)] safe-area-inset-bottom">
+          <div className="grid grid-cols-5 items-center bg-surface/95 backdrop-blur-xl border border-white/5 rounded-2xl px-1 py-1 mx-3 mb-4 shadow-[0_8px_32px_rgba(0,0,0,0.4)] safe-area-inset-bottom">
           <NavBtn
             href="/dashboard"
             icon={LayoutDashboard}
@@ -113,7 +113,7 @@ export default function MobileBottomNav() {
             }`}>
               <ChevronDown size={24} className={`transition-transform duration-300 ${sheetOpen ? "rotate-180" : ""}`} />
             </div>
-            <span className="text-[9px] font-bold tracking-widest text-text-muted uppercase">Menú</span>
+            <span className="text-[7px] font-bold tracking-widest text-text-muted uppercase">Menú</span>
           </button>
           <NavBtn
             href="/dashboard/estadisticas"
@@ -152,7 +152,7 @@ function NavBtn({
   return (
     <Link
       href={href}
-      className="flex flex-col items-center gap-0.5 py-1 px-2 min-w-0"
+      className="flex flex-col items-center gap-0.5 py-1 min-w-0"
     >
       <div className={`p-2 rounded-xl transition-all duration-300 ${
         active
@@ -161,7 +161,7 @@ function NavBtn({
       }`}>
         <Icon size={20} />
       </div>
-      <span className={`text-[9px] font-bold tracking-widest uppercase transition-colors duration-300 ${
+      <span className={`text-[7px] font-bold tracking-widest uppercase transition-colors duration-300 ${
         active ? "text-primary" : "text-text-muted"
       }`}>
         {label}
