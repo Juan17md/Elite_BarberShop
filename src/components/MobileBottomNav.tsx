@@ -47,8 +47,28 @@ export default function MobileBottomNav() {
   const { datosUsuario } = useAuth();
   const rol = datosUsuario?.rol || "barber";
   const [sheetOpen, setSheetOpen] = useState(false);
+  const [closing, setClosing] = useState(false);
 
-  const toggleSheet = () => setSheetOpen((prev) => !prev);
+  const openSheet = () => {
+    setClosing(false);
+    setSheetOpen(true);
+  };
+
+  const closeSheet = () => {
+    setClosing(true);
+    setTimeout(() => {
+      setSheetOpen(false);
+      setClosing(false);
+    }, 300);
+  };
+
+  const toggleSheet = () => {
+    if (sheetOpen) {
+      closeSheet();
+    } else {
+      openSheet();
+    }
+  };
 
   const principales: NavItem[] = [
     { name: "Resumen", path: "/dashboard", icon: LayoutDashboard, roles: ["superadmin", "admin", "barber"] },
@@ -112,7 +132,7 @@ export default function MobileBottomNav() {
       </nav>
 
       {sheetOpen && (
-        <MobileNavSheet items={restantes} onClose={() => setSheetOpen(false)} />
+        <MobileNavSheet items={restantes} onClose={closeSheet} closing={closing} />
       )}
     </>
   );
@@ -153,9 +173,11 @@ function NavBtn({
 function MobileNavSheet({
   items,
   onClose,
+  closing,
 }: {
   items: NavItem[];
   onClose: () => void;
+  closing: boolean;
 }) {
   const pathname = usePathname();
 
@@ -164,7 +186,9 @@ function MobileNavSheet({
   return (
     <div className="fixed inset-0 z-40 lg:hidden">
       <div className="absolute inset-0 bg-void/80 backdrop-blur-sm" onClick={onClose} />
-      <div className="absolute bottom-0 left-0 right-0 bg-surface/95 backdrop-blur-xl border-t border-white/5 rounded-t-2xl max-h-[70vh] overflow-y-auto scrollbar-personalizada animate-slide-up">
+      <div className={`absolute bottom-0 left-0 right-0 bg-surface/95 backdrop-blur-xl border-t border-white/5 rounded-t-2xl max-h-[70vh] overflow-y-auto scrollbar-personalizada ${
+        closing ? "animate-slide-down" : "animate-slide-up"
+      }`}>
         <div className="flex items-center justify-center pt-3 pb-1">
           <div className="w-10 h-1 rounded-full bg-white/10" />
         </div>
