@@ -163,30 +163,18 @@ export default function Header({ onOpenSidebar }: HeaderProps) {
           <Menu size={20} />
         </button>
 
-        <div className="hidden md:flex items-center gap-2 border border-blue-500/20 rounded-lg px-3 py-1.5 bg-blue-500/5 min-w-[90px]">
-          <DollarSign size={14} className="text-blue-400 shrink-0" />
-          <div className="flex items-baseline gap-1">
-            <span className="text-[9px] text-text-muted uppercase tracking-widest font-bold">BCV</span>
-            <span className="text-sm text-white font-display tracking-wider">
-              {bcvRate != null ? bcvRate.toFixed(2) : <span className="text-text-muted/50 animate-pulse">--</span>}
+        <div className="hidden md:flex flex-col items-end gap-1.5 border border-white/5 rounded-xl px-4 py-2 bg-void/50 backdrop-blur-xl">
+          <div className="flex items-center gap-3">
+            <div className="w-2.5 h-2.5 rounded-full bg-emerald-500 shadow-[0_0_12px_#10B981] animate-pulse" />
+            <span className="text-[10px] font-bold tracking-widest text-emerald-400 uppercase">ONLINE</span>
+            <div className="w-2.5 h-2.5 rounded-full bg-blue-500 shadow-[0_0_12px_#3B82F6] animate-pulse shrink-0 ml-1" />
+            <span className="text-[10px] font-bold tracking-widest text-blue-400 uppercase">
+              BCV {bcvRate != null ? bcvRate.toFixed(2) : <span className="text-text-muted/50 animate-pulse">--</span>}
             </span>
           </div>
-        </div>
-
-        <div className="hidden lg:flex flex-col items-end">
-          <p className="text-[10px] text-text-muted uppercase tracking-[0.2em] font-bold">
-            {new Date().toLocaleDateString('es-ES', { weekday: 'long' })}
+          <p className="text-[10px] text-white font-medium tracking-wide">
+            {new Date().toLocaleDateString('es-ES', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}
           </p>
-          <p className="text-xs text-white font-medium tracking-wide">
-            {new Date().toLocaleDateString('es-ES', { day: 'numeric', month: 'long', year: 'numeric' })}
-          </p>
-        </div>
-        
-        <div className="h-10 w-px bg-white/5 hidden md:block" />
-
-        <div className="hidden md:flex items-center gap-3 border border-white/5 rounded-full pl-3 pr-4 py-1.5 bg-void/50 backdrop-blur-xl">
-          <div className="w-2.5 h-2.5 rounded-full bg-emerald-500 shadow-[0_0_12px_#10B981] animate-pulse" />
-          <span className="text-[10px] font-bold tracking-widest text-emerald-400 uppercase">ONLINE</span>
         </div>
       </div>
     </header>
