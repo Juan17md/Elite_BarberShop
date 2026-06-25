@@ -113,7 +113,7 @@ export default function MobileBottomNav() {
             }`}>
               <ChevronDown size={24} className={`transition-transform duration-300 ${sheetOpen ? "rotate-180" : ""}`} />
             </div>
-            <span className="text-[8px] font-bold tracking-widest text-text-muted uppercase">Menú</span>
+            <span className="text-[9px] font-bold tracking-widest text-text-muted uppercase">Menú</span>
           </button>
           <NavBtn
             href="/dashboard/estadisticas"
@@ -161,7 +161,7 @@ function NavBtn({
       }`}>
         <Icon size={20} />
       </div>
-      <span className={`text-[8px] font-bold tracking-widest uppercase transition-colors duration-300 ${
+      <span className={`text-[9px] font-bold tracking-widest uppercase transition-colors duration-300 ${
         active ? "text-primary" : "text-text-muted"
       }`}>
         {label}
