@@ -59,6 +59,8 @@ export default function RegisterServiceModal({ isOpen, onClose }: RegisterServic
   useEffect(() => {
     if (!isOpen) return;
 
+    fetch("/api/bcv-rate").catch(() => {});
+
     const unsub = onSnapshot(doc(db, "settings", "bcv"), (snap) => {
       if (snap.exists() && snap.data().rate) {
         setBcvRateDb(Number(snap.data().rate));
@@ -204,6 +206,11 @@ export default function RegisterServiceModal({ isOpen, onClose }: RegisterServic
 
     if (!finalBarberId || !finalBarber) {
       alert("Debes seleccionar un barbero");
+      return;
+    }
+
+    if (rawPropina > 0 && formData.paymentMethod === "bcv" && !bcvRateDb) {
+      alert("La tasa BCV aún no está disponible. Intenta de nuevo en unos segundos o cambia el método de pago.");
       return;
     }
 

@@ -278,6 +278,7 @@ export default function HistorialPage() {
       setPropinaEditInput("");
     }
     setIsEditModalOpen(true);
+    fetch("/api/bcv-rate").catch(() => {});
   };
 
   // Guardar edición
@@ -301,6 +302,10 @@ export default function HistorialPage() {
     const paymentMethod = formData.paymentMethod || "bcv";
         const rawPropinaEdit = incluyePropinaEdit ? (Number(propinaEditInput) || 0) : 0;
         const bcvRateNum = formData.bcvRate ? Number(formData.bcvRate) : 0;
+        if (rawPropinaEdit > 0 && paymentMethod === "bcv" && bcvRateNum <= 0) {
+          alert("La tasa BCV no está disponible para este registro. No se puede convertir la propina.");
+          return;
+        }
         const newPropina = paymentMethod === "bcv" && bcvRateNum > 0
           ? rawPropinaEdit / bcvRateNum
           : rawPropinaEdit;

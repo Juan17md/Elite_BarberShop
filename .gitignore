@@ -148,5 +148,6 @@ migrar-*.cjs
 documentacion.txt
 docs-obsidian
 flujo-creacion-usuarios-primer-ingreso.txt
+seed-emulator.mjs
 
 

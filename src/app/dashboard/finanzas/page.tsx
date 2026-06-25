@@ -138,6 +138,9 @@ export default function FinanzasPage() {
 
   useEffect(() => {
     if (!fiadoACobrar) return;
+
+    fetch("/api/bcv-rate").catch(() => {});
+
     const unsub = onSnapshot(doc(db, "settings", "bcv"), (snap) => {
       if (snap.exists() && snap.data().rate) {
         setCobroBcvRate(Number(snap.data().rate));
@@ -323,6 +326,13 @@ export default function FinanzasPage() {
     if (procesandoPago) return;
     setProcesandoPago(record.id);
 
+    const rawPropina = cobroPropina ? (Number(cobroMontoPropina) || 0) : 0;
+    if (rawPropina > 0 && cobroPaymentMethod === "bcv" && !cobroBcvRate) {
+      setProcesandoPago(null);
+      toast.error("La tasa BCV no está disponible. Intenta de nuevo o cambia el método de pago.");
+      return;
+    }
+
     try {
       const date = getLocalDateString();
       let capturaURL = "";
@@ -342,7 +352,6 @@ export default function FinanzasPage() {
         }
       }
 
-      const rawPropina = cobroPropina ? (Number(cobroMontoPropina) || 0) : 0;
       const propinaAmount = rawPropina > 0 && cobroPaymentMethod === "bcv" && cobroBcvRate
         ? rawPropina / cobroBcvRate
         : rawPropina;
