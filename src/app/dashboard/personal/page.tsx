@@ -9,7 +9,7 @@ import {
   orderBy,
 } from "firebase/firestore";
 import { db } from "@/lib/firebase";
-import { Shield, Users, TrendingUp, DollarSign, Calendar, Award, Activity, Wallet, ChevronLeft, ChevronRight, RotateCcw, ArrowDownRight } from "lucide-react";
+import { Shield, Users, TrendingUp, DollarSign, Calendar, Award, Wallet, ChevronLeft, ChevronRight, RotateCcw, ArrowDownRight } from "lucide-react";
 import { getPeriodFromPosition } from "@/lib/utils";
 import RegistrarPagoModal from "@/components/RegistrarPagoModal";
 import type { BankTransaction } from "@/lib/types";
@@ -200,10 +200,6 @@ export default function PersonalPage() {
     return transaccionesDelPeriodo.slice(inicio, inicio + ITEMS_POR_PAGINA);
   }, [transaccionesDelPeriodo, paginaSegura]);
 
-  const totalTeamServices = barbersWithBank.reduce((acc, b) => acc + b.totalServices, 0);
-  const totalBalance = barbersWithBank.reduce((acc, b) => acc + b.balance, 0);
-  const avgServicesPerBarber = barbersWithBank.length > 0 ? Math.round(totalTeamServices / barbersWithBank.length) : 0;
-
   if (!isAdmin) {
     return (
       <div className="space-y-8">
@@ -237,49 +233,6 @@ export default function PersonalPage() {
 
   return (
     <div className="space-y-8">
-      {/* Stats de equipo */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4">
-        <div className="card-premium p-4 md:p-6 flex items-center gap-3 md:gap-4">
-          <div className="w-10 h-10 md:w-14 md:h-14 rounded-xl bg-primary/10 flex items-center justify-center shrink-0">
-            <Users className="text-primary" size={20} />
-          </div>
-          <div className="min-w-0">
-            <p className="text-text-muted text-[8px] md:text-xs font-bold uppercase tracking-widest">Total Equipo</p>
-            <p className="font-display text-xl md:text-3xl text-white">{barbersWithBank.length}</p>
-          </div>
-        </div>
-
-        <div className="card-premium p-4 md:p-6 flex items-center gap-3 md:gap-4">
-          <div className="w-10 h-10 md:w-14 md:h-14 rounded-xl bg-green-500/10 flex items-center justify-center shrink-0">
-            <Activity className="text-green-500" size={20} />
-          </div>
-          <div className="min-w-0">
-            <p className="text-text-muted text-[8px] md:text-xs font-bold uppercase tracking-widest">Servicios</p>
-            <p className="font-display text-xl md:text-3xl text-white">{totalTeamServices}</p>
-          </div>
-        </div>
-
-        <div className="card-premium p-4 md:p-6 flex items-center gap-3 md:gap-4">
-          <div className="w-10 h-10 md:w-14 md:h-14 rounded-xl bg-blue-500/10 flex items-center justify-center shrink-0">
-            <TrendingUp className="text-blue-500" size={20} />
-          </div>
-          <div className="min-w-0">
-            <p className="text-text-muted text-[8px] md:text-xs font-bold uppercase tracking-widest">Promedio x Barbero</p>
-            <p className="font-display text-xl md:text-3xl text-white">{avgServicesPerBarber}</p>
-          </div>
-        </div>
-
-        <div className="card-premium p-4 md:p-6 flex items-center gap-3 md:gap-4">
-          <div className="w-10 h-10 md:w-14 md:h-14 rounded-xl bg-cyan-500/10 flex items-center justify-center shrink-0">
-            <DollarSign className="text-cyan-500" size={20} />
-          </div>
-          <div className="min-w-0">
-            <p className="text-text-muted text-[8px] md:text-xs font-bold uppercase tracking-widest">Saldo Pendiente</p>
-            <p className="font-display text-xl md:text-3xl text-cyan-400">${totalBalance.toFixed(0)}</p>
-          </div>
-        </div>
-      </div>
-
       {/* Navegador de periodo */}
       <div className="card-premium p-4 md:p-5">
         <div className="flex items-center justify-center gap-2">
