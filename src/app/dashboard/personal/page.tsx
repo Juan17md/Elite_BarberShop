@@ -36,6 +36,9 @@ export default function PersonalPage() {
   const [selectedBarberForPayout, setSelectedBarberForPayout] = useState<BarberWithStats | null>(null);
   const [transactions, setTransactions] = useState<BankTransaction[]>([]);
   const [bankBalances, setBankBalances] = useState<Record<string, { totalEarned: number; balance: number }>>({});
+  const [financeStats, setFinanceStats] = useState<Record<string, { totalServices: number; servicesInPeriod: number; totalAmountInPeriod: number; periodEarnings: number; periodPropina: number }>>({});
+  const [usersLoaded, setUsersLoaded] = useState(false);
+  const [financeLoaded, setFinanceLoaded] = useState(false);
 
   const [position, setPosition] = useState(0);
   const [paginaHistorial, setPaginaHistorial] = useState(0);
@@ -46,17 +49,23 @@ export default function PersonalPage() {
   // Resetear paginación al cambiar de periodo
   useEffect(() => { setPaginaHistorial(0); }, [position]);
 
-  // Merge bank data into barbers whenever either changes
+  // Merge bank + finance stats into barbers
   const barbersWithBank = useMemo(() => {
     return barbers.map((b) => {
       const bank = bankBalances[b.uid];
+      const stats = financeStats[b.uid];
       return {
         ...b,
         totalRevenue: bank?.totalEarned ?? b.totalRevenue,
         balance: bank?.balance ?? b.balance,
+        totalServices: stats?.totalServices ?? 0,
+        periodServices: stats?.servicesInPeriod ?? 0,
+        periodRevenue: stats?.totalAmountInPeriod ?? 0,
+        periodEarnings: stats?.periodEarnings ?? 0,
+        periodPropina: stats?.periodPropina ?? 0,
       };
     });
-  }, [barbers, bankBalances]);
+  }, [barbers, bankBalances, financeStats]);
 
   // 1. Listener de usuarios
   useEffect(() => {
@@ -87,11 +96,11 @@ export default function PersonalPage() {
         });
       }
       setBarbers(list);
-      setLoading(false);
+      setUsersLoaded(true);
     },
     (err) => {
       console.error("Error escuchando usuarios:", err);
-      setLoading(false);
+      setUsersLoaded(true);
     });
 
     return () => unsub();
@@ -143,16 +152,8 @@ export default function PersonalPage() {
         }
       });
 
-      setBarbers((prev) =>
-        prev.map((b) => ({
-          ...b,
-          totalServices: statsByBarber[b.uid]?.totalServices || 0,
-          periodServices: statsByBarber[b.uid]?.servicesInPeriod || 0,
-          periodRevenue: statsByBarber[b.uid]?.totalAmountInPeriod || 0,
-          periodEarnings: statsByBarber[b.uid]?.periodEarnings || 0,
-          periodPropina: statsByBarber[b.uid]?.periodPropina || 0,
-        }))
-      );
+      setFinanceStats(statsByBarber);
+      setFinanceLoaded(true);
     });
 
     return () => unsub();
@@ -224,7 +225,9 @@ export default function PersonalPage() {
     );
   }
 
-  if (loading) {
+  const ready = !isAdmin || (usersLoaded && financeLoaded);
+
+  if (!ready && loading) {
     return (
       <div className="flex items-center justify-center h-64">
         <div className="text-primary animate-pulse font-display text-xl">Cargando...</div>
