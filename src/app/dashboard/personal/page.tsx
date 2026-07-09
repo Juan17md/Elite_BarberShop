@@ -9,9 +9,10 @@ import {
   orderBy,
 } from "firebase/firestore";
 import { db } from "@/lib/firebase";
-import { Shield, Users, TrendingUp, DollarSign, Calendar, Award, Wallet, ChevronLeft, ChevronRight, RotateCcw, ArrowDownRight } from "lucide-react";
+import { Shield, Users, TrendingUp, DollarSign, Calendar, Award, Wallet, ChevronLeft, ChevronRight, RotateCcw, ArrowDownRight, Pencil } from "lucide-react";
 import { getPeriodFromPosition } from "@/lib/utils";
 import RegistrarPagoModal from "@/components/RegistrarPagoModal";
+import EditarPagoModal from "@/components/EditarPagoModal";
 import type { BankTransaction } from "@/lib/types";
 
 interface BarberWithStats {
@@ -34,6 +35,7 @@ export default function PersonalPage() {
   const [barbers, setBarbers] = useState<BarberWithStats[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedBarberForPayout, setSelectedBarberForPayout] = useState<BarberWithStats | null>(null);
+  const [pagoAEditar, setPagoAEditar] = useState<BankTransaction | null>(null);
   const [transactions, setTransactions] = useState<BankTransaction[]>([]);
   const [bankBalances, setBankBalances] = useState<Record<string, { totalEarned: number; balance: number }>>({});
   const [financeStats, setFinanceStats] = useState<Record<string, { totalServices: number; servicesInPeriod: number; totalAmountInPeriod: number; periodEarnings: number; periodPropina: number }>>({});
@@ -373,12 +375,13 @@ export default function PersonalPage() {
                 <th className="text-left py-3 px-4 text-[10px] font-bold text-text-muted uppercase tracking-widest">Monto</th>
                 <th className="text-left py-3 px-4 text-[10px] font-bold text-text-muted uppercase tracking-widest">Concepto</th>
                 <th className="text-left py-3 px-4 text-[10px] font-bold text-text-muted uppercase tracking-widest">Fecha</th>
+                <th className="text-right py-3 px-4 text-[10px] font-bold text-text-muted uppercase tracking-widest">Acción</th>
               </tr>
             </thead>
             <tbody>
               {transaccionesPaginadas.length === 0 && (
                 <tr>
-                  <td colSpan={4} className="py-8 text-center text-text-muted text-sm">
+                  <td colSpan={5} className="py-8 text-center text-text-muted text-sm">
                     No hay pagos registrados en este periodo
                   </td>
                 </tr>
@@ -389,6 +392,15 @@ export default function PersonalPage() {
                   <td className="py-3 px-4 text-red-400 font-display">-${tx.amount.toFixed(2)}</td>
                   <td className="py-3 px-4 text-text-secondary text-sm">{tx.description}</td>
                   <td className="py-3 px-4 text-text-muted text-sm">{tx.date}</td>
+                  <td className="py-3 px-4 text-right">
+                    <button
+                      onClick={() => setPagoAEditar(tx)}
+                      className="p-1.5 rounded-lg text-text-muted hover:text-amber-400 hover:bg-amber-500/10 transition-all"
+                      title="Editar pago"
+                    >
+                      <Pencil size={14} />
+                    </button>
+                  </td>
                 </tr>
               ))}
             </tbody>
@@ -406,7 +418,16 @@ export default function PersonalPage() {
             <div key={tx.id} className="py-3 space-y-2">
               <div className="flex justify-between items-center">
                 <span className="text-white text-sm font-medium">{tx.userName}</span>
-                <span className="text-red-400 font-display">-${tx.amount.toFixed(2)}</span>
+                <div className="flex items-center gap-2">
+                  <span className="text-red-400 font-display">-${tx.amount.toFixed(2)}</span>
+                  <button
+                    onClick={() => setPagoAEditar(tx)}
+                    className="p-1.5 rounded-lg text-text-muted hover:text-amber-400 hover:bg-amber-500/10 transition-all"
+                    title="Editar pago"
+                  >
+                    <Pencil size={12} />
+                  </button>
+                </div>
               </div>
               <p className="text-text-secondary text-[11px]">{tx.description}</p>
               <p className="text-text-muted text-[10px]">{tx.date}</p>
@@ -450,6 +471,12 @@ export default function PersonalPage() {
           currentPeriodLabel={periodo.isSunday ? "Ganado este Domingo" : "Ganado esta Semana"}
         />
       )}
+
+      <EditarPagoModal
+        isOpen={!!pagoAEditar}
+        onClose={() => setPagoAEditar(null)}
+        transaccion={pagoAEditar}
+      />
     </div>
   );
 }

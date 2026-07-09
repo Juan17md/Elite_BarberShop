@@ -112,6 +112,11 @@ export default function RegistrarPagoModal({
       return;
     }
 
+    if (montoNum > balanceActual) {
+      setErrorMsg(`El pago no puede ser mayor al saldo acumulado ($${balanceActual.toFixed(2)})`);
+      return;
+    }
+
     setGuardando(true);
     setErrorMsg(null);
 
