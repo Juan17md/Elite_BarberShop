@@ -220,13 +220,14 @@ export default function RegisterServiceModal({ isOpen, onClose }: RegisterServic
       let capturaFileId = "";
       if (capturaFile) {
         setCapturaSubiendo(true);
+        const fileBytes = await capturaFile.arrayBuffer();
         const res = await fetch("/api/upload-captura", {
           method: "POST",
           headers: {
-            "X-File-Type": capturaFile.type,
-            "X-File-Name": capturaFile.name,
+            "X-File-Type": capturaFile.type || "image/jpeg",
+            "X-File-Name": encodeURIComponent(capturaFile.name),
           },
-          body: capturaFile,
+          body: fileBytes,
         });
         if (!res.ok) {
           const err = await res.json();

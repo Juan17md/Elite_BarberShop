@@ -339,13 +339,14 @@ export default function FinanzasPage() {
       let capturaFileId = "";
 
       if (cobroCapturaFile) {
+        const cobroFileBytes = await cobroCapturaFile.arrayBuffer();
         const res = await fetch("/api/upload-captura", {
           method: "POST",
           headers: {
-            "X-File-Type": cobroCapturaFile.type,
-            "X-File-Name": cobroCapturaFile.name,
+            "X-File-Type": cobroCapturaFile.type || "image/jpeg",
+            "X-File-Name": encodeURIComponent(cobroCapturaFile.name),
           },
-          body: cobroCapturaFile,
+          body: cobroFileBytes,
         });
         if (res.ok) {
           const uploadResult = await res.json();

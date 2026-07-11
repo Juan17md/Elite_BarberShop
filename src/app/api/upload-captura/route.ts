@@ -9,18 +9,20 @@ export async function POST(request: Request) {
     const fileType = request.headers.get("x-file-type") || "";
     const fileName = request.headers.get("x-file-name") || "captura.jpg";
 
-    if (!fileType.startsWith("image/")) {
-      return NextResponse.json({ error: "Solo se permiten imágenes" }, { status: 400 });
+    if (fileType && !fileType.startsWith("image/")) {
+      return NextResponse.json({ error: `Tipo inválido: "${fileType}"` }, { status: 400 });
     }
 
     const bytes = await request.arrayBuffer();
+    const logInfo = { byteLength: bytes.byteLength, fileType, fileName };
+    console.log("upload-captura request:", JSON.stringify(logInfo));
 
     if (bytes.byteLength === 0) {
       return NextResponse.json({ error: "No se envió ningún archivo" }, { status: 400 });
     }
 
     if (bytes.byteLength > MAX_BYTES) {
-      return NextResponse.json({ error: "La imagen no debe superar los 5MB" }, { status: 400 });
+      return NextResponse.json({ error: `Archivo excede 5MB (${(bytes.byteLength / 1024 / 1024).toFixed(1)}MB)` }, { status: 400 });
     }
 
     const nombreUnico = `captura_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
