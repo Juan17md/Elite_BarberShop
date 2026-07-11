@@ -37,7 +37,7 @@ export async function POST(request: Request) {
     const res = await fetch(IMAGEKIT_UPLOAD, {
       method: "POST",
       headers: {
-        Authorization: `Bearer ${process.env.IMAGEKIT_PRIVATE_KEY}`,
+        Authorization: `Basic ${Buffer.from(`${process.env.IMAGEKIT_PRIVATE_KEY}:`).toString("base64")}`,
       },
       body,
       signal: controller.signal,
