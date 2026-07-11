@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import ImageKit, { toFile } from "@imagekit/nodejs";
+import ImageKit from "@imagekit/nodejs";
 
 const imagekit = new ImageKit({
   privateKey: process.env.IMAGEKIT_PRIVATE_KEY!,
@@ -22,13 +22,10 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "La imagen no debe superar los 5MB" }, { status: 400 });
     }
 
-    const buffer = Buffer.from(await file.arrayBuffer());
-    const uploadFile = await toFile(buffer, file.name, { type: file.type });
-
     const nombreUnico = `captura_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
 
     const result = await imagekit.files.upload({
-      file: uploadFile,
+      file,
       fileName: nombreUnico,
       folder: "/pagos",
       useUniqueFileName: false,
@@ -36,7 +33,8 @@ export async function POST(request: Request) {
 
     return NextResponse.json({ url: result.url, fileId: result.fileId });
   } catch (error) {
-    console.error("Error al subir captura a ImageKit:", error);
-    return NextResponse.json({ error: "Error al subir la imagen" }, { status: 500 });
+    const mensaje = error instanceof Error ? error.message : "Error desconocido";
+    console.error("Error al subir captura a ImageKit:", mensaje);
+    return NextResponse.json({ error: mensaje }, { status: 500 });
   }
 }
