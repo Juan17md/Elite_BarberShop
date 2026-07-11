@@ -1,40 +1,44 @@
 import { NextResponse } from "next/server";
 
-const IMAGEKIT_BASE = "https://upload.imagekit.io/api/v1/files/upload";
+const IMAGEKIT_UPLOAD = "https://upload.imagekit.io/api/v1/files/upload";
+const MAX_BYTES = 5 * 1024 * 1024;
+const TIMEOUT_MS = 15000;
 
 export async function POST(request: Request) {
   try {
-    const formData = await request.formData();
-    const file = formData.get("file") as File | null;
+    const fileType = request.headers.get("x-file-type") || "";
+    const fileName = request.headers.get("x-file-name") || "captura.jpg";
 
-    if (!file) {
-      return NextResponse.json({ error: "No se envió ningún archivo" }, { status: 400 });
-    }
-
-    if (!file.type.startsWith("image/")) {
+    if (!fileType.startsWith("image/")) {
       return NextResponse.json({ error: "Solo se permiten imágenes" }, { status: 400 });
     }
 
-    if (file.size > 5 * 1024 * 1024) {
-      return NextResponse.json({ error: "La imagen no debe superar los 5MB" }, { status: 400 });
+    const bytes = await request.arrayBuffer();
+
+    if (bytes.byteLength === 0) {
+      return NextResponse.json({ error: "No se envió ningún archivo" }, { status: 400 });
     }
 
-    const bytes = await file.arrayBuffer();
+    if (bytes.byteLength > MAX_BYTES) {
+      return NextResponse.json({ error: "La imagen no debe superar los 5MB" }, { status: 400 });
+    }
 
     const nombreUnico = `captura_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
 
     const body = new FormData();
-    body.append("file", new Blob([new Uint8Array(bytes)], { type: file.type }), nombreUnico);
+    body.append("file", new Blob([new Uint8Array(bytes)], { type: fileType }), nombreUnico);
     body.append("fileName", nombreUnico);
     body.append("folder", "/pagos");
     body.append("useUniqueFileName", "false");
 
     const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), 15000);
+    const timeout = setTimeout(() => controller.abort(), TIMEOUT_MS);
 
-    const res = await fetch(IMAGEKIT_BASE, {
+    const res = await fetch(IMAGEKIT_UPLOAD, {
       method: "POST",
-      headers: { Authorization: `Bearer ${process.env.IMAGEKIT_PRIVATE_KEY}` },
+      headers: {
+        Authorization: `Bearer ${process.env.IMAGEKIT_PRIVATE_KEY}`,
+      },
       body,
       signal: controller.signal,
     });
