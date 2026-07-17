@@ -28,11 +28,16 @@ export default function Header() {
   const [bcvRate, setBcvRate] = useState<number | null>(null);
 
   useEffect(() => {
-    const unsub = onSnapshot(doc(db, "settings", "bcv"), (snap) => {
-      if (snap.exists()) {
-        setBcvRate(snap.data().rate as number);
+    const unsub = onSnapshot(doc(db, "settings", "bcv"),
+      (snap) => {
+        if (snap.exists()) {
+          setBcvRate(snap.data().rate as number);
+        }
+      },
+      (error) => {
+        console.error("Error cargando tasa BCV:", error);
       }
-    });
+    );
     return () => unsub();
   }, []);
 

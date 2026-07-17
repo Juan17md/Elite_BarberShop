@@ -24,6 +24,7 @@ export default function DashboardPage() {
   const [allRecords, setAllRecords] = useState<FinancialRecord[]>([]);
   const [today, setToday] = useState(getLocalDateString());
   const [loading, setLoading] = useState(true);
+  const [errorFirestore, setErrorFirestore] = useState<string | null>(null);
   const [position, setPosition] = useState(0);
   const [isRegisterModalOpen, setIsRegisterModalOpen] = useState(false);
 
@@ -51,15 +52,30 @@ export default function DashboardPage() {
       q = query(collection(db, "finances"), where("barberId", "==", datosUsuario?.uid), orderBy("date", "desc"));
     }
     
-    const unsubscribe = onSnapshot(q, (snapshot) => {
-      const data = snapshot.docs.map(doc => ({
-        id: doc.id,
-        ...doc.data()
-      })) as FinancialRecord[];
-      setRecords(data);
-      setLoading(false);
-    });
-    return () => unsubscribe();
+    const timer = setTimeout(() => setLoading(false), 10000);
+
+    const unsubscribe = onSnapshot(q,
+      (snapshot) => {
+        clearTimeout(timer);
+        setErrorFirestore(null);
+        const data = snapshot.docs.map(doc => ({
+          id: doc.id,
+          ...doc.data()
+        })) as FinancialRecord[];
+        setRecords(data);
+        setLoading(false);
+      },
+      (error) => {
+        clearTimeout(timer);
+        console.error("Error cargando registros:", error);
+        setErrorFirestore("No se pudieron cargar los datos. Verifica la conexión.");
+        setLoading(false);
+      }
+    );
+    return () => {
+      unsubscribe();
+      clearTimeout(timer);
+    };
   }, [isAdmin, datosUsuario?.uid]);
 
   // Fetch all records para ranking (solo barberos)
@@ -67,13 +83,18 @@ export default function DashboardPage() {
     if (!datosUsuario?.uid || isAdmin) return;
 
     const q = query(collection(db, "finances"), orderBy("date", "desc"));
-    const unsubscribe = onSnapshot(q, (snapshot) => {
-      const data = snapshot.docs.map(doc => ({
-        id: doc.id,
-        ...doc.data()
-      })) as FinancialRecord[];
-      setAllRecords(data);
-    });
+    const unsubscribe = onSnapshot(q,
+      (snapshot) => {
+        const data = snapshot.docs.map(doc => ({
+          id: doc.id,
+          ...doc.data()
+        })) as FinancialRecord[];
+        setAllRecords(data);
+      },
+      (error) => {
+        console.error("Error cargando ranking:", error);
+      }
+    );
     return () => unsubscribe();
   }, [isAdmin, datosUsuario?.uid]);
 
@@ -116,7 +137,27 @@ export default function DashboardPage() {
       <div className="flex items-center justify-center h-64">
         <div className="flex flex-col items-center gap-4">
           <div className="w-10 h-10 rounded-full border-2 border-primary/20 border-t-primary animate-spin" />
-          <p className="text-text-muted text-sm">Cargando...</p>
+          <p className="text-text-muted text-sm">Cargando datos...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (errorFirestore) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <div className="flex flex-col items-center gap-4 text-center max-w-md">
+          <div className="w-14 h-14 rounded-full bg-red-500/10 border border-red-500/20 flex items-center justify-center">
+            <span className="text-red-400 text-2xl">!</span>
+          </div>
+          <p className="text-red-400 text-sm font-bold uppercase tracking-widest">Error de conexión</p>
+          <p className="text-text-muted text-xs">{errorFirestore}</p>
+          <button
+            onClick={() => window.location.reload()}
+            className="mt-2 px-4 py-2 rounded-md bg-primary/20 border border-primary/30 text-primary text-[10px] font-bold uppercase tracking-widest hover:bg-primary/30 transition-all"
+          >
+            Reintentar
+          </button>
         </div>
       </div>
     );

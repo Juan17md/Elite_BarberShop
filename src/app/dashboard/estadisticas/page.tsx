@@ -65,15 +65,20 @@ export default function EstadisticasPage() {
           orderBy("date", "desc")
         );
 
-    const unsubscribe = onSnapshot(consultaFinanzas, (snapshot) => {
-      const data = snapshot.docs.map(doc => ({
-        id: doc.id,
-        ...doc.data(),
-        createdAt: doc.data().createdAt?.toDate()
-      })) as FinancialRecord[];
+    const unsubscribe = onSnapshot(consultaFinanzas,
+      (snapshot) => {
+        const data = snapshot.docs.map(doc => ({
+          id: doc.id,
+          ...doc.data(),
+          createdAt: doc.data().createdAt?.toDate()
+        })) as FinancialRecord[];
 
-      setRecords(data);
-    });
+        setRecords(data);
+      },
+      (error) => {
+        console.error("Error cargando estadísticas:", error);
+      }
+    );
 
     return () => unsubscribe();
   }, [isAdmin, authLoading, rolLoading, datosUsuario?.uid]);

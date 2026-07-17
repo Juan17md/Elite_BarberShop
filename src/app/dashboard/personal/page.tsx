@@ -112,17 +112,22 @@ export default function PersonalPage() {
   useEffect(() => {
     if (!isAdmin) return;
 
-    const unsub = onSnapshot(collection(db, "bank"), (snap) => {
-      const balances: Record<string, { totalEarned: number; balance: number }> = {};
-      snap.forEach((doc) => {
-        const data = doc.data();
-        balances[doc.id] = {
-          totalEarned: data.totalEarned || 0,
-          balance: data.balance || 0,
-        };
-      });
-      setBankBalances(balances);
-    });
+    const unsub = onSnapshot(collection(db, "bank"),
+      (snap) => {
+        const balances: Record<string, { totalEarned: number; balance: number }> = {};
+        snap.forEach((doc) => {
+          const data = doc.data();
+          balances[doc.id] = {
+            totalEarned: data.totalEarned || 0,
+            balance: data.balance || 0,
+          };
+        });
+        setBankBalances(balances);
+      },
+      (error) => {
+        console.error("Error cargando bancos:", error);
+      }
+    );
 
     return () => unsub();
   }, [isAdmin]);
@@ -133,30 +138,36 @@ export default function PersonalPage() {
 
     const q = query(collection(db, "finances"), orderBy("date", "desc"));
 
-    const unsub = onSnapshot(q, (snap) => {
-      const statsByBarber: Record<string, { totalServices: number; servicesInPeriod: number; totalAmountInPeriod: number; periodEarnings: number; periodPropina: number }> = {};
-      snap.forEach((doc) => {
-        const data = doc.data();
-        if (data.estado === "pendiente") return;
-        const barberId = data.barberId;
-        const date = data.date;
-        const isWithinPeriod = date >= periodo.inicio && date <= periodo.fin;
+    const unsub = onSnapshot(q,
+      (snap) => {
+        const statsByBarber: Record<string, { totalServices: number; servicesInPeriod: number; totalAmountInPeriod: number; periodEarnings: number; periodPropina: number }> = {};
+        snap.forEach((doc) => {
+          const data = doc.data();
+          if (data.estado === "pendiente") return;
+          const barberId = data.barberId;
+          const date = data.date;
+          const isWithinPeriod = date >= periodo.inicio && date <= periodo.fin;
 
-        if (!statsByBarber[barberId]) {
-          statsByBarber[barberId] = { totalServices: 0, servicesInPeriod: 0, totalAmountInPeriod: 0, periodEarnings: 0, periodPropina: 0 };
-        }
-        statsByBarber[barberId].totalServices++;
-        if (isWithinPeriod) {
-          statsByBarber[barberId].servicesInPeriod++;
-          statsByBarber[barberId].totalAmountInPeriod += data.totalAmount || 0;
-          statsByBarber[barberId].periodEarnings += data.barberShare || 0;
-          statsByBarber[barberId].periodPropina += data.propina || 0;
-        }
-      });
+          if (!statsByBarber[barberId]) {
+            statsByBarber[barberId] = { totalServices: 0, servicesInPeriod: 0, totalAmountInPeriod: 0, periodEarnings: 0, periodPropina: 0 };
+          }
+          statsByBarber[barberId].totalServices++;
+          if (isWithinPeriod) {
+            statsByBarber[barberId].servicesInPeriod++;
+            statsByBarber[barberId].totalAmountInPeriod += data.totalAmount || 0;
+            statsByBarber[barberId].periodEarnings += data.barberShare || 0;
+            statsByBarber[barberId].periodPropina += data.propina || 0;
+          }
+        });
 
-      setFinanceStats(statsByBarber);
-      setFinanceLoaded(true);
-    });
+        setFinanceStats(statsByBarber);
+        setFinanceLoaded(true);
+      },
+      (error) => {
+        console.error("Error cargando estadísticas de personal:", error);
+        setFinanceLoaded(true);
+      }
+    );
 
     return () => unsub();
   }, [isAdmin, periodo]);
@@ -170,20 +181,25 @@ export default function PersonalPage() {
       orderBy("createdAt", "desc")
     );
 
-    const unsub = onSnapshot(q, (snap) => {
-      const data = snap.docs
-        .filter((doc) => doc.data().type === "withdrawal")
-        .map((doc) => ({
-          id: doc.id,
-          ...doc.data(),
-          createdAt: doc.data().createdAt?.toDate
-            ? doc.data().createdAt.toDate()
-            : doc.data().createdAt
-            ? new Date(doc.data().createdAt)
-            : undefined,
-        })) as BankTransaction[];
-      setTransactions(data);
-    });
+    const unsub = onSnapshot(q,
+      (snap) => {
+        const data = snap.docs
+          .filter((doc) => doc.data().type === "withdrawal")
+          .map((doc) => ({
+            id: doc.id,
+            ...doc.data(),
+            createdAt: doc.data().createdAt?.toDate
+              ? doc.data().createdAt.toDate()
+              : doc.data().createdAt
+              ? new Date(doc.data().createdAt)
+              : undefined,
+          })) as BankTransaction[];
+        setTransactions(data);
+      },
+      (error) => {
+        console.error("Error cargando transacciones:", error);
+      }
+    );
 
     return () => unsub();
   }, [isAdmin]);

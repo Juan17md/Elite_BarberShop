@@ -36,7 +36,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [authLoading, setAuthLoading] = useState(true);
   const [rolLoading, setRolLoading] = useState(true);
   const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const resolvedRef = useRef(false);
+  const firestoreResolved = useRef(false);
 
   useEffect(() => {
     let unsubFirestore: (() => void) | null = null;
@@ -48,7 +48,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         clearTimeout(timeoutRef.current);
         timeoutRef.current = null;
       }
-      resolvedRef.current = false;
+      firestoreResolved.current = false;
 
       if (unsubFirestore) {
         unsubFirestore();
@@ -76,19 +76,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       };
 
       timeoutRef.current = setTimeout(() => {
-        if (resolvedRef.current) return;
-        resolvedRef.current = true;
-        timeoutRef.current = null;
-        console.warn("onSnapshot no respondió, usando datos por defecto");
+        if (firestoreResolved.current) return;
+        console.warn("Firestore lento, usando datos por defecto temporalmente");
         setDatosUsuario(datosPorDefecto);
         setRolLoading(false);
-      }, 5000);
+      }, 3000);
 
       unsubFirestore = onSnapshot(
         doc(db, "users", firebaseUser.uid),
         (snap) => {
-          if (resolvedRef.current) return;
-          resolvedRef.current = true;
+          firestoreResolved.current = true;
           if (timeoutRef.current) {
             clearTimeout(timeoutRef.current);
             timeoutRef.current = null;
@@ -110,8 +107,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           setRolLoading(false);
         },
         (error) => {
-          if (resolvedRef.current) return;
-          resolvedRef.current = true;
+          firestoreResolved.current = true;
           if (timeoutRef.current) {
             clearTimeout(timeoutRef.current);
             timeoutRef.current = null;

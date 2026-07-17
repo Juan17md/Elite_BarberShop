@@ -40,14 +40,20 @@ export default function UsuariosPage() {
 
   useEffect(() => {
     const q = query(collection(db, "users"), orderBy("name"));
-    const unsub = onSnapshot(q, (snapshot) => {
-      const data = snapshot.docs.map((doc) => ({
-        uid: doc.id,
-        ...doc.data(),
-      })) as Usuario[];
-      setUsuarios(data);
-      setLoading(false);
-    });
+    const unsub = onSnapshot(q,
+      (snapshot) => {
+        const data = snapshot.docs.map((doc) => ({
+          uid: doc.id,
+          ...doc.data(),
+        })) as Usuario[];
+        setUsuarios(data);
+        setLoading(false);
+      },
+      (error) => {
+        console.error("Error cargando usuarios:", error);
+        setLoading(false);
+      }
+    );
     return () => unsub();
   }, []);
 

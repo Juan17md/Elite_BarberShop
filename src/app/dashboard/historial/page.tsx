@@ -110,14 +110,20 @@ export default function HistorialPage() {
       );
     }
 
-    const unsubscribe = onSnapshot(q, (snapshot) => {
-      const data = snapshot.docs.map((doc) => ({
-        id: doc.id,
-        ...doc.data(),
-      })) as FinancialRecord[];
-      setRegistros(data);
-      setCargando(false);
-    });
+    const unsubscribe = onSnapshot(q,
+      (snapshot) => {
+        const data = snapshot.docs.map((doc) => ({
+          id: doc.id,
+          ...doc.data(),
+        })) as FinancialRecord[];
+        setRegistros(data);
+        setCargando(false);
+      },
+      (error) => {
+        console.error("Error cargando historial:", error);
+        setCargando(false);
+      }
+    );
     return () => unsubscribe();
   }, [esAdmin, datosUsuario?.uid]);
 

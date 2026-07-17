@@ -88,23 +88,28 @@ export default function ObjetivosPage() {
       q = query(collection(db, "objectives"), where("barberoId", "==", datosUsuario?.uid), orderBy("endDate", "desc"));
     }
     
-    const unsubscribe = onSnapshot(q, (snapshot) => {
-      const data = snapshot.docs.map((doc) => {
-        const datos = doc.data();
+    const unsubscribe = onSnapshot(q,
+      (snapshot) => {
+        const data = snapshot.docs.map((doc) => {
+          const datos = doc.data();
 
-        return {
-          id: doc.id,
-          ...datos,
-          createdByName:
-            typeof datos.createdByName === "string" ? datos.createdByName : undefined,
-          startDate: convertirFecha(datos.startDate),
-          endDate: convertirFecha(datos.endDate),
-          createdAt: convertirFecha(datos.createdAt) ?? new Date(),
-        } as unknown as Objective;
-      });
+          return {
+            id: doc.id,
+            ...datos,
+            createdByName:
+              typeof datos.createdByName === "string" ? datos.createdByName : undefined,
+            startDate: convertirFecha(datos.startDate),
+            endDate: convertirFecha(datos.endDate),
+            createdAt: convertirFecha(datos.createdAt) ?? new Date(),
+          } as unknown as Objective;
+        });
 
-      setObjetivos(data);
-    });
+        setObjetivos(data);
+      },
+      (error) => {
+        console.error("Error cargando objetivos:", error);
+      }
+    );
     return () => unsubscribe();
   }, [isAdmin, datosUsuario?.uid]);
 

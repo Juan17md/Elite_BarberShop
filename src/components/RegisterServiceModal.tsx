@@ -61,11 +61,16 @@ export default function RegisterServiceModal({ isOpen, onClose }: RegisterServic
 
     fetch("/api/bcv-rate").catch(() => {});
 
-    const unsub = onSnapshot(doc(db, "settings", "bcv"), (snap) => {
-      if (snap.exists() && snap.data().rate) {
-        setBcvRateDb(Number(snap.data().rate));
+    const unsub = onSnapshot(doc(db, "settings", "bcv"),
+      (snap) => {
+        if (snap.exists() && snap.data().rate) {
+          setBcvRateDb(Number(snap.data().rate));
+        }
+      },
+      (error) => {
+        console.error("Error cargando tasa BCV en modal:", error);
       }
-    });
+    );
     return () => unsub();
   }, [isOpen]);
 
@@ -74,23 +79,28 @@ export default function RegisterServiceModal({ isOpen, onClose }: RegisterServic
     if (!isOpen) return;
 
     const q = query(collection(db, "services"), orderBy("name"));
-    const unsubscribe = onSnapshot(q, (snapshot) => {
-      const serviciosPersonalizados = snapshot.docs.map((doc) => ({
-        id: doc.id,
-        ...doc.data(),
-      })) as Service[];
+    const unsubscribe = onSnapshot(q,
+      (snapshot) => {
+        const serviciosPersonalizados = snapshot.docs.map((doc) => ({
+          id: doc.id,
+          ...doc.data(),
+        })) as Service[];
 
-      const serviciosBase = [...SERVICES];
-      const nombresBase = new Set(
-        serviciosBase.map((servicio) => normalizarNombreServicio(servicio.name))
-      );
+        const serviciosBase = [...SERVICES];
+        const nombresBase = new Set(
+          serviciosBase.map((servicio) => normalizarNombreServicio(servicio.name))
+        );
 
-      const serviciosExtra = serviciosPersonalizados.filter(
-        (servicio) => !nombresBase.has(normalizarNombreServicio(servicio.name))
-      );
+        const serviciosExtra = serviciosPersonalizados.filter(
+          (servicio) => !nombresBase.has(normalizarNombreServicio(servicio.name))
+        );
 
-      setServiciosDisponibles([...serviciosBase, ...serviciosExtra]);
-    });
+        setServiciosDisponibles([...serviciosBase, ...serviciosExtra]);
+      },
+      (error) => {
+        console.error("Error cargando servicios en modal:", error);
+      }
+    );
 
     return () => unsubscribe();
   }, [isOpen]);
@@ -104,13 +114,18 @@ export default function RegisterServiceModal({ isOpen, onClose }: RegisterServic
       where("role", "in", ["barber", "admin"]),
       orderBy("name")
     );
-    const unsubscribe = onSnapshot(consulta, (snapshot) => {
-      const data = snapshot.docs.map(doc => ({
-        id: doc.id,
-        ...doc.data()
-      }));
-      setBarbers(data);
-    });
+    const unsubscribe = onSnapshot(consulta,
+      (snapshot) => {
+        const data = snapshot.docs.map(doc => ({
+          id: doc.id,
+          ...doc.data()
+        }));
+        setBarbers(data);
+      },
+      (error) => {
+        console.error("Error cargando barberos en modal:", error);
+      }
+    );
     return () => unsubscribe();
   }, [isOpen, esAdmin]);
 

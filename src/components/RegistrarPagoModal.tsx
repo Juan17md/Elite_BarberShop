@@ -52,24 +52,29 @@ export default function RegistrarPagoModal({
     if (!barberId || !isOpen) return;
 
     const bankRef = doc(db, "bank", barberId);
-    const unsubscribe = onSnapshot(bankRef, (docSnap) => {
-      if (docSnap.exists()) {
-        setBankAccount({
-          id: docSnap.id,
-          ...docSnap.data()
-        } as BankAccount);
-      } else {
-        setBankAccount({
-          id: barberId,
-          userId: barberId,
-          userName: barberName,
-          balance: 0,
-          totalEarned: 0,
-          totalPaid: 0,
-          lastUpdated: new Date()
-        } as BankAccount);
+    const unsubscribe = onSnapshot(bankRef,
+      (docSnap) => {
+        if (docSnap.exists()) {
+          setBankAccount({
+            id: docSnap.id,
+            ...docSnap.data()
+          } as BankAccount);
+        } else {
+          setBankAccount({
+            id: barberId,
+            userId: barberId,
+            userName: barberName,
+            balance: 0,
+            totalEarned: 0,
+            totalPaid: 0,
+            lastUpdated: new Date()
+          } as BankAccount);
+        }
+      },
+      (error) => {
+        console.error("Error cargando cuenta bancaria en pago:", error);
       }
-    });
+    );
 
     // Resetear campos
     setMonto("");

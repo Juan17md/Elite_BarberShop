@@ -36,14 +36,19 @@ export default function ClientesPage() {
       q = query(collection(db, "clients"), where("createdBy", "==", datosUsuario?.uid), orderBy("name"));
     }
     
-    const unsubscribe = onSnapshot(q, (snapshot) => {
-      const data = snapshot.docs.map(doc => ({
-        id: doc.id,
-        ...doc.data(),
-        createdAt: doc.data().createdAt?.toDate()
-      })) as Client[];
-      setClientes(data);
-    });
+    const unsubscribe = onSnapshot(q,
+      (snapshot) => {
+        const data = snapshot.docs.map(doc => ({
+          id: doc.id,
+          ...doc.data(),
+          createdAt: doc.data().createdAt?.toDate()
+        })) as Client[];
+        setClientes(data);
+      },
+      (error) => {
+        console.error("Error cargando clientes:", error);
+      }
+    );
     return () => unsubscribe();
   }, [datosUsuario?.rol, datosUsuario?.uid]);
 

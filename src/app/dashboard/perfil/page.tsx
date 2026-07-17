@@ -57,39 +57,49 @@ export default function PerfilPage() {
     if (!datosUsuario?.uid) return;
 
     const bankRef = doc(db, "bank", datosUsuario.uid);
-    const unsubBank = onSnapshot(bankRef, (docSnap) => {
-      if (docSnap.exists()) {
-        setBankAccount({
-          id: docSnap.id,
-          ...docSnap.data(),
-          lastUpdated: docSnap.data().lastUpdated?.toDate
-            ? docSnap.data().lastUpdated.toDate()
-            : docSnap.data().lastUpdated
-            ? new Date(docSnap.data().lastUpdated)
-            : undefined,
-        } as BankAccount);
-      } else {
-        setBankAccount(null);
+    const unsubBank = onSnapshot(bankRef,
+      (docSnap) => {
+        if (docSnap.exists()) {
+          setBankAccount({
+            id: docSnap.id,
+            ...docSnap.data(),
+            lastUpdated: docSnap.data().lastUpdated?.toDate
+              ? docSnap.data().lastUpdated.toDate()
+              : docSnap.data().lastUpdated
+              ? new Date(docSnap.data().lastUpdated)
+              : undefined,
+          } as BankAccount);
+        } else {
+          setBankAccount(null);
+        }
+      },
+      (error) => {
+        console.error("Error cargando cuenta bancaria:", error);
       }
-    });
+    );
 
     const q = query(
       collection(db, "bank_transactions"),
       where("userId", "==", datosUsuario.uid),
       orderBy("createdAt", "desc")
     );
-    const unsubTx = onSnapshot(q, (snapshot) => {
-      const data = snapshot.docs.map((doc) => ({
-        id: doc.id,
-        ...doc.data(),
-        createdAt: doc.data().createdAt?.toDate
-          ? doc.data().createdAt.toDate()
-          : doc.data().createdAt
-          ? new Date(doc.data().createdAt)
-          : undefined,
-      })) as BankTransaction[];
-      setTransactions(data);
-    });
+    const unsubTx = onSnapshot(q,
+      (snapshot) => {
+        const data = snapshot.docs.map((doc) => ({
+          id: doc.id,
+          ...doc.data(),
+          createdAt: doc.data().createdAt?.toDate
+            ? doc.data().createdAt.toDate()
+            : doc.data().createdAt
+            ? new Date(doc.data().createdAt)
+            : undefined,
+        })) as BankTransaction[];
+        setTransactions(data);
+      },
+      (error) => {
+        console.error("Error cargando transacciones de perfil:", error);
+      }
+    );
 
     return () => {
       unsubBank();

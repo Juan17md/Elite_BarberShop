@@ -28,28 +28,39 @@ export default function ActasGastosPage() {
 
   useEffect(() => {
     const q = query(collection(db, "users"), orderBy("name"));
-    const unsub = onSnapshot(q, (snap) => {
-      const lista = snap.docs
-        .filter((doc) => doc.data().role === "barber" || doc.data().role === "admin" || doc.data().role === "superadmin")
-        .map((doc) => ({
-          value: doc.data().name,
-          label: doc.data().name,
-        }));
-      setBarberos(lista);
-    });
+    const unsub = onSnapshot(q,
+      (snap) => {
+        const lista = snap.docs
+          .filter((doc) => doc.data().role === "barber" || doc.data().role === "admin" || doc.data().role === "superadmin")
+          .map((doc) => ({
+            value: doc.data().name,
+            label: doc.data().name,
+          }));
+        setBarberos(lista);
+      },
+      (error) => {
+        console.error("Error cargando barberos:", error);
+      }
+    );
     return () => unsub();
   }, []);
 
   useEffect(() => {
     const q = query(collection(db, "transacciones"), orderBy("creadoAt", "desc"));
-    const unsubscribe = onSnapshot(q, (snapshot) => {
-      const datos = snapshot.docs.map(doc => ({
-        id: doc.id,
-        ...doc.data()
-      })) as Transaccion[];
-      setTransacciones(datos);
-      setCargando(false);
-    });
+    const unsubscribe = onSnapshot(q,
+      (snapshot) => {
+        const datos = snapshot.docs.map(doc => ({
+          id: doc.id,
+          ...doc.data()
+        })) as Transaccion[];
+        setTransacciones(datos);
+        setCargando(false);
+      },
+      (error) => {
+        console.error("Error cargando transacciones:", error);
+        setCargando(false);
+      }
+    );
 
     return () => unsubscribe();
   }, []);

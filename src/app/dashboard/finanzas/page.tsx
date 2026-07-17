@@ -59,6 +59,8 @@ export default function FinanzasPage() {
   const [transacciones, setTransacciones] = useState<Transaccion[]>([]);
   const [serviciosDisponibles, setServiciosDisponibles] = useState<Service[]>(SERVICES);
   const [barbers, setBarbers] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [errorFirestore, setErrorFirestore] = useState<string | null>(null);
   const [position, setPosition] = useState(0);
   const esPosicionActual = position === 0;
   const periodo = useMemo(() => getPeriodFromPosition(position), [position]);
@@ -100,16 +102,32 @@ export default function FinanzasPage() {
           orderBy("date", "desc")
         );
 
-    const unsubscribe = onSnapshot(consulta, (snapshot) => {
-      const data = snapshot.docs.map((doc) => ({
-        id: doc.id,
-        ...doc.data(),
-        createdAt: doc.data().createdAt?.toDate(),
-      })) as FinancialRecord[];
-      setRecords(data);
-    });
+    const timer = setTimeout(() => setLoading(false), 10000);
 
-    return () => unsubscribe();
+    const unsubscribe = onSnapshot(consulta,
+      (snapshot) => {
+        clearTimeout(timer);
+        setErrorFirestore(null);
+        const data = snapshot.docs.map((doc) => ({
+          id: doc.id,
+          ...doc.data(),
+          createdAt: doc.data().createdAt?.toDate(),
+        })) as FinancialRecord[];
+        setRecords(data);
+        setLoading(false);
+      },
+      (error) => {
+        clearTimeout(timer);
+        console.error("Error cargando registros financieros:", error);
+        setErrorFirestore("No se pudieron cargar los datos financieros.");
+        setLoading(false);
+      }
+    );
+
+    return () => {
+      unsubscribe();
+      clearTimeout(timer);
+    };
   }, [isAdmin, datosUsuario?.uid]);
 
   useEffect(() => {
@@ -124,14 +142,19 @@ export default function FinanzasPage() {
           orderBy("date", "desc")
         );
 
-    const unsubscribe = onSnapshot(consulta, (snapshot) => {
-      const data = snapshot.docs.map((doc) => ({
-        id: doc.id,
-        ...doc.data(),
-        createdAt: doc.data().createdAt?.toDate(),
-      })) as FinancialRecord[];
-      setPorCobrarRecords(data);
-    });
+    const unsubscribe = onSnapshot(consulta,
+      (snapshot) => {
+        const data = snapshot.docs.map((doc) => ({
+          id: doc.id,
+          ...doc.data(),
+          createdAt: doc.data().createdAt?.toDate(),
+        })) as FinancialRecord[];
+        setPorCobrarRecords(data);
+      },
+      (error) => {
+        console.error("Error cargando fiados:", error);
+      }
+    );
 
     return () => unsubscribe();
   }, [isAdmin, datosUsuario?.uid]);
@@ -141,11 +164,16 @@ export default function FinanzasPage() {
 
     fetch("/api/bcv-rate").catch(() => {});
 
-    const unsub = onSnapshot(doc(db, "settings", "bcv"), (snap) => {
-      if (snap.exists() && snap.data().rate) {
-        setCobroBcvRate(Number(snap.data().rate));
+    const unsub = onSnapshot(doc(db, "settings", "bcv"),
+      (snap) => {
+        if (snap.exists() && snap.data().rate) {
+          setCobroBcvRate(Number(snap.data().rate));
+        }
+      },
+      (error) => {
+        console.error("Error cargando tasa BCV en cobro fiado:", error);
       }
-    });
+    );
     return () => unsub();
   }, [fiadoACobrar]);
 
@@ -161,35 +189,45 @@ export default function FinanzasPage() {
 
   useEffect(() => {
     const q = query(collection(db, "transacciones"), orderBy("creadoAt", "desc"));
-    const unsubscribe = onSnapshot(q, (snapshot) => {
-      const datos = snapshot.docs.map((doc) => ({
-        id: doc.id,
-        ...doc.data(),
-      })) as Transaccion[];
-      setTransacciones(datos);
-    });
+    const unsubscribe = onSnapshot(q,
+      (snapshot) => {
+        const datos = snapshot.docs.map((doc) => ({
+          id: doc.id,
+          ...doc.data(),
+        })) as Transaccion[];
+        setTransacciones(datos);
+      },
+      (error) => {
+        console.error("Error cargando transacciones:", error);
+      }
+    );
     return () => unsubscribe();
   }, []);
 
   useEffect(() => {
     const q = query(collection(db, "services"), orderBy("name"));
-    const unsubscribe = onSnapshot(q, (snapshot) => {
-      const serviciosPersonalizados = snapshot.docs.map((doc) => ({
-        id: doc.id,
-        ...doc.data(),
-      })) as Service[];
+    const unsubscribe = onSnapshot(q,
+      (snapshot) => {
+        const serviciosPersonalizados = snapshot.docs.map((doc) => ({
+          id: doc.id,
+          ...doc.data(),
+        })) as Service[];
 
-      const serviciosBase = [...SERVICES];
-      const nombresBase = new Set(
-        serviciosBase.map((servicio) => normalizarNombreServicio(servicio.name))
-      );
+        const serviciosBase = [...SERVICES];
+        const nombresBase = new Set(
+          serviciosBase.map((servicio) => normalizarNombreServicio(servicio.name))
+        );
 
-      const serviciosExtra = serviciosPersonalizados.filter(
-        (servicio) => !nombresBase.has(normalizarNombreServicio(servicio.name))
-      );
+        const serviciosExtra = serviciosPersonalizados.filter(
+          (servicio) => !nombresBase.has(normalizarNombreServicio(servicio.name))
+        );
 
-      setServiciosDisponibles([...serviciosBase, ...serviciosExtra]);
-    });
+        setServiciosDisponibles([...serviciosBase, ...serviciosExtra]);
+      },
+      (error) => {
+        console.error("Error cargando servicios:", error);
+      }
+    );
 
     return () => unsubscribe();
   }, []);
@@ -202,13 +240,18 @@ export default function FinanzasPage() {
       where("role", "in", ["barber", "admin"]),
       orderBy("name")
     );
-    const unsubscribe = onSnapshot(consulta, (snapshot) => {
-      const data = snapshot.docs.map(doc => ({
-        id: doc.id,
-        ...doc.data()
-      }));
-      setBarbers(data);
-    });
+    const unsubscribe = onSnapshot(consulta,
+      (snapshot) => {
+        const data = snapshot.docs.map(doc => ({
+          id: doc.id,
+          ...doc.data()
+        }));
+        setBarbers(data);
+      },
+      (error) => {
+        console.error("Error cargando barberos:", error);
+      }
+    );
     return () => unsubscribe();
   }, [isAdmin]);
 
@@ -471,6 +514,37 @@ export default function FinanzasPage() {
       setProcesandoPago(null);
     }
   };
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <div className="flex flex-col items-center gap-4">
+          <div className="w-10 h-10 rounded-full border-2 border-primary/20 border-t-primary animate-spin" />
+          <p className="text-text-muted text-sm">Cargando datos financieros...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (errorFirestore) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <div className="flex flex-col items-center gap-4 text-center max-w-md">
+          <div className="w-14 h-14 rounded-full bg-red-500/10 border border-red-500/20 flex items-center justify-center">
+            <span className="text-red-400 text-2xl">!</span>
+          </div>
+          <p className="text-red-400 text-sm font-bold uppercase tracking-widest">Error de conexión</p>
+          <p className="text-text-muted text-xs">{errorFirestore}</p>
+          <button
+            onClick={() => window.location.reload()}
+            className="mt-2 px-4 py-2 rounded-md bg-primary/20 border border-primary/30 text-primary text-[10px] font-bold uppercase tracking-widest hover:bg-primary/30 transition-all"
+          >
+            Reintentar
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6 pb-10">

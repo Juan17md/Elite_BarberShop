@@ -30,33 +30,43 @@ export default function ServiciosPage() {
   const [formData, setFormData] = useState({ name: "", price: "", priceDivisa: "", duration: 45, description: "" });
 
   useEffect(() => {
-    const unsub = onSnapshot(doc(db, "settings", "bcv"), (snap) => {
-      if (snap.exists()) {
-        setBcvRate(snap.data().rate as number);
+    const unsub = onSnapshot(doc(db, "settings", "bcv"),
+      (snap) => {
+        if (snap.exists()) {
+          setBcvRate(snap.data().rate as number);
+        }
+      },
+      (error) => {
+        console.error("Error cargando tasa BCV:", error);
       }
-    });
+    );
     return () => unsub();
   }, []);
 
   useEffect(() => {
     const q = query(collection(db, "services"), orderBy("name"));
-    const unsubscribe = onSnapshot(q, (snapshot) => {
-      const serviciosPersonalizados = snapshot.docs.map(doc => ({
-        id: doc.id,
-        ...doc.data()
-      })) as Service[];
+    const unsubscribe = onSnapshot(q,
+      (snapshot) => {
+        const serviciosPersonalizados = snapshot.docs.map(doc => ({
+          id: doc.id,
+          ...doc.data()
+        })) as Service[];
 
-      const serviciosBase = [...SERVICES];
-      const nombresBase = new Set(
-        serviciosBase.map((servicio) => normalizarNombreServicio(servicio.name))
-      );
+        const serviciosBase = [...SERVICES];
+        const nombresBase = new Set(
+          serviciosBase.map((servicio) => normalizarNombreServicio(servicio.name))
+        );
 
-      const serviciosExtra = serviciosPersonalizados.filter(
-        (servicio) => !nombresBase.has(normalizarNombreServicio(servicio.name))
-      );
+        const serviciosExtra = serviciosPersonalizados.filter(
+          (servicio) => !nombresBase.has(normalizarNombreServicio(servicio.name))
+        );
 
-      setServicios([...serviciosBase, ...serviciosExtra]);
-    });
+        setServicios([...serviciosBase, ...serviciosExtra]);
+      },
+      (error) => {
+        console.error("Error cargando servicios:", error);
+      }
+    );
     return () => unsubscribe();
   }, []);
 

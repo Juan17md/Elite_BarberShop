@@ -80,18 +80,23 @@ export default function InventarioPage() {
       orderBy("name")
     );
 
-    const unsubscribe = onSnapshot(consultaInventario, (snapshot) => {
-      const data = snapshot.docs.map((documento) => ({
-        id: documento.id,
-        ...documento.data(),
-        categoria:
-          (documento.data().categoria as CategoriaInventario | undefined) ??
-          "materiales",
-        addedAt: documento.data().addedAt?.toDate(),
-      })) as InventoryItem[];
+    const unsubscribe = onSnapshot(consultaInventario,
+      (snapshot) => {
+        const data = snapshot.docs.map((documento) => ({
+          id: documento.id,
+          ...documento.data(),
+          categoria:
+            (documento.data().categoria as CategoriaInventario | undefined) ??
+            "materiales",
+          addedAt: documento.data().addedAt?.toDate(),
+        })) as InventoryItem[];
 
-      setItems(data);
-    });
+        setItems(data);
+      },
+      (error) => {
+        console.error("Error cargando inventario:", error);
+      }
+    );
 
     return () => unsubscribe();
   }, []);
