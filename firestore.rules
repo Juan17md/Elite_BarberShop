@@ -11,20 +11,28 @@ service cloud.firestore {
       return isAuthenticated() && request.auth.uid == userId;
     }
     
+    function getUserDoc() {
+      return get(/databases/$(database)/documents/users/$(request.auth.uid));
+    }
+    
+    function userDocExists() {
+      return getUserDoc().exists;
+    }
+    
     function getUserRole() {
-      return get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role;
+      return getUserDoc().data.role;
     }
     
     function isSuperadmin() {
-      return isAuthenticated() && getUserRole() == "superadmin";
+      return isAuthenticated() && userDocExists() && getUserRole() == "superadmin";
     }
     
     function isAdmin() {
-      return isAuthenticated() && (getUserRole() == "admin" || getUserRole() == "superadmin");
+      return isAuthenticated() && userDocExists() && (getUserRole() == "admin" || getUserRole() == "superadmin");
     }
     
     function isBarber() {
-      return isAuthenticated() && (getUserRole() == "barber" || getUserRole() == "admin" || getUserRole() == "superadmin");
+      return isAuthenticated() && userDocExists() && (getUserRole() == "barber" || getUserRole() == "admin" || getUserRole() == "superadmin");
     }
     
     // Usuarios: solo superadmin escribe desde cliente, lectura para autenticados
