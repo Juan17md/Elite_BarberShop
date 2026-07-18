@@ -1,11 +1,24 @@
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
+import { adminAuth } from "@/lib/firebaseAdmin";
 
 const IMAGEKIT_UPLOAD = "https://upload.imagekit.io/api/v1/files/upload";
 const MAX_BYTES = 5 * 1024 * 1024;
 const TIMEOUT_MS = 15000;
 
-export async function POST(request: Request) {
+export async function POST(request: NextRequest) {
   try {
+    const authHeader = request.headers.get("authorization");
+    if (!authHeader?.startsWith("Bearer ")) {
+      return NextResponse.json({ error: "No autorizado" }, { status: 401 });
+    }
+
+    const token = authHeader.split("Bearer ")[1];
+    try {
+      await adminAuth.verifyIdToken(token);
+    } catch {
+      return NextResponse.json({ error: "Token inválido o expirado" }, { status: 401 });
+    }
+
     const fileType = request.headers.get("x-file-type") || "";
     const fileName = request.headers.get("x-file-name") || "captura.jpg";
 

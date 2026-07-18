@@ -11,28 +11,24 @@ service cloud.firestore {
       return isAuthenticated() && request.auth.uid == userId;
     }
     
-    function getUserDoc() {
-      return get(/databases/$(database)/documents/users/$(request.auth.uid));
-    }
-    
-    function userDocExists() {
-      return getUserDoc().exists;
-    }
-    
-    function getUserRole() {
-      return getUserDoc().data.role;
-    }
-    
     function isSuperadmin() {
-      return isAuthenticated() && userDocExists() && getUserRole() == "superadmin";
+      return isAuthenticated() &&
+        get(/databases/(default)/documents/users/$(request.auth.uid)).data.role == "superadmin";
     }
     
     function isAdmin() {
-      return isAuthenticated() && userDocExists() && (getUserRole() == "admin" || getUserRole() == "superadmin");
+      return isAuthenticated() && exists(/databases/(default)/documents/users/$(request.auth.uid)) && (
+        get(/databases/(default)/documents/users/$(request.auth.uid)).data.role == "admin" ||
+        get(/databases/(default)/documents/users/$(request.auth.uid)).data.role == "superadmin"
+      );
     }
     
     function isBarber() {
-      return isAuthenticated() && userDocExists() && (getUserRole() == "barber" || getUserRole() == "admin" || getUserRole() == "superadmin");
+      return isAuthenticated() && exists(/databases/(default)/documents/users/$(request.auth.uid)) && (
+        get(/databases/(default)/documents/users/$(request.auth.uid)).data.role == "barber" ||
+        get(/databases/(default)/documents/users/$(request.auth.uid)).data.role == "admin" ||
+        get(/databases/(default)/documents/users/$(request.auth.uid)).data.role == "superadmin"
+      );
     }
     
     // Usuarios: solo superadmin escribe desde cliente, lectura para autenticados
@@ -73,8 +69,9 @@ service cloud.firestore {
     // Inventario
     match /inventory/{productoId} {
       allow read: if isAuthenticated();
-      allow write: if isAdmin();
       allow create: if isAdmin();
+      allow update: if isAdmin();
+      allow delete: if isAdmin();
     }
     
     // Transacciones y Actas
@@ -87,8 +84,13 @@ service cloud.firestore {
     // Finanzas
     match /finances/{registroId} {
       allow read: if isAuthenticated();
-      allow write: if isAdmin() || isBarber();
       allow create: if isAdmin() || isBarber();
+      allow update: if isAdmin() || (
+        isBarber() &&
+        resource.data.barberId == request.auth.uid &&
+        request.resource.data.barberId == request.auth.uid
+      );
+      allow delete: if isAdmin();
     }
 
     // Banco (Billeteras de Barberos y Barbería)
@@ -100,8 +102,9 @@ service cloud.firestore {
     // Transacciones Bancarias
     match /bank_transactions/{registroId} {
       allow read: if isAuthenticated();
-      allow create: if isAdmin() || isBarber() || (isAuthenticated() && request.resource.data.userId == request.auth.uid);
-      allow write: if isAdmin();
+      allow create: if isAdmin() || (isBarber() && (request.resource.data.userId == request.auth.uid || request.resource.data.userId == "barbershop"));
+      allow update: if isAdmin();
+      allow delete: if isAdmin();
     }
 
     // Objetivos
@@ -119,7 +122,9 @@ service cloud.firestore {
     // Configuraciones del sistema
     match /settings/{settingId} {
       allow read: if isAuthenticated();
-      allow write: if isBarber();
+      allow create: if isAdmin();
+      allow update: if isAdmin();
+      allow delete: if isAdmin();
     }
   }
 }

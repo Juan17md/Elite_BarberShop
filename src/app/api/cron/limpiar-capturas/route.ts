@@ -9,11 +9,13 @@ const imagekit = new ImageKit({
 
 export async function GET(request: NextRequest) {
   try {
-    if (process.env.CRON_SECRET) {
-      const authHeader = request.headers.get("Authorization");
-      if (authHeader !== `Bearer ${process.env.CRON_SECRET}`) {
-        return NextResponse.json({ error: "No autorizado" }, { status: 401 });
-      }
+    if (!process.env.CRON_SECRET) {
+      return NextResponse.json({ error: "CRON_SECRET no configurado" }, { status: 500 });
+    }
+
+    const authHeader = request.headers.get("Authorization");
+    if (authHeader !== `Bearer ${process.env.CRON_SECRET}`) {
+      return NextResponse.json({ error: "No autorizado" }, { status: 401 });
     }
 
     const hace30Dias = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);

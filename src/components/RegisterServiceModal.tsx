@@ -5,17 +5,15 @@ import { useAuth } from "@/context/AuthContext";
 import { type Service, SERVICES, type PaymentMethod, PAYMENT_METHODS } from "@/lib/types";
 import { 
   collection, 
-  addDoc, 
   onSnapshot,
   query,
   orderBy,
   where,
   doc,
-  getDoc,
   getDocs,
-  setDoc,
   updateDoc,
-  increment
+  increment,
+  runTransaction
 } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import { Check, Loader2, X, Upload } from "lucide-react";
@@ -30,9 +28,10 @@ interface RegisterServiceModalProps {
 
 const normalizarNombreServicio = (nombre: string) => nombre.trim().toLowerCase();
 const obtenerNombreBarbero = (b: any) => b?.nombre ?? b?.name ?? "Barbero";
+const sanitizarTexto = (texto: string) => texto.replace(/<[^>]*>/g, "").trim().slice(0, 100);
 
 export default function RegisterServiceModal({ isOpen, onClose }: RegisterServiceModalProps) {
-  const { datosUsuario } = useAuth();
+  const { datosUsuario, usuario } = useAuth();
   const esAdmin = datosUsuario?.rol === "admin" || datosUsuario?.rol === "superadmin";
 
   const [formData, setFormData] = useState({
@@ -236,9 +235,11 @@ export default function RegisterServiceModal({ isOpen, onClose }: RegisterServic
       if (capturaFile) {
         setCapturaSubiendo(true);
         const fileBytes = await capturaFile.arrayBuffer();
+        const token = await usuario?.getIdToken();
         const res = await fetch("/api/upload-captura", {
           method: "POST",
           headers: {
+            Authorization: `Bearer ${token}`,
             "X-File-Type": capturaFile.type || "image/jpeg",
             "X-File-Name": encodeURIComponent(capturaFile.name),
           },
@@ -265,27 +266,92 @@ export default function RegisterServiceModal({ isOpen, onClose }: RegisterServic
       const barberiaShareAmount = totalAmount * 0.4;
       const date = getLocalDateString();
 
-      // Guardar la tasa BCV en segundo plano si el método de pago es bolívares (BCV)
       const bcvRate = paymentMethod === "bcv" ? bcvRateDb : null;
+      const clientName = sanitizarTexto(formData.clientName) || "Cliente";
 
-      // 1. Crear registro financiero
-      await addDoc(collection(db, "finances"), {
-        serviceId: service.id,
-        serviceName: service.name,
-        barberId: finalBarberId,
-        barberName: obtenerNombreBarbero(finalBarber),
-        clientName: formData.clientName || "Cliente",
-        totalAmount,
-        barberShare: barberShareAmount,
-        barberiaShare: barberiaShareAmount,
-        date,
-        createdAt: new Date(),
-        paymentMethod,
-        estado: esFiado ? "pendiente" : "pagado",
-        ...(bcvRate != null ? { bcvRate } : {}),
-        ...(formData.numeroReferencia.trim() ? { numeroReferencia: formData.numeroReferencia.trim() } : {}),
-        ...(capturaURL ? { capturaURL, capturaFileId } : {}),
-        ...(propinaFinal > 0 ? { propina: propinaFinal } : {}),
+      // Transacción atómica: finances + bank + bank_transactions
+      await runTransaction(db, async (transaction) => {
+        const financeRef = doc(collection(db, "finances"));
+        transaction.set(financeRef, {
+          serviceId: service.id,
+          serviceName: service.name,
+          barberId: finalBarberId,
+          barberName: obtenerNombreBarbero(finalBarber),
+          clientName,
+          totalAmount,
+          barberShare: barberShareAmount,
+          barberiaShare: barberiaShareAmount,
+          date,
+          createdAt: new Date(),
+          paymentMethod,
+          estado: esFiado ? "pendiente" : "pagado",
+          ...(bcvRate != null ? { bcvRate } : {}),
+          ...(formData.numeroReferencia.trim() ? { numeroReferencia: formData.numeroReferencia.trim() } : {}),
+          ...(capturaURL ? { capturaURL, capturaFileId } : {}),
+          ...(propinaFinal > 0 ? { propina: propinaFinal } : {}),
+        });
+
+        if (!esFiado) {
+          const barberBankRef = doc(db, "bank", finalBarberId);
+          const barberBankDoc = await transaction.get(barberBankRef);
+          if (barberBankDoc.exists()) {
+            transaction.update(barberBankRef, {
+              balance: increment(barberShareAmount),
+              totalEarned: increment(barberShareAmount),
+              lastUpdated: new Date()
+            });
+          } else {
+            transaction.set(barberBankRef, {
+              userId: finalBarberId,
+              userName: obtenerNombreBarbero(finalBarber),
+              balance: barberShareAmount,
+              totalEarned: barberShareAmount,
+              totalPaid: 0,
+              lastUpdated: new Date()
+            });
+          }
+
+          const barberTxRef = doc(collection(db, "bank_transactions"));
+          transaction.set(barberTxRef, {
+            userId: finalBarberId,
+            userName: obtenerNombreBarbero(finalBarber),
+            type: "earning",
+            amount: barberShareAmount,
+            description: `Servicio: ${service.name}${propinaFinal > 0 ? ` (incl. propina $${propinaFinal.toFixed(2)})` : ""}`,
+            date,
+            createdAt: new Date()
+          });
+
+          const barberiaBankRef = doc(db, "bank", "barbershop");
+          const barberiaBankDoc = await transaction.get(barberiaBankRef);
+          if (barberiaBankDoc.exists()) {
+            transaction.update(barberiaBankRef, {
+              balance: increment(barberiaShareAmount),
+              totalEarned: increment(barberiaShareAmount),
+              lastUpdated: new Date()
+            });
+          } else {
+            transaction.set(barberiaBankRef, {
+              userId: "barbershop",
+              userName: "Elite BarberShop",
+              balance: barberiaShareAmount,
+              totalEarned: barberiaShareAmount,
+              totalPaid: 0,
+              lastUpdated: new Date()
+            });
+          }
+
+          const barberiaTxRef = doc(collection(db, "bank_transactions"));
+          transaction.set(barberiaTxRef, {
+            userId: "barbershop",
+            userName: "Elite BarberShop",
+            type: "earning",
+            amount: barberiaShareAmount,
+            description: `Servicio: ${service.name} (${obtenerNombreBarbero(finalBarber)})`,
+            date,
+            createdAt: new Date()
+          });
+        }
       });
 
       if (esFiado) {
@@ -294,69 +360,7 @@ export default function RegisterServiceModal({ isOpen, onClose }: RegisterServic
         return;
       }
 
-      // 2. Actualizar banco del barbero
-      const barberBankRef = doc(db, "bank", finalBarberId);
-      const barberBankDoc = await getDoc(barberBankRef);
-      if (barberBankDoc.exists()) {
-        await updateDoc(barberBankRef, {
-          balance: increment(barberShareAmount),
-          totalEarned: increment(barberShareAmount),
-          lastUpdated: new Date()
-        });
-      } else {
-        await setDoc(barberBankRef, {
-          userId: finalBarberId,
-          userName: obtenerNombreBarbero(finalBarber),
-          balance: barberShareAmount,
-          totalEarned: barberShareAmount,
-          totalPaid: 0,
-          lastUpdated: new Date()
-        });
-      }
-
-      // 3. Agregar transacción al historial del banco del barbero
-      await addDoc(collection(db, "bank_transactions"), {
-        userId: finalBarberId,
-        userName: obtenerNombreBarbero(finalBarber),
-        type: "earning",
-        amount: barberShareAmount,
-        description: `Servicio: ${service.name}${propinaFinal > 0 ? ` (incl. propina $${propinaFinal.toFixed(2)})` : ""}`,
-        date,
-        createdAt: new Date()
-      });
-
-      // 4. Actualizar banco de la barbería (barbershop)
-      const barberiaBankRef = doc(db, "bank", "barbershop");
-      const barberiaBankDoc = await getDoc(barberiaBankRef);
-      if (barberiaBankDoc.exists()) {
-        await updateDoc(barberiaBankRef, {
-          balance: increment(barberiaShareAmount),
-          totalEarned: increment(barberiaShareAmount),
-          lastUpdated: new Date()
-        });
-      } else {
-        await setDoc(barberiaBankRef, {
-          userId: "barbershop",
-          userName: "Elite BarberShop",
-          balance: barberiaShareAmount,
-          totalEarned: barberiaShareAmount,
-          totalPaid: 0,
-          lastUpdated: new Date()
-        });
-      }
-
-      // 5. Agregar transacción al historial de la barbería
-      await addDoc(collection(db, "bank_transactions"), {
-        userId: "barbershop",
-        userName: "Elite BarberShop",
-        type: "earning",
-        amount: barberiaShareAmount,
-        description: `Servicio: ${service.name} (${obtenerNombreBarbero(finalBarber)})`,
-        date,
-        createdAt: new Date()
-      });
-
-      // 6. Actualizar objetivos automáticamente
+      // Actualizar objetivos (best-effort después de la transacción)
       try {
         let objectivesQuery;
         if (esAdmin) {
@@ -392,13 +396,12 @@ export default function RegisterServiceModal({ isOpen, onClose }: RegisterServic
         console.error("Error al actualizar objetivos:", objError);
       }
 
-      // Cerrar modal
       toast.success("Servicio registrado exitosamente", { duration: 2000, closeButton: false });
       onClose();
 
     } catch (error) {
       console.error("Error al registrar el servicio:", error);
-      alert("Hubo un error al registrar el servicio. Por favor intenta nuevamente.");
+      alert("Hubo un error al registrar el servicio. Todos los cambios fueron revertidos automáticamente.");
     } finally {
       setIsSubmitting(false);
     }
