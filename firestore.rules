@@ -109,14 +109,14 @@ service cloud.firestore {
 
     // Objetivos
     match /objectives/{objId} {
-      allow read: if isAdmin() || (isAuthenticated() && resource.data.barberoId == request.auth.uid);
+      allow read: if isAuthenticated();
       allow create: if isAdmin() || (isBarber() && request.resource.data.barberoId == request.auth.uid);
       allow update: if isAdmin() || (
         isBarber() &&
-        resource.data.barberoId == request.auth.uid &&
+        "barberoId" in resource.data && resource.data.barberoId == request.auth.uid &&
         request.resource.data.barberoId == request.auth.uid
       );
-      allow delete: if isAdmin() || (isBarber() && resource.data.barberoId == request.auth.uid);
+      allow delete: if isAdmin() || (isBarber() && "barberoId" in resource.data && resource.data.barberoId == request.auth.uid);
     }
 
     // Configuraciones del sistema

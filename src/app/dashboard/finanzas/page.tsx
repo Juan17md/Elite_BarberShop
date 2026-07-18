@@ -1154,7 +1154,7 @@ export default function FinanzasPage() {
                 {cobroCapturaFile ? (
                   <div className="flex items-center gap-4 w-full">
                     <div className="relative w-16 h-16 shrink-0 rounded-lg overflow-hidden border border-white/10">
-                      <img src={cobroCapturaPreview || ""} alt="Vista previa" className="w-full h-full object-cover" />
+                      {cobroCapturaPreview && <img src={cobroCapturaPreview} alt="Vista previa" className="w-full h-full object-cover" />}
                     </div>
                     <div className="flex-1 min-w-0">
                       <p className="text-sm text-white font-medium truncate">{cobroCapturaFile.name}</p>
