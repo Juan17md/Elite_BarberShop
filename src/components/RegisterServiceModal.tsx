@@ -272,6 +272,22 @@ export default function RegisterServiceModal({ isOpen, onClose }: RegisterServic
       // Transacción atómica: finances + bank + bank_transactions
       await runTransaction(db, async (transaction) => {
         const financeRef = doc(collection(db, "finances"));
+
+        // Todas las lecturas primero (requisito de Firestore transactions)
+        let barberBankDoc: any = null;
+        let barberiaBankDoc: any = null;
+        let barberBankRef: any = null;
+        let barberiaBankRef: any = null;
+
+        if (!esFiado) {
+          barberBankRef = doc(db, "bank", finalBarberId);
+          barberBankDoc = await transaction.get(barberBankRef);
+
+          barberiaBankRef = doc(db, "bank", "barbershop");
+          barberiaBankDoc = await transaction.get(barberiaBankRef);
+        }
+
+        // Después todas las escrituras
         transaction.set(financeRef, {
           serviceId: service.id,
           serviceName: service.name,
@@ -292,8 +308,6 @@ export default function RegisterServiceModal({ isOpen, onClose }: RegisterServic
         });
 
         if (!esFiado) {
-          const barberBankRef = doc(db, "bank", finalBarberId);
-          const barberBankDoc = await transaction.get(barberBankRef);
           if (barberBankDoc.exists()) {
             transaction.update(barberBankRef, {
               balance: increment(barberShareAmount),
@@ -322,8 +336,6 @@ export default function RegisterServiceModal({ isOpen, onClose }: RegisterServic
             createdAt: new Date()
           });
 
-          const barberiaBankRef = doc(db, "bank", "barbershop");
-          const barberiaBankDoc = await transaction.get(barberiaBankRef);
           if (barberiaBankDoc.exists()) {
             transaction.update(barberiaBankRef, {
               balance: increment(barberiaShareAmount),
