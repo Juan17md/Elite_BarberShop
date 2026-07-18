@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import type { Timestamp } from "firebase/firestore";
 import { useAuth } from "@/context/AuthContext";
 import { type Objective } from "@/lib/types";
+import { toast } from "sonner";
 import {
   collection,
   addDoc,
@@ -125,19 +126,23 @@ export default function ObjetivosPage() {
       endDate: new Date(formData.endDate + "T00:00:00"),
     };
 
-    if (editingId) {
-      await updateDoc(doc(db, "objectives", editingId), payload);
-    } else {
-      await addDoc(collection(db, "objectives"), {
-        ...payload,
-        currentAmount: 0,
-        createdAt: new Date(),
-        barberoId: datosUsuario?.uid ?? "",
-        createdByName: datosUsuario?.nombre ?? "Usuario",
-      });
+    try {
+      if (editingId) {
+        await updateDoc(doc(db, "objectives", editingId), payload);
+      } else {
+        await addDoc(collection(db, "objectives"), {
+          ...payload,
+          currentAmount: 0,
+          createdAt: new Date(),
+          barberoId: datosUsuario?.uid ?? "",
+          createdByName: datosUsuario?.nombre ?? "Usuario",
+        });
+      }
+      cerrarModalObjetivo();
+    } catch (error) {
+      console.error("Error al guardar objetivo:", error);
+      toast.error("Error al guardar el objetivo");
     }
-
-    cerrarModalObjetivo();
   };
 
   const handleEdit = (obj: Objective) => {
@@ -163,8 +168,13 @@ export default function ObjetivosPage() {
   const confirmDelete = async () => {
     if (!deletingId) return;
 
-    await deleteDoc(doc(db, "objectives", deletingId));
-    setDeletingId(null);
+    try {
+      await deleteDoc(doc(db, "objectives", deletingId));
+      setDeletingId(null);
+    } catch (error) {
+      console.error("Error al eliminar objetivo:", error);
+      toast.error("Error al eliminar el objetivo");
+    }
   };
 
   const abrirRegistroMonto = (objetivo: Objective) => {
@@ -186,11 +196,15 @@ export default function ObjetivosPage() {
 
     if (!monto || monto <= 0) return;
 
-    await updateDoc(doc(db, "objectives", registroObjetivoId), {
-      currentAmount: increment(monto),
-    });
-
-    cerrarRegistroMonto();
+    try {
+      await updateDoc(doc(db, "objectives", registroObjetivoId), {
+        currentAmount: increment(monto),
+      });
+      cerrarRegistroMonto();
+    } catch (error) {
+      console.error("Error al registrar monto:", error);
+      toast.error("Error al registrar el monto");
+    }
   };
 
   const getProgress = (obj: Objective) => {

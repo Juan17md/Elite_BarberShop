@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import { useAuth } from "@/context/AuthContext";
 import { type Client } from "@/lib/types";
+import { toast } from "sonner";
 import { 
   collection, 
   addDoc, 
@@ -60,14 +61,19 @@ export default function ClientesPage() {
       createdBy: datosUsuario?.uid || ""
     };
 
-    if (editingId) {
-      await updateDoc(doc(db, "clients", editingId), formData);
-    } else {
-      await addDoc(collection(db, "clients"), clientData);
+    try {
+      if (editingId) {
+        await updateDoc(doc(db, "clients", editingId), formData);
+      } else {
+        await addDoc(collection(db, "clients"), clientData);
+      }
+      setIsModalOpen(false);
+      setEditingId(null);
+      setFormData({ name: "", phone: "", email: "", notes: "" });
+    } catch (error) {
+      console.error("Error al guardar cliente:", error);
+      toast.error("Error al guardar el cliente");
     }
-    setIsModalOpen(false);
-    setEditingId(null);
-    setFormData({ name: "", phone: "", email: "", notes: "" });
   };
 
   const handleEdit = (cliente: Client) => {
@@ -82,8 +88,13 @@ export default function ClientesPage() {
 
   const confirmDelete = async () => {
     if (deletingId) {
-      await deleteDoc(doc(db, "clients", deletingId));
-      setDeletingId(null);
+      try {
+        await deleteDoc(doc(db, "clients", deletingId));
+        setDeletingId(null);
+      } catch (error) {
+        console.error("Error al eliminar cliente:", error);
+        toast.error("Error al eliminar el cliente");
+      }
     }
   };
 

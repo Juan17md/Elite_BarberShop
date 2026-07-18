@@ -130,24 +130,29 @@ export default function HistorialPage() {
   // Efecto para servicios disponibles (para el modal de edición)
   useEffect(() => {
     const q = query(collection(db, "services"), orderBy("name"));
-    const unsubscribe = onSnapshot(q, (snapshot) => {
-      const serviciosPersonalizados = snapshot.docs.map((doc) => ({
-        id: doc.id,
-        ...doc.data(),
-      })) as Service[];
+    const unsubscribe = onSnapshot(q,
+      (snapshot) => {
+        const serviciosPersonalizados = snapshot.docs.map((doc) => ({
+          id: doc.id,
+          ...doc.data(),
+        })) as Service[];
 
-      const serviciosBase = [...SERVICES];
-      const normalizarNombreServicio = (nombre: string) => nombre.trim().toLowerCase();
-      const nombresBase = new Set(
-        serviciosBase.map((servicio) => normalizarNombreServicio(servicio.name))
-      );
+        const serviciosBase = [...SERVICES];
+        const normalizarNombreServicio = (nombre: string) => nombre.trim().toLowerCase();
+        const nombresBase = new Set(
+          serviciosBase.map((servicio) => normalizarNombreServicio(servicio.name))
+        );
 
-      const serviciosExtra = serviciosPersonalizados.filter(
-        (servicio) => !nombresBase.has(normalizarNombreServicio(servicio.name))
-      );
+        const serviciosExtra = serviciosPersonalizados.filter(
+          (servicio) => !nombresBase.has(normalizarNombreServicio(servicio.name))
+        );
 
-      setServiciosDisponibles([...serviciosBase, ...serviciosExtra]);
-    });
+        setServiciosDisponibles([...serviciosBase, ...serviciosExtra]);
+      },
+      (error) => {
+        console.error("Error cargando servicios en historial:", error);
+      }
+    );
     return () => unsubscribe();
   }, []);
 
@@ -159,13 +164,18 @@ export default function HistorialPage() {
       where("role", "==", "barber"),
       orderBy("name")
     );
-    const unsubscribe = onSnapshot(consulta, (snapshot) => {
-      const data = snapshot.docs.map(doc => ({
-        id: doc.id,
-        ...doc.data()
-      }));
-      setBarbers(data);
-    });
+    const unsubscribe = onSnapshot(consulta,
+      (snapshot) => {
+        const data = snapshot.docs.map(doc => ({
+          id: doc.id,
+          ...doc.data()
+        }));
+        setBarbers(data);
+      },
+      (error) => {
+        console.error("Error cargando barberos en historial:", error);
+      }
+    );
     return () => unsubscribe();
   }, [esAdmin]);
 

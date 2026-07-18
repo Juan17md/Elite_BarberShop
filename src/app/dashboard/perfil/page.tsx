@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import { useAuth } from "@/context/AuthContext";
 import { type BankAccount, type BankTransaction } from "@/lib/types";
+import { toast } from "sonner";
 import {
   collection,
   onSnapshot,
@@ -118,6 +119,7 @@ export default function PerfilPage() {
       alert("Perfil actualizado");
     } catch (error) {
       console.error("Error guardando perfil:", error);
+      toast.error("Error al guardar el perfil");
     }
   };
 

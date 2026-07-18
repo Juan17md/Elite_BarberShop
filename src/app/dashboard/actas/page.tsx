@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { Plus, Search, Filter, FileText, Loader2, X } from "lucide-react";
+import { toast } from "sonner";
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell, Select } from "@/components/ui";
 import { db } from "@/lib/firebase";
 import { collection, onSnapshot, query, orderBy, addDoc, serverTimestamp } from "firebase/firestore";
@@ -82,6 +83,7 @@ export default function ActasGastosPage() {
       setNuevaData({ concepto: "", especialista: "", monto: 0 });
     } catch (error) {
       console.error(error);
+      toast.error("Error al crear el registro");
     } finally {
       setIsSubmitting(false);
     }

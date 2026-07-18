@@ -7,6 +7,7 @@ import {
   type EstadoEquipo,
   type InventoryItem,
 } from "@/lib/types";
+import { toast } from "sonner";
 import {
   addDoc,
   collection,
@@ -139,23 +140,27 @@ export default function InventarioPage() {
       price: Number(formData.price || 0),
     };
 
-    if (editingId) {
-      await updateDoc(doc(db, "inventory", editingId), {
-        ...datosComunes,
-        ...(esEquipo ? { estado: formData.estado } : {}),
-      });
-    } else {
-      await addDoc(collection(db, "inventory"), {
-        ...datosComunes,
-        ...(esEquipo ? { estado: formData.estado } : {}),
-        addedAt: new Date(),
-        addedBy: datosUsuario?.uid || "",
-      });
+    try {
+      if (editingId) {
+        await updateDoc(doc(db, "inventory", editingId), {
+          ...datosComunes,
+          ...(esEquipo ? { estado: formData.estado } : {}),
+        });
+      } else {
+        await addDoc(collection(db, "inventory"), {
+          ...datosComunes,
+          ...(esEquipo ? { estado: formData.estado } : {}),
+          addedAt: new Date(),
+          addedBy: datosUsuario?.uid || "",
+        });
+      }
+      setIsModalOpen(false);
+      setEditingId(null);
+      resetForm();
+    } catch (error) {
+      console.error("Error al guardar inventario:", error);
+      toast.error("Error al guardar el item");
     }
-
-    setIsModalOpen(false);
-    setEditingId(null);
-    resetForm();
   };
 
   const handleEdit = (item: InventoryItem) => {
@@ -177,8 +182,13 @@ export default function InventarioPage() {
 
   const confirmDelete = async () => {
     if (deletingId) {
-      await deleteDoc(doc(db, "inventory", deletingId));
-      setDeletingId(null);
+      try {
+        await deleteDoc(doc(db, "inventory", deletingId));
+        setDeletingId(null);
+      } catch (error) {
+        console.error("Error al eliminar item:", error);
+        toast.error("Error al eliminar el item");
+      }
     }
   };
 

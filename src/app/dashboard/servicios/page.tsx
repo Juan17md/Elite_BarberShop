@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { useAuth } from "@/context/AuthContext";
+import { toast } from "sonner";
 import { SERVICES, type Service } from "@/lib/types";
 import { 
   collection, 
@@ -82,14 +83,19 @@ export default function ServiciosPage() {
       datosServicio.priceDivisa = Number(formData.priceDivisa);
     }
 
-    if (editingId) {
-      await updateDoc(doc(db, "services", editingId), datosServicio);
-    } else {
-      await addDoc(collection(db, "services"), datosServicio);
+    try {
+      if (editingId) {
+        await updateDoc(doc(db, "services", editingId), datosServicio);
+      } else {
+        await addDoc(collection(db, "services"), datosServicio);
+      }
+      setIsModalOpen(false);
+      setEditingId(null);
+      setFormData({ name: "", price: "", priceDivisa: "", duration: 45, description: "" });
+    } catch (error) {
+      console.error("Error al guardar servicio:", error);
+      toast.error("Error al guardar el servicio");
     }
-    setIsModalOpen(false);
-    setEditingId(null);
-    setFormData({ name: "", price: "", priceDivisa: "", duration: 45, description: "" });
   };
 
   const handleEdit = (servicio: Service) => {
@@ -104,8 +110,13 @@ export default function ServiciosPage() {
 
   const confirmDelete = async () => {
     if (deletingId) {
-      await deleteDoc(doc(db, "services", deletingId));
-      setDeletingId(null);
+      try {
+        await deleteDoc(doc(db, "services", deletingId));
+        setDeletingId(null);
+      } catch (error) {
+        console.error("Error al eliminar servicio:", error);
+        toast.error("Error al eliminar el servicio");
+      }
     }
   };
 
