@@ -7,10 +7,16 @@ import {
   onSnapshot,
   query,
   orderBy,
+  deleteDoc,
+  doc,
+  getDoc,
+  updateDoc,
+  increment,
+  addDoc,
 } from "firebase/firestore";
 import { db } from "@/lib/firebase";
-import { Shield, Users, TrendingUp, DollarSign, Calendar, Award, Wallet, ChevronLeft, ChevronRight, RotateCcw, ArrowDownRight, Pencil } from "lucide-react";
-import { getPeriodFromPosition } from "@/lib/utils";
+import { Shield, Users, TrendingUp, DollarSign, Calendar, Award, Wallet, ChevronLeft, ChevronRight, RotateCcw, ArrowDownRight, Pencil, Trash2, AlertTriangle, Loader2, X } from "lucide-react";
+import { getPeriodFromPosition, getLocalDateString } from "@/lib/utils";
 import RegistrarPagoModal from "@/components/RegistrarPagoModal";
 import EditarPagoModal from "@/components/EditarPagoModal";
 import type { BankTransaction } from "@/lib/types";
@@ -36,6 +42,8 @@ export default function PersonalPage() {
   const [loading, setLoading] = useState(true);
   const [selectedBarberForPayout, setSelectedBarberForPayout] = useState<BarberWithStats | null>(null);
   const [pagoAEditar, setPagoAEditar] = useState<BankTransaction | null>(null);
+  const [pagoAEliminar, setPagoAEliminar] = useState<BankTransaction | null>(null);
+  const [eliminando, setEliminando] = useState(false);
   const [transactions, setTransactions] = useState<BankTransaction[]>([]);
   const [bankBalances, setBankBalances] = useState<Record<string, { totalEarned: number; balance: number }>>({});
   const [financeStats, setFinanceStats] = useState<Record<string, { totalServices: number; servicesInPeriod: number; totalAmountInPeriod: number; periodEarnings: number; periodPropina: number }>>({});
@@ -210,6 +218,41 @@ export default function PersonalPage() {
       return t.date >= periodo.inicio && t.date <= periodo.fin;
     });
   }, [transactions, periodo]);
+
+  const confirmarEliminacionPago = async () => {
+    if (!pagoAEliminar) return;
+    setEliminando(true);
+
+    try {
+      const bankRef = doc(db, "bank", pagoAEliminar.userId);
+      const bankDoc = await getDoc(bankRef);
+
+      if (bankDoc.exists()) {
+        await updateDoc(bankRef, {
+          balance: increment(pagoAEliminar.amount),
+          totalPaid: increment(-pagoAEliminar.amount),
+          lastUpdated: new Date()
+        });
+      }
+
+      await addDoc(collection(db, "bank_transactions"), {
+        userId: pagoAEliminar.userId,
+        userName: pagoAEliminar.userName,
+        type: "adjustment",
+        amount: pagoAEliminar.amount,
+        description: `Reversión: ${pagoAEliminar.description}`,
+        date: getLocalDateString(),
+        createdAt: new Date()
+      });
+
+      await deleteDoc(doc(db, "bank_transactions", pagoAEliminar.id));
+      setPagoAEliminar(null);
+    } catch (error) {
+      console.error("Error al eliminar el pago:", error);
+    } finally {
+      setEliminando(false);
+    }
+  };
 
   const totalPaginas = Math.max(1, Math.ceil(transaccionesDelPeriodo.length / ITEMS_POR_PAGINA));
   const paginaSegura = Math.min(paginaHistorial, totalPaginas - 1);
@@ -409,13 +452,22 @@ export default function PersonalPage() {
                   <td className="py-3 px-4 text-text-secondary text-sm">{tx.description}</td>
                   <td className="py-3 px-4 text-text-muted text-sm">{tx.date}</td>
                   <td className="py-3 px-4 text-right">
-                    <button
-                      onClick={() => setPagoAEditar(tx)}
-                      className="p-1.5 rounded-lg text-text-muted hover:text-amber-400 hover:bg-amber-500/10 transition-all"
-                      title="Editar pago"
-                    >
-                      <Pencil size={14} />
-                    </button>
+                    <div className="flex items-center justify-end gap-1">
+                      <button
+                        onClick={() => setPagoAEditar(tx)}
+                        className="p-1.5 rounded-lg text-text-muted hover:text-amber-400 hover:bg-amber-500/10 transition-all"
+                        title="Editar pago"
+                      >
+                        <Pencil size={14} />
+                      </button>
+                      <button
+                        onClick={() => setPagoAEliminar(tx)}
+                        className="p-1.5 rounded-lg text-text-muted hover:text-red-400 hover:bg-red-500/10 transition-all"
+                        title="Eliminar pago"
+                      >
+                        <Trash2 size={14} />
+                      </button>
+                    </div>
                   </td>
                 </tr>
               ))}
@@ -434,16 +486,23 @@ export default function PersonalPage() {
             <div key={tx.id} className="py-3 space-y-2">
               <div className="flex justify-between items-center">
                 <span className="text-white text-sm font-medium">{tx.userName}</span>
-                <div className="flex items-center gap-2">
-                  <span className="text-red-400 font-display">-${tx.amount.toFixed(2)}</span>
-                  <button
-                    onClick={() => setPagoAEditar(tx)}
-                    className="p-1.5 rounded-lg text-text-muted hover:text-amber-400 hover:bg-amber-500/10 transition-all"
-                    title="Editar pago"
-                  >
-                    <Pencil size={12} />
-                  </button>
-                </div>
+                  <div className="flex items-center gap-2">
+                    <span className="text-red-400 font-display">-${tx.amount.toFixed(2)}</span>
+                    <button
+                      onClick={() => setPagoAEditar(tx)}
+                      className="p-1.5 rounded-lg text-text-muted hover:text-amber-400 hover:bg-amber-500/10 transition-all"
+                      title="Editar pago"
+                    >
+                      <Pencil size={12} />
+                    </button>
+                    <button
+                      onClick={() => setPagoAEliminar(tx)}
+                      className="p-1.5 rounded-lg text-text-muted hover:text-red-400 hover:bg-red-500/10 transition-all"
+                      title="Eliminar pago"
+                    >
+                      <Trash2 size={12} />
+                    </button>
+                  </div>
               </div>
               <p className="text-text-secondary text-[11px]">{tx.description}</p>
               <p className="text-text-muted text-[10px]">{tx.date}</p>
@@ -493,6 +552,80 @@ export default function PersonalPage() {
         onClose={() => setPagoAEditar(null)}
         transaccion={pagoAEditar}
       />
+
+      {/* Modal de confirmación de eliminación */}
+      {pagoAEliminar && (
+        <div className="fixed inset-0 bg-void/90 backdrop-blur-md z-50 flex items-center justify-center p-4">
+          <div className="card-premium p-6 sm:p-8 w-full max-w-md border-red-500/20 shadow-red-strong relative">
+            <button
+              onClick={() => setPagoAEliminar(null)}
+              className="absolute right-4 top-4 p-1.5 rounded-lg text-text-muted hover:text-white hover:bg-white/5 transition-all"
+              disabled={eliminando}
+            >
+              <X size={18} />
+            </button>
+
+            <div className="flex items-center gap-3 mb-6">
+              <div className="w-10 h-10 rounded-xl bg-red-500/10 flex items-center justify-center text-red-400">
+                <AlertTriangle size={20} />
+              </div>
+              <div>
+                <h2 className="font-display text-2xl text-white tracking-widest uppercase">ELIMINAR PAGO</h2>
+                <p className="text-text-muted text-xs font-body tracking-wider">{pagoAEliminar.userName}</p>
+              </div>
+            </div>
+
+            <div className="bg-surface-high/40 p-4 rounded-xl border border-white/5 mb-6 space-y-2">
+              <div className="flex justify-between">
+                <span className="text-text-muted text-xs">Monto</span>
+                <span className="text-red-400 font-display">-${pagoAEliminar.amount.toFixed(2)}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-text-muted text-xs">Concepto</span>
+                <span className="text-white text-sm">{pagoAEliminar.description}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-text-muted text-xs">Fecha</span>
+                <span className="text-text-muted text-sm">{pagoAEliminar.date}</span>
+              </div>
+            </div>
+
+            <p className="text-text-secondary text-sm mb-6">
+              Al eliminar este pago, el monto de <strong className="text-white">${pagoAEliminar.amount.toFixed(2)}</strong> se devolverá al saldo del barbero.
+            </p>
+
+            {eliminando && (
+              <div className="p-3 rounded-lg bg-primary/10 border border-primary/20 text-primary text-sm flex items-center gap-2 mb-4">
+                <Loader2 size={16} className="animate-spin" />
+                Revirtiendo pago...
+              </div>
+            )}
+
+            <div className="flex gap-4 pt-4 border-t border-white/5">
+              <button
+                type="button"
+                onClick={() => setPagoAEliminar(null)}
+                className="flex-1 px-4 py-3 rounded-md text-[10px] font-bold uppercase tracking-widest text-text-muted hover:text-white transition-colors border border-white/5 bg-white/5"
+                disabled={eliminando}
+              >
+                Cancelar
+              </button>
+              <button
+                type="button"
+                onClick={confirmarEliminacionPago}
+                disabled={eliminando}
+                className="flex-1 px-4 py-3 rounded-md text-[10px] font-bold uppercase tracking-widest text-white bg-red-500/80 hover:bg-red-500 transition-colors flex items-center justify-center gap-2"
+              >
+                {eliminando ? (
+                  <><Loader2 size={16} className="animate-spin" /> Revirtiendo...</>
+                ) : (
+                  <><Trash2 size={16} /> ELIMINAR</>
+                )}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

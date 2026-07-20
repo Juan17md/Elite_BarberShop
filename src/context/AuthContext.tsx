@@ -3,6 +3,7 @@
 import { createContext, useContext, useEffect, useState, useRef, ReactNode } from "react";
 import { onAuthStateChanged, onIdTokenChanged, User } from "firebase/auth";
 import { doc, onSnapshot } from "firebase/firestore";
+import * as Sentry from "@sentry/nextjs";
 import { auth, db } from "@/lib/firebase";
 import type { RolUsuario } from "@/lib/types";
 
@@ -59,6 +60,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         setDatosUsuario(null);
         setAuthLoading(false);
         setRolLoading(false);
+        Sentry.setUser(null);
         return;
       }
 
@@ -80,6 +82,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         console.warn("Firestore lento, usando datos por defecto temporalmente");
         setDatosUsuario(datosPorDefecto);
         setRolLoading(false);
+        Sentry.setUser({
+          id: firebaseUser.uid,
+          email: firebaseUser.email || undefined,
+          username: datosPorDefecto.nombre,
+          role: datosPorDefecto.rol,
+        });
       }, 3000);
 
       unsubFirestore = onSnapshot(
@@ -90,9 +98,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             clearTimeout(timeoutRef.current);
             timeoutRef.current = null;
           }
+          let datosResueltos: DatosUsuario;
           if (snap.exists()) {
             const data = snap.data();
-            setDatosUsuario({
+            datosResueltos = {
               uid: firebaseUser.uid,
               email: firebaseUser.email || "",
               nombre: data.name || firebaseUser.displayName || firebaseUser.email?.split("@")[0] || "Usuario",
@@ -100,11 +109,20 @@ export function AuthProvider({ children }: { children: ReactNode }) {
               rol: data.role || "barber",
               bloqueado: data.bloqueado ?? false,
               primerInicio: data.primerInicio ?? false,
-            });
+            };
           } else {
-            setDatosUsuario(datosPorDefecto);
+            datosResueltos = datosPorDefecto;
           }
+
+          setDatosUsuario(datosResueltos);
           setRolLoading(false);
+
+          Sentry.setUser({
+            id: firebaseUser.uid,
+            email: firebaseUser.email || undefined,
+            username: datosResueltos.nombre,
+            role: datosResueltos.rol,
+          });
         },
         (error) => {
           firestoreResolved.current = true;
@@ -113,8 +131,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             timeoutRef.current = null;
           }
           console.error("Error en onSnapshot de usuario:", error);
+          Sentry.captureException(error, {
+            tags: { module: "AuthContext", action: "onSnapshotUser" },
+          });
           setDatosUsuario(datosPorDefecto);
           setRolLoading(false);
+          Sentry.setUser({
+            id: firebaseUser.uid,
+            email: firebaseUser.email || undefined,
+            username: datosPorDefecto.nombre,
+            role: datosPorDefecto.rol,
+          });
         }
       );
     });

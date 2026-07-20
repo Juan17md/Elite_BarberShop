@@ -1,20 +1,18 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { type BankAccount, type BankTransaction } from "@/lib/types";
+import { type BankAccount } from "@/lib/types";
 import { 
   collection, 
   addDoc, 
   onSnapshot,
   doc,
-  getDoc,
-  updateDoc,
-  increment
+  runTransaction
 } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import { Check, Loader2, X, Wallet, ArrowDownRight, AlertTriangle } from "lucide-react";
 import { Select } from "@/components/ui";
-import { getLocalDateString } from "@/lib/utils";
+import { getLocalDateString, r2 } from "@/lib/utils";
 
 interface RegistrarPagoModalProps {
   isOpen: boolean;
@@ -97,9 +95,11 @@ export default function RegistrarPagoModal({
 
   if (!isOpen) return null;
 
-  const balanceActual = bankAccount?.balance ?? 0;
-  const montoNum = parseFloat(monto) || 0;
-  const saldoRestante = balanceActual - montoNum;
+  const balanceActual = r2(bankAccount?.balance ?? 0);
+  const montoNum = r2(parseFloat(monto) || 0);
+  const montoCentavosUI = Math.round(montoNum * 100);
+  const balanceCentavosUI = Math.round(balanceActual * 100);
+  const excedeSaldo = !guardando && montoCentavosUI > balanceCentavosUI;
   const esConceptoOtro = concepto === "otro";
 
   const handlePagarTodo = () => {
@@ -112,55 +112,58 @@ export default function RegistrarPagoModal({
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (montoNum <= 0) {
+
+    // Bloqueo si la UI indica que excede el saldo
+    if (excedeSaldo) {
+      setErrorMsg("El monto a pagar no puede superar el saldo disponible.");
+      return;
+    }
+
+    const montoFinal = r2(parseFloat(monto) || 0);
+    if (montoFinal <= 0) {
       setErrorMsg("El monto a pagar debe ser mayor a 0");
       return;
     }
 
-    if (montoNum > balanceActual) {
-      setErrorMsg(`El pago no puede ser mayor al saldo acumulado ($${balanceActual.toFixed(2)})`);
-      return;
-    }
-
-    setGuardando(true);
-    setErrorMsg(null);
-
     const descripcionFinal = esConceptoOtro ? otroConcepto.trim() : concepto;
     if (esConceptoOtro && !descripcionFinal) {
       setErrorMsg("Debe especificar el concepto personalizado");
-      setGuardando(false);
       return;
     }
 
+    if (guardando) return;
+    setGuardando(true);
+    setErrorMsg(null);
+
     try {
-      // 1. Actualizar cuenta bancaria del barbero
       const bankRef = doc(db, "bank", barberId);
-      const bankDoc = await getDoc(bankRef);
 
-      if (!bankDoc.exists()) {
-        // Inicializar si no existe por alguna razón
-        await updateDoc(bankRef, {
-          userId: barberId,
-          userName: barberName,
-          balance: -montoNum,
-          totalEarned: 0,
-          totalPaid: montoNum,
+      // Transacción atómica: leer balance → validar → escribir
+      await runTransaction(db, async (transaction) => {
+        const bankDoc = await transaction.get(bankRef);
+        const balanceFresco = r2(bankDoc.data()?.balance ?? 0);
+        const montoCentavos = Math.round(montoFinal * 100);
+        const balanceFrescoCentavos = Math.round(balanceFresco * 100);
+
+        if (montoCentavos > balanceFrescoCentavos) {
+          throw new Error(`EXCEDE_SALDO:${balanceFresco.toFixed(2)}`);
+        }
+
+        const nuevoBalance = r2(balanceFresco - montoFinal);
+        const nuevoTotalPaid = r2((bankDoc.data()?.totalPaid ?? 0) + montoFinal);
+
+        transaction.update(bankRef, {
+          balance: nuevoBalance,
+          totalPaid: nuevoTotalPaid,
           lastUpdated: new Date()
         });
-      } else {
-        await updateDoc(bankRef, {
-          balance: increment(-montoNum),
-          totalPaid: increment(montoNum),
-          lastUpdated: new Date()
-        });
-      }
+      });
 
-      // 2. Registrar la transacción
       await addDoc(collection(db, "bank_transactions"), {
         userId: barberId,
         userName: barberName,
         type: "withdrawal",
-        amount: montoNum,
+        amount: montoFinal,
         description: descripcionFinal,
         date: getLocalDateString(),
         createdAt: new Date()
@@ -168,9 +171,15 @@ export default function RegistrarPagoModal({
 
       setGuardando(false);
       onClose();
-    } catch (error) {
-      console.error("Error al registrar el pago:", error);
-      setErrorMsg("Ocurrió un error al procesar el pago. Intente de nuevo.");
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : "";
+      if (errorMessage.startsWith("EXCEDE_SALDO:")) {
+        const saldoReal = errorMessage.split(":")[1];
+        setErrorMsg(`El pago ($${montoFinal.toFixed(2)}) supera el saldo disponible ($${saldoReal})`);
+      } else {
+        console.error("Error al registrar el pago:", error);
+        setErrorMsg("Ocurrió un error al procesar el pago. Intente de nuevo.");
+      }
       setGuardando(false);
     }
   };
@@ -281,23 +290,23 @@ export default function RegistrarPagoModal({
           {/* Mostrar visualización del saldo restante */}
           {montoNum > 0 && (
             <div className={`p-3.5 rounded-lg flex items-center gap-3 border text-xs ${
-              saldoRestante < 0 
-                ? "bg-amber-500/10 border-amber-500/20 text-amber-400" 
+              excedeSaldo
+                ? "bg-red-500/10 border-red-500/20 text-red-400" 
                 : "bg-surface-high/30 border-white/5 text-text-secondary"
             }`}>
-              {saldoRestante < 0 ? (
+              {excedeSaldo ? (
                 <AlertTriangle size={16} className="shrink-0" />
               ) : (
                 <ArrowDownRight size={16} className="shrink-0 text-green-400" />
               )}
               <div>
                 <span className="font-body">Saldo restante tras pago: </span>
-                <span className={`font-display font-bold ${saldoRestante < 0 ? "text-amber-400" : "text-white"}`}>
-                  ${saldoRestante.toFixed(2)}
+                <span className={`font-display font-bold ${excedeSaldo ? "text-red-400" : "text-white"}`}>
+                  ${r2(balanceActual - montoNum).toFixed(2)}
                 </span>
-                {saldoRestante < 0 && (
-                  <p className="text-[10px] text-amber-500/80 mt-0.5">
-                    El pago supera el saldo disponible. La cuenta quedará en negativo (adelanto).
+                {excedeSaldo && (
+                  <p className="text-[10px] text-red-500/80 mt-0.5">
+                    El monto a pagar no puede superar el saldo disponible.
                   </p>
                 )}
               </div>
@@ -321,8 +330,8 @@ export default function RegistrarPagoModal({
             </button>
             <button 
               type="submit" 
-              disabled={guardando}
-              className="flex-1 btn-primary flex items-center justify-center gap-2"
+              disabled={guardando || excedeSaldo}
+              className={`flex-1 btn-primary flex items-center justify-center gap-2 ${excedeSaldo ? "opacity-50 cursor-not-allowed" : ""}`}
             >
               {guardando ? (
                 <><Loader2 size={16} className="animate-spin" /> Procesando...</>

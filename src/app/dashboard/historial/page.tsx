@@ -43,7 +43,7 @@ import {
   Select,
 } from "@/components/ui";
 import SearchInput from "@/components/ui/search-input";
-import { getLocalDateString, getPeriodFromPosition } from "@/lib/utils";
+import { getLocalDateString, getPeriodFromPosition, r2 } from "@/lib/utils";
 import { toast } from "sonner";
 
 const ITEMS_POR_PAGINA = 10;
@@ -322,14 +322,14 @@ export default function HistorialPage() {
           alert("La tasa BCV no está disponible para este registro. No se puede convertir la propina.");
           return;
         }
-        const newPropina = paymentMethod === "bcv" && bcvRateNum > 0
+        const newPropina = r2(paymentMethod === "bcv" && bcvRateNum > 0
           ? rawPropinaEdit / bcvRateNum
-          : rawPropinaEdit;
+          : rawPropinaEdit);
         const newTotalAmount = paymentMethod !== "bcv" && selService.priceDivisa != null
           ? selService.priceDivisa
           : selService.price;
-        const newBarberShare = newTotalAmount * 0.6 + newPropina;
-        const newBarberiaShare = newTotalAmount * 0.4;
+        const newBarberShare = r2(newTotalAmount * 0.6 + newPropina);
+        const newBarberiaShare = r2(newTotalAmount * 0.4);
     
     try {
       // Si cambia el monto o el barbero, hacemos reversiones de banco

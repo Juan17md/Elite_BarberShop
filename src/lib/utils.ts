@@ -4,6 +4,9 @@ import { twMerge } from "tailwind-merge"
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs))
 }
+export function r2(n: number): number {
+  return Math.round(n * 100) / 100;
+}
 export function getLocalDateString(date: Date = new Date()): string {
   // Aseguramos el formato YYYY-MM-DD para America/Caracas sin depender de en-CA
   const d = new Intl.DateTimeFormat("en-US", {

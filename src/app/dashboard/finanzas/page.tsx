@@ -37,7 +37,7 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 
-import { getLocalDateString, getPeriodFromPosition } from "@/lib/utils";
+import { getLocalDateString, getPeriodFromPosition, r2 } from "@/lib/utils";
 import RegisterServiceModal from "@/components/RegisterServiceModal";
 import RegistrarPagoModal from "@/components/RegistrarPagoModal";
 
@@ -398,9 +398,9 @@ export default function FinanzasPage() {
         }
       }
 
-      const propinaAmount = rawPropina > 0 && cobroPaymentMethod === "bcv" && cobroBcvRate
+      const propinaAmount = r2(rawPropina > 0 && cobroPaymentMethod === "bcv" && cobroBcvRate
         ? rawPropina / cobroBcvRate
-        : rawPropina;
+        : rawPropina);
       const barberShareTotal = record.barberShare + propinaAmount;
       const bcvRate = cobroPaymentMethod === "bcv" ? cobroBcvRate : null;
 

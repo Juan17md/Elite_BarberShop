@@ -9,6 +9,7 @@ import {
   getDoc
 } from "firebase/firestore";
 import { db } from "@/lib/firebase";
+import { r2 } from "@/lib/utils";
 import { Check, Loader2, X, Edit3 } from "lucide-react";
 
 interface EditarPagoModalProps {
@@ -62,7 +63,7 @@ export default function EditarPagoModal({
 
   if (!isOpen || !transaccion) return null;
 
-  const montoNum = parseFloat(monto) || 0;
+  const montoNum = r2(parseFloat(monto) || 0);
   const montoOriginal = transaccion.amount;
   const esConceptoOtro = concepto === "otro";
 
@@ -84,7 +85,7 @@ export default function EditarPagoModal({
       return;
     }
 
-    const diferencia = montoNum - montoOriginal;
+    const diferencia = r2(montoNum - montoOriginal);
 
     try {
       const bankRef = doc(db, "bank", transaccion.userId);
@@ -100,7 +101,7 @@ export default function EditarPagoModal({
 
       const txRef = doc(db, "bank_transactions", transaccion.id);
       await updateDoc(txRef, {
-        amount: montoNum,
+        amount: r2(montoNum),
         description: descripcionFinal,
       });
 

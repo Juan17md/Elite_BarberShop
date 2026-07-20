@@ -18,7 +18,7 @@ import {
 import { db } from "@/lib/firebase";
 import { Check, Loader2, X, Upload } from "lucide-react";
 import { Select } from "@/components/ui";
-import { getLocalDateString } from "@/lib/utils";
+import { getLocalDateString, r2 } from "@/lib/utils";
 import { toast } from "sonner";
 
 interface RegisterServiceModalProps {
@@ -159,9 +159,9 @@ export default function RegisterServiceModal({ isOpen, onClose }: RegisterServic
 
   // Resetear método de pago a BCV si el servicio no tiene divisa
   const rawPropina = incluyePropina ? (Number(montoPropina) || 0) : 0;
-  const propinaAmount = rawPropina > 0 && formData.paymentMethod === "bcv" && bcvRateDb
+  const propinaAmount = r2(rawPropina > 0 && formData.paymentMethod === "bcv" && bcvRateDb
     ? rawPropina / bcvRateDb
-    : rawPropina;
+    : rawPropina);
   useEffect(() => {
     if (!formData.serviceId) return;
     const servicio = serviciosDisponibles.find(s => s.id === formData.serviceId);
@@ -262,8 +262,10 @@ export default function RegisterServiceModal({ isOpen, onClose }: RegisterServic
         : service.price;
       const totalAmount = Number(rawTotal) || 0;
       const propinaFinal = propinaAmount;
-      const barberShareAmount = totalAmount * 0.6 + propinaFinal;
-      const barberiaShareAmount = totalAmount * 0.4;
+      const rawBarberShare = totalAmount * 0.6 + propinaFinal;
+      const rawBarberiaShare = totalAmount * 0.4;
+      const barberShareAmount = Math.round(rawBarberShare * 100) / 100;
+      const barberiaShareAmount = Math.round(rawBarberiaShare * 100) / 100;
       const date = getLocalDateString();
 
       const bcvRate = paymentMethod === "bcv" ? bcvRateDb : null;

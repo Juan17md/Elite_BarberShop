@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import * as Sentry from "@sentry/nextjs";
 import { adminDb } from "@/lib/firebaseAdmin";
 
 const SEIS_HORAS = 6 * 60 * 60 * 1000;
@@ -21,6 +22,10 @@ export async function GET() {
     const res = await fetch("https://ve.dolarapi.com/v1/dolares/oficial");
 
     if (!res.ok) {
+      Sentry.captureMessage("Fallo la llamada a ve.dolarapi.com", {
+        level: "warning",
+        tags: { route: "/api/bcv-rate", status: res.status.toString() },
+      });
       if (docSnap.exists) {
         const data = docSnap.data()!;
         return NextResponse.json({ rate: data.rate, cached: true });
@@ -49,6 +54,7 @@ export async function GET() {
     return NextResponse.json({ rate, cached: false, lastUpdated: now.getTime() });
   } catch (error) {
     console.error("Error fetching BCV rate:", error);
+    Sentry.captureException(error, { tags: { route: "/api/bcv-rate" } });
     try {
       const docRef = adminDb.collection("settings").doc("bcv");
       const docSnap = await docRef.get();

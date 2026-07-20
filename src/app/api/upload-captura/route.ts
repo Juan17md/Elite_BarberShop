@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import * as Sentry from "@sentry/nextjs";
 import { adminAuth } from "@/lib/firebaseAdmin";
 
 const IMAGEKIT_UPLOAD = "https://upload.imagekit.io/api/v1/files/upload";
@@ -63,6 +64,11 @@ export async function POST(request: NextRequest) {
     if (!res.ok) {
       const errBody = await res.text();
       console.error("ImageKit error:", res.status, errBody);
+      Sentry.captureMessage("Fallo la subida a ImageKit", {
+        level: "error",
+        tags: { route: "/api/upload-captura", status: res.status.toString() },
+        extra: { errBody },
+      });
       return NextResponse.json({ error: `ImageKit: ${res.status}` }, { status: 502 });
     }
 
@@ -70,10 +76,15 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ url: result.url, fileId: result.fileId });
   } catch (error) {
     if (error instanceof DOMException && error.name === "AbortError") {
+      Sentry.captureMessage("Timeout al subir captura a ImageKit", {
+        level: "warning",
+        tags: { route: "/api/upload-captura" },
+      });
       return NextResponse.json({ error: "La subida a ImageKit excedió el tiempo máximo" }, { status: 504 });
     }
     const mensaje = error instanceof Error ? error.message : "Error desconocido";
     console.error("Error al subir captura a ImageKit:", mensaje);
+    Sentry.captureException(error, { tags: { route: "/api/upload-captura" } });
     return NextResponse.json({ error: mensaje }, { status: 500 });
   }
 }

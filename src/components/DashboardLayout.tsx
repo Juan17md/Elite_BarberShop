@@ -1,11 +1,13 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import * as Sentry from "@sentry/nextjs";
 import { useAuth } from "@/context/AuthContext";
 import Sidebar from "./Sidebar";
 import Header from "./Header";
 import Footer from "./Footer";
 import MobileBottomNav from "./MobileBottomNav";
+import ErrorBoundaryFallback from "./ErrorBoundaryFallback";
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
@@ -62,7 +64,9 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         {/* Page content */}
         <div className="flex-1 overflow-y-auto w-full flex flex-col min-h-0">
           <div className="flex-1 p-8 lg:p-12 pb-24 lg:pb-12 max-w-7xl mx-auto w-full animate-fade-in">
-            {children}
+            <Sentry.ErrorBoundary fallback={({ error, resetError }) => <ErrorBoundaryFallback error={error as Error} resetError={resetError} />}>
+              {children}
+            </Sentry.ErrorBoundary>
           </div>
           
           {/* Footer sutil */}

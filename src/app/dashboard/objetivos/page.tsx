@@ -21,7 +21,7 @@ import {
 import { db } from "@/lib/firebase";
 import { Plus, Pencil, Trash2, Target, Check, Calendar, Wallet } from "lucide-react";
 import { DatePicker } from "@/components/ui/date-picker";
-import { getLocalDateString } from "@/lib/utils";
+import { getLocalDateString, r2 } from "@/lib/utils";
 
 function convertirFecha(valor: unknown): Date | undefined {
   if (!valor) return undefined;
@@ -192,7 +192,7 @@ export default function ObjetivosPage() {
 
     if (!registroObjetivoId) return;
 
-    const monto = Number(montoRegistrado);
+    const monto = r2(Number(montoRegistrado));
 
     if (!monto || monto <= 0) return;
 
