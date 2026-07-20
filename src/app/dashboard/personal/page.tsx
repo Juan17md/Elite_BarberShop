@@ -125,9 +125,10 @@ export default function PersonalPage() {
         const balances: Record<string, { totalEarned: number; balance: number }> = {};
         snap.forEach((doc) => {
           const data = doc.data();
+          const rawBalance = data.balance || 0;
           balances[doc.id] = {
             totalEarned: data.totalEarned || 0,
-            balance: data.balance || 0,
+            balance: Math.abs(rawBalance) < 0.005 ? 0 : rawBalance,
           };
         });
         setBankBalances(balances);
@@ -384,7 +385,7 @@ export default function PersonalPage() {
                     <Wallet size={12} className="md:size-[14px]" /> Saldo Acumulado
                   </span>
                   <span className={`font-display text-lg md:text-xl ${barber.balance > 0 ? "text-cyan-400" : "text-text-secondary"}`}>
-                    ${(barber.balance || 0).toFixed(2)}
+                    ${(Math.abs(barber.balance) < 0.005 ? 0 : (barber.balance || 0)).toFixed(2)}
                   </span>
                 </div>
                 <div className="flex justify-between items-center py-1.5 md:py-2 bg-primary/5 -mx-4 md:-mx-6 px-4 md:px-6 rounded-b-[inherit] mt-1">

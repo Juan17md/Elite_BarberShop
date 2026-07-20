@@ -259,7 +259,7 @@ export default function PerfilPage() {
                 <div className="bg-surface-high/50 p-6 rounded-xl">
                   <p className="text-text-secondary text-sm">Balance Disponible</p>
                   <p className="font-display text-4xl text-white">
-                    ${bankAccount.balance.toFixed(2)}
+                    ${(Math.abs(bankAccount.balance) < 0.005 ? 0 : (bankAccount.balance || 0)).toFixed(2)}
                   </p>
                 </div>
                 <div className="grid grid-cols-2 gap-4">
