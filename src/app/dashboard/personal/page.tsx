@@ -15,11 +15,13 @@ import {
   addDoc,
 } from "firebase/firestore";
 import { db } from "@/lib/firebase";
-import { Shield, Users, TrendingUp, DollarSign, Calendar, Award, Wallet, ChevronLeft, ChevronRight, RotateCcw, ArrowDownRight, Pencil, Trash2, AlertTriangle, Loader2, X } from "lucide-react";
+import { Shield, Users, TrendingUp, DollarSign, Calendar, Award, Wallet, ChevronLeft, ChevronRight, RotateCcw, ArrowDownRight, Pencil, Trash2, AlertTriangle, Loader2, X, Percent } from "lucide-react";
 import { getPeriodFromPosition, getLocalDateString } from "@/lib/utils";
 import RegistrarPagoModal from "@/components/RegistrarPagoModal";
 import EditarPagoModal from "@/components/EditarPagoModal";
+import BarberCommissionModal from "@/components/BarberCommissionModal";
 import type { BankTransaction } from "@/lib/types";
+import { DEFAULT_COMMISSION_RATE } from "@/lib/types";
 
 interface BarberWithStats {
   uid: string;
@@ -33,6 +35,7 @@ interface BarberWithStats {
   balance: number;
   periodEarnings: number;
   periodPropina: number;
+  commissionRate: number;
 }
 
 export default function PersonalPage() {
@@ -41,11 +44,12 @@ export default function PersonalPage() {
   const [barbers, setBarbers] = useState<BarberWithStats[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedBarberForPayout, setSelectedBarberForPayout] = useState<BarberWithStats | null>(null);
+  const [selectedBarberForCommission, setSelectedBarberForCommission] = useState<BarberWithStats | null>(null);
   const [pagoAEditar, setPagoAEditar] = useState<BankTransaction | null>(null);
   const [pagoAEliminar, setPagoAEliminar] = useState<BankTransaction | null>(null);
   const [eliminando, setEliminando] = useState(false);
   const [transactions, setTransactions] = useState<BankTransaction[]>([]);
-  const [bankBalances, setBankBalances] = useState<Record<string, { totalEarned: number; balance: number }>>({});
+  const [bankBalances, setBankBalances] = useState<Record<string, { totalEarned: number; balance: number; commissionRate: number }>>({});
   const [financeStats, setFinanceStats] = useState<Record<string, { totalServices: number; servicesInPeriod: number; totalAmountInPeriod: number; periodEarnings: number; periodPropina: number }>>({});
   const [usersLoaded, setUsersLoaded] = useState(false);
   const [financeLoaded, setFinanceLoaded] = useState(false);
@@ -73,6 +77,7 @@ export default function PersonalPage() {
         periodRevenue: stats?.totalAmountInPeriod ?? 0,
         periodEarnings: stats?.periodEarnings ?? 0,
         periodPropina: stats?.periodPropina ?? 0,
+        commissionRate: bank?.commissionRate ?? DEFAULT_COMMISSION_RATE,
       };
     });
   }, [barbers, bankBalances, financeStats]);
@@ -103,6 +108,7 @@ export default function PersonalPage() {
           balance: 0,
           periodEarnings: 0,
           periodPropina: 0,
+          commissionRate: DEFAULT_COMMISSION_RATE,
         });
       }
       setBarbers(list);
@@ -122,13 +128,14 @@ export default function PersonalPage() {
 
     const unsub = onSnapshot(collection(db, "bank"),
       (snap) => {
-        const balances: Record<string, { totalEarned: number; balance: number }> = {};
+        const balances: Record<string, { totalEarned: number; balance: number; commissionRate: number }> = {};
         snap.forEach((doc) => {
           const data = doc.data();
           const rawBalance = data.balance || 0;
           balances[doc.id] = {
             totalEarned: data.totalEarned || 0,
             balance: Math.abs(rawBalance) < 0.005 ? 0 : rawBalance,
+            commissionRate: data.commissionRate || DEFAULT_COMMISSION_RATE,
           };
         });
         setBankBalances(balances);
@@ -370,6 +377,12 @@ export default function PersonalPage() {
                 </div>
                 <div className="flex justify-between items-center py-1.5 md:py-2 border-b border-white/5">
                   <span className="text-text-muted text-[10px] md:text-xs uppercase tracking-widest flex items-center gap-2">
+                    <Percent size={12} className="md:size-[14px] text-primary" /> Comisión
+                  </span>
+                  <span className="font-display text-lg md:text-xl text-primary">{barber.commissionRate}%</span>
+                </div>
+                <div className="flex justify-between items-center py-1.5 md:py-2 border-b border-white/5">
+                  <span className="text-text-muted text-[10px] md:text-xs uppercase tracking-widest flex items-center gap-2">
                     <DollarSign size={12} className="md:size-[14px]" /> Ingresos
                   </span>
                   <span className="font-display text-lg md:text-xl text-green-400">${(barber.periodEarnings || 0).toFixed(2)}</span>
@@ -398,12 +411,18 @@ export default function PersonalPage() {
                 </div>
               </div>
 
-              <div className="mt-4 md:mt-5 pt-3 md:pt-4 border-t border-white/5">
+              <div className="mt-4 md:mt-5 pt-3 md:pt-4 border-t border-white/5 space-y-2">
                 <button
                   onClick={() => setSelectedBarberForPayout(barber)}
                   className="w-full btn-primary text-[10px] md:text-xs py-2 md:py-2.5 flex items-center justify-center gap-2 tracking-wider uppercase font-bold"
                 >
                   <Wallet size={12} className="md:size-[14px]" /> Registrar Pago
+                </button>
+                <button
+                  onClick={() => setSelectedBarberForCommission(barber)}
+                  className="w-full text-[10px] md:text-xs py-2 md:py-2.5 flex items-center justify-center gap-2 tracking-wider uppercase font-bold rounded-md border border-primary/30 text-primary hover:bg-primary/10 active:scale-[0.98] transition-all"
+                >
+                  <Percent size={12} className="md:size-[14px]" /> Editar Comisión
                 </button>
               </div>
             </div>
@@ -545,6 +564,16 @@ export default function PersonalPage() {
           barberName={selectedBarberForPayout.name}
           periodEarnings={selectedBarberForPayout.periodEarnings || 0}
           currentPeriodLabel={periodo.isSunday ? "Ganado este Domingo" : "Ganado esta Semana"}
+        />
+      )}
+
+      {selectedBarberForCommission && (
+        <BarberCommissionModal
+          isOpen={!!selectedBarberForCommission}
+          onClose={() => setSelectedBarberForCommission(null)}
+          barberId={selectedBarberForCommission.uid}
+          barberName={selectedBarberForCommission.name}
+          currentCommission={selectedBarberForCommission.commissionRate}
         />
       )}
 

@@ -92,8 +92,11 @@ export interface BankAccount {
   balance: number;
   totalEarned: number;
   totalPaid: number;
+  commissionRate?: number;
   lastUpdated: Date;
 }
+
+export const DEFAULT_COMMISSION_RATE = 60;
 
 export interface BankTransaction {
   id: string;

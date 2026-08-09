@@ -638,7 +638,7 @@ export default function FinanzasPage() {
           </div>
         </div>
 
-        {/* Card Ingreso Barbero (60%) / Tu Parte */}
+        {/* Card Ingreso Barbero / Tu Parte */}
         <div className="card-premium p-5 md:p-6 flex flex-col justify-between">
           <div className="flex items-center gap-3 md:gap-3 mb-3 md:mb-4">
             <div className="w-12 h-12 md:w-12 md:h-12 rounded-xl md:rounded-xl bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center text-emerald-400 shadow-inner">
@@ -648,11 +648,11 @@ export default function FinanzasPage() {
           </div>
           <div className="mt-auto">
             <p className="font-display text-2xl md:text-5xl text-white font-bold tracking-tighter leading-none">${barberShare.toFixed(2).split('.')[0]}<span className="text-sm md:text-2xl opacity-50">.{barberShare.toFixed(2).split('.')[1]}</span></p>
-            <p className="text-[10px] md:text-[9px] text-text-muted uppercase tracking-widest font-bold mt-1 md:mt-2">60% de Comisiones</p>
+            <p className="text-[10px] md:text-[9px] text-text-muted uppercase tracking-widest font-bold mt-1 md:mt-2">Comisiones</p>
           </div>
         </div>
 
-        {/* Card Barbería (40%) — solo admin */}
+        {/* Card Barbería — solo admin */}
         {isAdmin && (
         <div className="card-premium p-5 md:p-6 flex flex-col justify-between">
           <div className="flex items-center gap-3 md:gap-3 mb-3 md:mb-4">
@@ -663,7 +663,7 @@ export default function FinanzasPage() {
           </div>
           <div className="mt-auto">
             <p className="font-display text-2xl md:text-5xl text-white font-bold tracking-tighter leading-none">${barberiaShare.toFixed(2).split('.')[0]}<span className="text-sm md:text-2xl opacity-50">.{barberiaShare.toFixed(2).split('.')[1]}</span></p>
-            <p className="text-[10px] md:text-[9px] text-text-muted uppercase tracking-widest font-bold mt-1 md:mt-2">40% de Comisiones</p>
+            <p className="text-[10px] md:text-[9px] text-text-muted uppercase tracking-widest font-bold mt-1 md:mt-2">Comisiones</p>
           </div>
         </div>
         )}

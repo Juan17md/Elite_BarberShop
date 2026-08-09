@@ -296,7 +296,7 @@ export default function DashboardPage() {
                   
                     <div className="space-y-3 flex-1 mb-5">
                     <div className="flex justify-between items-center border-b border-white/5 pb-2">
-                      <span className="text-text-secondary text-[11px] uppercase tracking-widest font-bold">Barbero <span className="text-text-muted/50 font-normal">(60%)</span></span>
+                      <span className="text-text-secondary text-[11px] uppercase tracking-widest font-bold">Barbero</span>
                       <span className="font-display text-xl text-emerald-400">${data.share.toFixed(2)}</span>
                     </div>
                     <div className="flex justify-between items-center border-b border-amber-500/20 pb-2">
@@ -306,7 +306,7 @@ export default function DashboardPage() {
                       </span>
                     </div>
                     <div className="flex justify-between items-center border-b border-white/5 pb-2">
-                      <span className="text-text-secondary text-[11px] uppercase tracking-widest font-bold">Barbería <span className="text-text-muted/50 font-normal">(40%)</span></span>
+                      <span className="text-text-secondary text-[11px] uppercase tracking-widest font-bold">Barbería</span>
                       <span className="font-display text-xl text-blue-400">${data.barberiaShare.toFixed(2)}</span>
                     </div>
                   </div>
@@ -621,7 +621,7 @@ export default function DashboardPage() {
                 </div>
 
                 <div className="flex justify-between items-center border border-white/5 rounded-lg bg-void/20 px-4 py-4">
-                  <span className="text-text-secondary text-[11px] uppercase tracking-widest font-bold">Tu Parte <span className="text-text-muted/50 font-normal">(60% + propina)</span></span>
+                  <span className="text-text-secondary text-[11px] uppercase tracking-widest font-bold">Tu Parte <span className="text-text-muted/50 font-normal">(+ propina)</span></span>
                   <span className="font-display text-2xl text-emerald-400">${weeklyBarberShare.toFixed(2)}</span>
                 </div>
 
@@ -695,7 +695,7 @@ export default function DashboardPage() {
                   <TableHead>Servicio</TableHead>
                   <TableHead>Cliente</TableHead>
                   <TableHead>Pago</TableHead>
-                  <TableHead align="right">Tu Parte (60%)</TableHead>
+                  <TableHead align="right">Tu Parte</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -736,7 +736,7 @@ export default function DashboardPage() {
                   </div>
                   <div className="text-right">
                     <p className="font-display text-xl text-emerald-400 tracking-widest">${r.barberShare.toFixed(2)}</p>
-                    <p className="text-[9px] uppercase tracking-tighter text-text-muted">(Tu parte 60%)</p>
+                    <p className="text-[9px] uppercase tracking-tighter text-text-muted">(Tu parte)</p>
                   </div>
                 </div>
                 <div className="flex justify-between items-center text-[10px] text-text-muted">

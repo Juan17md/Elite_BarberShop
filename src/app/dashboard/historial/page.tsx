@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useMemo } from "react";
 import { useAuth } from "@/context/AuthContext";
-import { type FinancialRecord, type Service, SERVICES, type PaymentMethod, PAYMENT_METHODS, getPaymentBadge } from "@/lib/types";
+import { type FinancialRecord, type Service, SERVICES, type PaymentMethod, PAYMENT_METHODS, getPaymentBadge, DEFAULT_COMMISSION_RATE } from "@/lib/types";
 import {
   collection,
   onSnapshot,
@@ -79,6 +79,7 @@ export default function HistorialPage() {
   const [propinaEditInput, setPropinaEditInput] = useState("");
   const [serviciosDisponibles, setServiciosDisponibles] = useState<Service[]>(SERVICES);
   const [barbers, setBarbers] = useState<any[]>([]);
+  const [commissionRateEdit, setCommissionRateEdit] = useState(DEFAULT_COMMISSION_RATE);
 
   // Estado para lightbox de captura
   const [capturaModalUrl, setCapturaModalUrl] = useState("");
@@ -178,6 +179,29 @@ export default function HistorialPage() {
     );
     return () => unsubscribe();
   }, [esAdmin]);
+
+  useEffect(() => {
+    if (!isEditModalOpen) return;
+    const barberId = esAdmin ? formData.barberId : recordToEdit?.barberId;
+    if (!barberId) {
+      setCommissionRateEdit(DEFAULT_COMMISSION_RATE);
+      return;
+    }
+
+    const unsub = onSnapshot(doc(db, "bank", barberId),
+      (snap) => {
+        if (snap.exists() && snap.data().commissionRate) {
+          setCommissionRateEdit(Number(snap.data().commissionRate));
+        } else {
+          setCommissionRateEdit(DEFAULT_COMMISSION_RATE);
+        }
+      },
+      () => {
+        setCommissionRateEdit(DEFAULT_COMMISSION_RATE);
+      }
+    );
+    return () => unsub();
+  }, [isEditModalOpen, esAdmin ? formData.barberId : recordToEdit?.barberId, esAdmin, recordToEdit]);
 
   // Eliminar Registro
   const handleDelete = (record: FinancialRecord) => {
@@ -328,8 +352,8 @@ export default function HistorialPage() {
         const newTotalAmount = paymentMethod !== "bcv" && selService.priceDivisa != null
           ? selService.priceDivisa
           : selService.price;
-        const newBarberShare = r2(newTotalAmount * 0.6 + newPropina);
-        const newBarberiaShare = r2(newTotalAmount * 0.4);
+        const newBarberShare = r2(newTotalAmount * (commissionRateEdit / 100) + newPropina);
+        const newBarberiaShare = r2(newTotalAmount * ((100 - commissionRateEdit) / 100));
     
     try {
       // Si cambia el monto o el barbero, hacemos reversiones de banco
@@ -705,7 +729,7 @@ export default function HistorialPage() {
           <div className="flex items-center gap-2 mb-2 md:mb-3">
             <Wallet size={14} className="text-amber-400 md:w-[18px] md:h-[18px]" />
             <p className="text-text-muted text-[8px] md:text-[10px] uppercase tracking-widest font-bold truncate">
-              Barbería (40%)
+              Barbería
             </p>
           </div>
           <p className="font-display text-2xl md:text-3xl text-white truncate">
@@ -739,7 +763,7 @@ export default function HistorialPage() {
                     <TableHead>Cliente</TableHead>
                     <TableHead align="center">Pago</TableHead>
                     <TableHead align="right">Total</TableHead>
-                    {esAdmin && <TableHead align="right">60% / 40%</TableHead>}
+                    {esAdmin && <TableHead align="right">Barbero / Barbería</TableHead>}
                     <TableHead align="center">Acciones</TableHead>
                   </TableRow>
                 </TableHeader>
@@ -916,7 +940,7 @@ export default function HistorialPage() {
                   <div className={`grid ${esAdmin ? 'grid-cols-2' : 'grid-cols-1'} gap-3 pt-2`}>
                     <div className="bg-void/40 p-2 rounded-lg border border-white/5">
                       <p className="text-text-muted text-[9px] uppercase tracking-widest font-bold mb-1">
-                        {esAdmin ? "Barbero (60%)" : "Tu Parte"}
+                        {esAdmin ? "Barbero" : "Tu Parte"}
                       </p>
                       <p className="text-emerald-400 font-display text-sm">
                         ${(r.barberShare - (r.propina || 0)).toFixed(2)}
@@ -925,7 +949,7 @@ export default function HistorialPage() {
                     {esAdmin && (
                     <div className="bg-void/40 p-2 rounded-lg border border-white/5">
                       <p className="text-text-muted text-[9px] uppercase tracking-widest font-bold mb-1">
-                        Barbería (40%)
+              Barbería
                       </p>
                       <p className="text-blue-400 font-display text-sm">
                         ${r.barberiaShare.toFixed(2)}
@@ -1144,8 +1168,8 @@ export default function HistorialPage() {
                       ${precio.toFixed(2)}
                     </p>
                     <div className="flex gap-4 mt-2 text-xs">
-                      <span className="text-emerald-400">Barbero 60%: ${(precio * 0.6).toFixed(2)}</span>
-                      <span className="text-blue-400">Barbería 40%: ${(precio * 0.4).toFixed(2)}</span>
+                      <span className="text-emerald-400">Barbero {commissionRateEdit}%: ${(precio * (commissionRateEdit / 100)).toFixed(2)}</span>
+                      <span className="text-blue-400">Barbería {100 - commissionRateEdit}%: ${(precio * ((100 - commissionRateEdit) / 100)).toFixed(2)}</span>
                     </div>
                   </div>
                 );

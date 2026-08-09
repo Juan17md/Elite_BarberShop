@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useMemo } from "react";
 import { useAuth } from "@/context/AuthContext";
-import { type Service, SERVICES, type PaymentMethod, PAYMENT_METHODS } from "@/lib/types";
+import { type Service, SERVICES, type PaymentMethod, PAYMENT_METHODS, DEFAULT_COMMISSION_RATE } from "@/lib/types";
 import { 
   collection, 
   onSnapshot,
@@ -53,6 +53,7 @@ export default function RegisterServiceModal({ isOpen, onClose }: RegisterServic
   const [incluyePropina, setIncluyePropina] = useState(false);
   const [montoPropina, setMontoPropina] = useState("");
   const [esFiado, setEsFiado] = useState(false);
+  const [commissionRate, setCommissionRate] = useState(DEFAULT_COMMISSION_RATE);
 
   // Escuchar la tasa BCV en tiempo real de la base de datos
   useEffect(() => {
@@ -127,6 +128,29 @@ export default function RegisterServiceModal({ isOpen, onClose }: RegisterServic
     );
     return () => unsubscribe();
   }, [isOpen, esAdmin]);
+
+  const finalBarberIdComision = esAdmin ? formData.barberId : datosUsuario?.uid;
+
+  useEffect(() => {
+    if (!finalBarberIdComision) {
+      setCommissionRate(DEFAULT_COMMISSION_RATE);
+      return;
+    }
+
+    const unsub = onSnapshot(doc(db, "bank", finalBarberIdComision),
+      (snap) => {
+        if (snap.exists() && snap.data().commissionRate) {
+          setCommissionRate(Number(snap.data().commissionRate));
+        } else {
+          setCommissionRate(DEFAULT_COMMISSION_RATE);
+        }
+      },
+      () => {
+        setCommissionRate(DEFAULT_COMMISSION_RATE);
+      }
+    );
+    return () => unsub();
+  }, [finalBarberIdComision]);
 
   // Inicializar o limpiar campos al abrir/cerrar el modal
   useEffect(() => {
@@ -262,8 +286,9 @@ export default function RegisterServiceModal({ isOpen, onClose }: RegisterServic
         : service.price;
       const totalAmount = Number(rawTotal) || 0;
       const propinaFinal = propinaAmount;
-      const rawBarberShare = totalAmount * 0.6 + propinaFinal;
-      const rawBarberiaShare = totalAmount * 0.4;
+      const comision = commissionRate / 100;
+      const rawBarberShare = totalAmount * comision + propinaFinal;
+      const rawBarberiaShare = totalAmount * (1 - comision);
       const barberShareAmount = Math.round(rawBarberShare * 100) / 100;
       const barberiaShareAmount = Math.round(rawBarberiaShare * 100) / 100;
       const date = getLocalDateString();
@@ -548,7 +573,7 @@ export default function RegisterServiceModal({ isOpen, onClose }: RegisterServic
                   )}
                 </p>
                 <div className="flex gap-4 mt-2 text-xs">
-                  <span className="text-emerald-400">60%: ${(precio * 0.6).toFixed(2)}</span>
+                  <span className="text-emerald-400">{commissionRate}%: ${(precio * (commissionRate / 100)).toFixed(2)}</span>
                   {!esFiado && incluyePropina && propinaAmount > 0 && (
                     <span className="text-amber-400">Propina: +${propinaAmount.toFixed(2)}</span>
                   )}
