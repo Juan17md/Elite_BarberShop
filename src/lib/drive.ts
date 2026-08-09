@@ -5,6 +5,10 @@ const API_BASE = "https://www.googleapis.com/drive/v3";
 const UPLOAD_BASE = "https://www.googleapis.com/upload/drive/v3";
 const NOMBRE_CARPETA_RESPALDOS = "Elite-BarberShop-Backups";
 
+// Memoización por ejecución: evita carpetas duplicadas por eventual consistency
+// de la API de Drive al indexar archivos recién creados.
+let carpetaRespaldoMemoizada: string | null = null;
+
 function obtenerOAuthClient(): OAuth2Client {
   const clientId = process.env.GOOGLE_DRIVE_CLIENT_ID;
   const clientSecret = process.env.GOOGLE_DRIVE_CLIENT_SECRET;
@@ -29,8 +33,13 @@ async function obtenerToken(): Promise<string> {
 }
 
 async function obtenerOCrearCarpetaRespaldo(): Promise<string> {
+  if (carpetaRespaldoMemoizada) return carpetaRespaldoMemoizada;
+
   const carpetaConfigurada = process.env.GOOGLE_DRIVE_FOLDER_ID;
-  if (carpetaConfigurada) return carpetaConfigurada;
+  if (carpetaConfigurada) {
+    carpetaRespaldoMemoizada = carpetaConfigurada;
+    return carpetaConfigurada;
+  }
 
   const token = await obtenerToken();
   const consulta = encodeURIComponent(`name='${NOMBRE_CARPETA_RESPALDOS}' and mimeType='application/vnd.google-apps.folder' and trashed=false`);
@@ -46,7 +55,10 @@ async function obtenerOCrearCarpetaRespaldo(): Promise<string> {
 
   const datosBusqueda = await resBusqueda.json();
   const carpetaExistente = datosBusqueda.files?.[0];
-  if (carpetaExistente) return carpetaExistente.id;
+  if (carpetaExistente) {
+    carpetaRespaldoMemoizada = carpetaExistente.id;
+    return carpetaExistente.id;
+  }
 
   const resCrear = await fetch(`${API_BASE}/files?supportsAllDrives=true`, {
     method: "POST",
@@ -65,6 +77,7 @@ async function obtenerOCrearCarpetaRespaldo(): Promise<string> {
   }
 
   const carpetaCreada = await resCrear.json();
+  carpetaRespaldoMemoizada = carpetaCreada.id;
   return carpetaCreada.id;
 }
 
