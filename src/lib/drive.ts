@@ -1,23 +1,26 @@
-import { JWT } from "google-auth-library";
+import { OAuth2Client } from "google-auth-library";
 
 const SCOPES = ["https://www.googleapis.com/auth/drive.file"];
 const API_BASE = "https://www.googleapis.com/drive/v3";
 const UPLOAD_BASE = "https://www.googleapis.com/upload/drive/v3";
+const NOMBRE_CARPETA_RESPALDOS = "Respaldos Elite BarberShop";
 
-function obtenerClienteJwt(): JWT {
-  if (!process.env.FIREBASE_CLIENT_EMAIL || !process.env.FIREBASE_PRIVATE_KEY) {
-    throw new Error("Credenciales de Service Account no configuradas (FIREBASE_CLIENT_EMAIL / FIREBASE_PRIVATE_KEY)");
+function obtenerOAuthClient(): OAuth2Client {
+  const clientId = process.env.GOOGLE_DRIVE_CLIENT_ID;
+  const clientSecret = process.env.GOOGLE_DRIVE_CLIENT_SECRET;
+  const refreshToken = process.env.GOOGLE_DRIVE_REFRESH_TOKEN;
+
+  if (!clientId || !clientSecret || !refreshToken) {
+    throw new Error("Credenciales OAuth de Drive no configuradas (GOOGLE_DRIVE_CLIENT_ID / GOOGLE_DRIVE_CLIENT_SECRET / GOOGLE_DRIVE_REFRESH_TOKEN)");
   }
 
-  return new JWT({
-    email: process.env.FIREBASE_CLIENT_EMAIL,
-    key: process.env.FIREBASE_PRIVATE_KEY.replace(/\\n/g, "\n"),
-    scopes: SCOPES,
-  });
+  const cliente = new OAuth2Client({ clientId, clientSecret });
+  cliente.setCredentials({ refresh_token: refreshToken });
+  return cliente;
 }
 
 async function obtenerToken(): Promise<string> {
-  const cliente = obtenerClienteJwt();
+  const cliente = obtenerOAuthClient();
   const { token } = await cliente.getAccessToken();
   if (!token) {
     throw new Error("No se pudo obtener token de acceso para Google Drive");
@@ -25,12 +28,44 @@ async function obtenerToken(): Promise<string> {
   return token;
 }
 
-function obtenerCarpetaId(): string {
-  const folderId = process.env.GOOGLE_DRIVE_FOLDER_ID;
-  if (!folderId) {
-    throw new Error("GOOGLE_DRIVE_FOLDER_ID no configurado");
+async function obtenerOCrearCarpetaRespaldo(): Promise<string> {
+  const carpetaConfigurada = process.env.GOOGLE_DRIVE_FOLDER_ID;
+  if (carpetaConfigurada) return carpetaConfigurada;
+
+  const token = await obtenerToken();
+  const consulta = encodeURIComponent(`name='${NOMBRE_CARPETA_RESPALDOS}' and mimeType='application/vnd.google-apps.folder' and trashed=false`);
+
+  const resBusqueda = await fetch(
+    `${API_BASE}/files?q=${consulta}&fields=files(id,name)&spaces=drive&pageSize=10`,
+    { headers: { Authorization: `Bearer ${token}` } }
+  );
+
+  if (!resBusqueda.ok) {
+    throw new Error(`Error buscando carpeta de respaldos: ${resBusqueda.status} ${await resBusqueda.text()}`);
   }
-  return folderId;
+
+  const datosBusqueda = await resBusqueda.json();
+  const carpetaExistente = datosBusqueda.files?.[0];
+  if (carpetaExistente) return carpetaExistente.id;
+
+  const resCrear = await fetch(`${API_BASE}/files?supportsAllDrives=true`, {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${token}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      name: NOMBRE_CARPETA_RESPALDOS,
+      mimeType: "application/vnd.google-apps.folder",
+    }),
+  });
+
+  if (!resCrear.ok) {
+    throw new Error(`Error creando carpeta de respaldos: ${resCrear.status} ${await resCrear.text()}`);
+  }
+
+  const carpetaCreada = await resCrear.json();
+  return carpetaCreada.id;
 }
 
 export interface RespaldoDrive {
@@ -42,11 +77,11 @@ export interface RespaldoDrive {
 
 export async function subirRespaldoDrive(nombreArchivo: string, contenido: string): Promise<RespaldoDrive> {
   const token = await obtenerToken();
-  const carpetaId = obtenerCarpetaId();
+  const carpetaId = await obtenerOCrearCarpetaRespaldo();
   const bytes = Buffer.from(contenido, "utf-8");
 
   // Carga reanudable (resumable upload) para soportar archivos de cualquier tamaño
-  const sesionRes = await fetch(`${UPLOAD_BASE}/files?uploadType=resumable`, {
+  const sesionRes = await fetch(`${UPLOAD_BASE}/files?uploadType=resumable&supportsAllDrives=true`, {
     method: "POST",
     headers: {
       Authorization: `Bearer ${token}`,
@@ -94,10 +129,10 @@ export async function subirRespaldoDrive(nombreArchivo: string, contenido: strin
 
 export async function listarRespaldosDrive(): Promise<RespaldoDrive[]> {
   const token = await obtenerToken();
-  const carpetaId = obtenerCarpetaId();
+  const carpetaId = await obtenerOCrearCarpetaRespaldo();
 
   const res = await fetch(
-    `${API_BASE}/files?q='${carpetaId}'+in+parents+and+trashed=false&fields=files(id,name,createdTime,size)&orderBy=createdTime%20desc&pageSize=1000`,
+    `${API_BASE}/files?q='${carpetaId}'+in+parents+and+trashed=false&fields=files(id,name,createdTime,size)&orderBy=createdTime%20desc&pageSize=1000&supportsAllDrives=true&includeItemsFromAllDrives=true`,
     {
       headers: { Authorization: `Bearer ${token}` },
     }
@@ -118,7 +153,7 @@ export async function listarRespaldosDrive(): Promise<RespaldoDrive[]> {
 
 export async function eliminarArchivoDrive(fileId: string): Promise<void> {
   const token = await obtenerToken();
-  const res = await fetch(`${API_BASE}/files/${fileId}`, {
+  const res = await fetch(`${API_BASE}/files/${fileId}?supportsAllDrives=true`, {
     method: "DELETE",
     headers: { Authorization: `Bearer ${token}` },
   });
