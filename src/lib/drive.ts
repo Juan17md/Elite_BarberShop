@@ -3,7 +3,7 @@ import { OAuth2Client } from "google-auth-library";
 const SCOPES = ["https://www.googleapis.com/auth/drive.file"];
 const API_BASE = "https://www.googleapis.com/drive/v3";
 const UPLOAD_BASE = "https://www.googleapis.com/upload/drive/v3";
-const NOMBRE_CARPETA_RESPALDOS = "Respaldos Elite BarberShop";
+const NOMBRE_CARPETA_RESPALDOS = "Elite-BarberShop-Backups";
 
 function obtenerOAuthClient(): OAuth2Client {
   const clientId = process.env.GOOGLE_DRIVE_CLIENT_ID;
