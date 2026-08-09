@@ -146,6 +146,7 @@ migrar-*.js
 migrar-*.mjs
 migrar-*.cjs
 documentacion.txt
+mensaje-plan-basico.txt
 docs-obsidian
 flujo-creacion-usuarios-primer-ingreso.txt
 seed-emulator.mjs
