@@ -30,6 +30,11 @@ self.addEventListener('activate', (event) => {
 
 self.addEventListener('fetch', (event) => {
   const { request } = event;
+
+  // Las mutaciones (POST/PATCH/DELETE) no se cachean: la Cache API solo
+  // soporta GET. Se dejan pasar con comportamiento nativo del navegador.
+  if (request.method !== 'GET') return;
+
   const url = new URL(request.url);
 
   if (url.pathname.startsWith('/api/')) {
