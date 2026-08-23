@@ -8,6 +8,9 @@ const nextConfig: NextConfig = {
 export default withSentryConfig(nextConfig, {
   org: "juan17md",
   project: "elite-barber-shop",
+  // Necesario por geobloqueo regional: los navegadores de Venezuela no
+  // alcanzan *.ingest.sentry.io directo; la telemetría sale por el mismo origen.
+  tunnelRoute: "/monitoring",
   silent: !process.env.CI,
   widenClientFileUpload: true,
   sourcemaps: { disable: true },
