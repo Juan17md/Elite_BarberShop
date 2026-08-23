@@ -18,14 +18,22 @@ export async function POST(request: Request) {
   }
 
   const secreto = process.env.SENTRY_WEBHOOK_SECRET;
-  const headerSecreto = request.headers.get("x-webhook-secret");
-  // Diagnóstico temporal: no se registra el valor, solo la comparación
-  console.log(
-    `[webhook-sentry] secreto ${headerSecreto === secreto ? "COINCIDE" : "NO COINCIDE"} (header: ${headerSecreto?.length ?? 0} chars)`
-  );
-  if (!secreto || headerSecreto !== secreto) {
+  if (!secreto || request.headers.get("x-webhook-secret") !== secreto) {
+    await registrarBitacora({ resultado: "no_autorizado" });
     return NextResponse.json({ error: "No autorizado" }, { status: 401 });
   }
+
+  let payload: PayloadSentry;
+  try {
+    payload = (await request.json()) as PayloadSentry;
+  } catch {
+    await registrarBitacora({ resultado: "payload_invalido" });
+    return NextResponse.json({ error: "Payload inválido" }, { status: 400 });
+  }
+
+  const accion = payload?.action ?? "(sin action)";
+  const tituloIssue =
+    payload?.data?.issue?.title ?? payload?.data?.event?.message ?? "(sin título)";
 
   let payload: PayloadSentry;
   try {
@@ -37,16 +45,34 @@ export async function POST(request: Request) {
   console.log(`[webhook-sentry] acción recibida: ${payload.action ?? "(sin action)"}`);
 
   if (!esAccionNotificable(payload)) {
+    await registrarBitacora({
+      resultado: "ignorado",
+      motivo: "accion_no_notificable",
+      accion,
+      tituloIssue,
+    });
     return NextResponse.json({ ok: true, ignorado: true });
   }
 
   const mensaje = formatearMensajeSentry(payload);
   if (!mensaje) {
+    await registrarBitacora({
+      resultado: "ignorado",
+      motivo: "sin_titulo_formateable",
+      accion,
+      tituloIssue,
+    });
     return NextResponse.json({ ok: true, ignorado: true });
   }
 
   try {
     await enviarMensajeTelegram(tokenBot, chatId, mensaje);
+    await registrarBitacora({
+      resultado: "enviado",
+      accion,
+      tituloIssue,
+      chatConfigurado: chatId,
+    });
   } catch (error) {
     Sentry.captureException(error, { extra: { payload } });
     return NextResponse.json({ error: "No se pudo notificar" }, { status: 502 });

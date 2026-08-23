@@ -8,12 +8,19 @@ export interface PayloadSentry {
       web_url?: string
       project?: { name?: string; slug?: string }
     }
+    event?: {
+      event_id?: string
+      message?: string
+      datetime?: string
+      project?: number | string
+      tags?: [string, string][]
+    }
   }
 }
 
 const NOMBRE_PROYECTO = "Elite BarberShop"
 
-export const ACCIONES_NOTIFICABLES = ["created", "unresolved"] as const
+export const ACCIONES_NOTIFICABLES = ["triggered", "created", "unresolved"] as const
 
 const NOMBRES_NIVEL: Record<string, string> = {
   fatal: "Fatal",
@@ -34,7 +41,33 @@ export function esAccionNotificable(payload: PayloadSentry): boolean {
   )
 }
 
-export function formatearMensajeSentry(payload: PayloadSentry): string | null {
+function nivelDesdeTags(tags: [string, string][] | undefined): string | null {
+  if (!tags) return null
+  const parNivel = tags.find(([clave]) => clave === "level")
+  return parNivel ? NOMBRES_NIVEL[parNivel[1]] ?? "Error" : null
+}
+
+// Formato B: webhook de evento (Internal Integration actual)
+function formatearDesdeEvento(payload: PayloadSentry): string | null {
+  const evento = payload.data?.event
+  if (!evento?.message) return null
+
+  const nivel = nivelDesdeTags(evento.tags) ?? "Error"
+  const emojiNivel =
+    ["warning", "info", "debug"].some((n) => nivel.toLowerCase().includes(n.toLowerCase()))
+      ? "🟠"
+      : "🔴"
+
+  return (
+    `${emojiNivel} <b>[${escaparHtml(NOMBRE_PROYECTO)}] Alerta disparada</b>\n` +
+    `${emojiNivel} <b>Nivel:</b> ${escaparHtml(nivel)}\n` +
+    `<b>Evento:</b> ${escaparHtml(evento.message)}\n` +
+    `<a href="https://juan17md.sentry.io/projects/elite-barber-shop/">Ver en Sentry</a>`
+  )
+}
+
+// Formato A: webhook clásico de issue
+function formatearDesdeIssue(payload: PayloadSentry): string | null {
   const issue = payload.data?.issue
   if (!issue?.title) return null
 
@@ -46,17 +79,21 @@ export function formatearMensajeSentry(payload: PayloadSentry): string | null {
   const emojiAccion = payload.action === "unresolved" ? "🔁" : "🆕"
   const tituloAccion =
     payload.action === "unresolved" ? "Regresión detectada" : "Nuevo error"
-  const proyecto = escaparHtml(issue.project?.name ?? "Sin proyecto")
+  const proyecto = escaparHtml(issue.project?.name ?? NOMBRE_PROYECTO)
   const titulo = escaparHtml(issue.title)
   const url = issue.web_url ? `<a href="${issue.web_url}">Ver issue en Sentry</a>` : ""
 
   return (
     `${emojiAccion} <b>[${escaparHtml(NOMBRE_PROYECTO)}] ${tituloAccion}</b>\n` +
-    `${emojiNivel} <b>Nivel:</b> ${nivel}\n` +
+    `${emojiNivel} <b>Nivel:</b> ${escaparHtml(nivel)}\n` +
     `<b>Proyecto:</b> ${proyecto}\n` +
     `<b>Título:</b> ${titulo}\n` +
     (url ? url + "\n" : "")
   )
+}
+
+export function formatearMensajeSentry(payload: PayloadSentry): string | null {
+  return formatearDesdeIssue(payload) ?? formatearDesdeEvento(payload)
 }
 
 export async function enviarMensajeTelegram(
@@ -79,11 +116,6 @@ export async function enviarMensajeTelegram(
     const cuerpo = await respuesta.text().catch(() => "")
     throw new Error(`Telegram respondió ${respuesta.status}: ${cuerpo}`)
   }
-
-  // Diagnóstico temporal: registra a qué chat se entregó realmente el mensaje
-  const cuerpoJson = await respuesta.json().catch(() => null)
-  const chatEntregado = cuerpoJson?.result?.chat?.id
-  console.log(`[telegram] mensaje entregado al chat ${chatEntregado ?? "desconocido"} (configurado: ${chatId})`)
 
   return true
 }
