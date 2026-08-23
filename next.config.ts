@@ -7,7 +7,7 @@ const nextConfig: NextConfig = {
 
 export default withSentryConfig(nextConfig, {
   org: "juan17md",
-  project: "sentry-emerald-candle",
+  project: "elite-barber-shop",
   silent: !process.env.CI,
   widenClientFileUpload: true,
   sourcemaps: { disable: true },
