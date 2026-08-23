@@ -34,7 +34,10 @@ export async function POST(request: Request) {
 
   let payload: PayloadSentry;
   try {
-    payload = (await request.json()) as PayloadSentry;
+    const textoCrudo = await request.text();
+    // Diagnóstico temporal: registra el payload literal que envía Sentry
+    console.log(`[webhook-sentry] cuerpo recibido: ${textoCrudo.slice(0, 600)}`);
+    payload = JSON.parse(textoCrudo) as PayloadSentry;
   } catch {
     return NextResponse.json({ error: "Payload inválido" }, { status: 400 });
   }
