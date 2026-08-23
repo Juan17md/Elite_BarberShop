@@ -37,6 +37,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui";
+import * as Sentry from "@sentry/nextjs";
 
 const CATEGORIAS_INVENTARIO: { valor: CategoriaInventario; etiqueta: string }[] = [
   { valor: "equipos", etiqueta: "Equipos" },
@@ -158,6 +159,7 @@ export default function InventarioPage() {
       setEditingId(null);
       resetForm();
     } catch (error) {
+      Sentry.captureException(error);
       console.error("Error al guardar inventario:", error);
       toast.error("Error al guardar el item");
     }
@@ -186,6 +188,7 @@ export default function InventarioPage() {
         await deleteDoc(doc(db, "inventory", deletingId));
         setDeletingId(null);
       } catch (error) {
+        Sentry.captureException(error);
         console.error("Error al eliminar item:", error);
         toast.error("Error al eliminar el item");
       }

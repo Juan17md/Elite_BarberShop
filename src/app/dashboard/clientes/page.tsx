@@ -18,6 +18,7 @@ import {
 import { db } from "@/lib/firebase";
 import { Plus, Pencil, Trash2, Phone, Mail, User, Check, Search, X } from "lucide-react";
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from "@/components/ui";
+import * as Sentry from "@sentry/nextjs";
 
 export default function ClientesPage() {
   const { datosUsuario, authLoading, rolLoading } = useAuth();
@@ -71,6 +72,7 @@ export default function ClientesPage() {
       setEditingId(null);
       setFormData({ name: "", phone: "", email: "", notes: "" });
     } catch (error) {
+      Sentry.captureException(error);
       console.error("Error al guardar cliente:", error);
       toast.error("Error al guardar el cliente");
     }
@@ -92,6 +94,7 @@ export default function ClientesPage() {
         await deleteDoc(doc(db, "clients", deletingId));
         setDeletingId(null);
       } catch (error) {
+        Sentry.captureException(error);
         console.error("Error al eliminar cliente:", error);
         toast.error("Error al eliminar el cliente");
       }

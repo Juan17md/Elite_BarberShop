@@ -16,6 +16,7 @@ import {
 } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import { Plus, Pencil, Trash2, Check, Scissors } from "lucide-react";
+import * as Sentry from "@sentry/nextjs";
 
 const normalizarNombreServicio = (nombre: string) => nombre.trim().toLowerCase();
 const formatearNombreServicio = (nombre: string) => nombre.trim().toUpperCase();
@@ -93,6 +94,7 @@ export default function ServiciosPage() {
       setEditingId(null);
       setFormData({ name: "", price: "", priceDivisa: "", duration: 45, description: "" });
     } catch (error) {
+      Sentry.captureException(error);
       console.error("Error al guardar servicio:", error);
       toast.error("Error al guardar el servicio");
     }
@@ -114,6 +116,7 @@ export default function ServiciosPage() {
         await deleteDoc(doc(db, "services", deletingId));
         setDeletingId(null);
       } catch (error) {
+        Sentry.captureException(error);
         console.error("Error al eliminar servicio:", error);
         toast.error("Error al eliminar el servicio");
       }

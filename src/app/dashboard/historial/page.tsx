@@ -45,6 +45,7 @@ import {
 import SearchInput from "@/components/ui/search-input";
 import { getLocalDateString, getPeriodFromPosition, r2 } from "@/lib/utils";
 import { toast } from "sonner";
+import * as Sentry from "@sentry/nextjs";
 
 const ITEMS_POR_PAGINA = 10;
 
@@ -256,6 +257,7 @@ export default function HistorialPage() {
           }
         }
       } catch (objError) {
+        Sentry.captureException(objError);
         console.error("Error revirtiendo objetivos:", objError);
       }
 
@@ -265,6 +267,7 @@ export default function HistorialPage() {
       toast.success("Registro eliminado correctamente", { duration: 2000, closeButton: false });
 
     } catch (error) {
+      Sentry.captureException(error);
       console.error("Error al eliminar el registro:", error);
       toast.error("Error al eliminar el registro", { duration: 3000, closeButton: false });
     }
@@ -448,6 +451,7 @@ export default function HistorialPage() {
             }
           }
         } catch (objErr) {
+          Sentry.captureException(objErr);
           console.log("Error ajustando objetivos", objErr);
         }
       }
@@ -472,6 +476,7 @@ export default function HistorialPage() {
       setRecordToEdit(null);
 
     } catch (err) {
+      Sentry.captureException(err);
       console.error("Error al actualizar:", err);
       alert("Hubo un problema guardando la edición. Revisa la consola.");
     }

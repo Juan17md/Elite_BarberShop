@@ -24,6 +24,7 @@ import {
   ArrowDownRight,
   Phone,
 } from "lucide-react";
+import * as Sentry from "@sentry/nextjs";
 export default function PerfilPage() {
   const { datosUsuario } = useAuth();
   const esBarbero = datosUsuario?.rol === "barber";
@@ -118,6 +119,7 @@ export default function PerfilPage() {
       setEditando(false);
       alert("Perfil actualizado");
     } catch (error) {
+      Sentry.captureException(error);
       console.error("Error guardando perfil:", error);
       toast.error("Error al guardar el perfil");
     }
