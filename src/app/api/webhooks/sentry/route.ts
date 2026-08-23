@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { createHash } from "crypto";
 import * as Sentry from "@sentry/nextjs";
 import {
   enviarMensajeTelegram,
@@ -19,9 +20,13 @@ export async function POST(request: Request) {
 
   const secreto = process.env.SENTRY_WEBHOOK_SECRET;
   const headerSecreto = request.headers.get("x-webhook-secret");
-  // Diagnóstico temporal: no se registra el valor, solo la comparación
+  // Diagnóstico temporal: huellas SHA-256 (12 chars) y longitudes, jamás valores
+  const huella = (v: string | undefined) =>
+    v ? createHash("sha256").update(v).digest("hex").slice(0, 12) : "(vacío)";
   console.log(
-    `[webhook-sentry] secreto ${headerSecreto === secreto ? "COINCIDE" : "NO COINCIDE"} (header: ${headerSecreto?.length ?? 0} chars)`
+    `[webhook-sentry] secreto ${headerSecreto === secreto ? "COINCIDE" : "NO COINCIDE"} | ` +
+      `fp token=${huella(process.env.TELEGRAM_BOT_TOKEN)} len=${process.env.TELEGRAM_BOT_TOKEN?.length ?? 0} | ` +
+      `chat=${process.env.TELEGRAM_CHAT_ID} len=${process.env.TELEGRAM_CHAT_ID?.length ?? 0}`
   );
   if (!secreto || headerSecreto !== secreto) {
     return NextResponse.json({ error: "No autorizado" }, { status: 401 });
