@@ -80,10 +80,9 @@ export async function enviarMensajeTelegram(
     throw new Error(`Telegram respondió ${respuesta.status}: ${cuerpo}`)
   }
 
-  // Diagnóstico temporal: registra a qué chat se entregó realmente el mensaje
-  const cuerpoJson = await respuesta.json().catch(() => null)
-  const chatEntregado = cuerpoJson?.result?.chat?.id
-  console.log(`[telegram] mensaje entregado al chat ${chatEntregado ?? "desconocido"} (configurado: ${chatId})`)
+  // Diagnóstico temporal: registra el cuerpo literal que devuelve la Bot API
+  const cuerpoCrudo = await respuesta.text().catch(() => "(sin cuerpo)")
+  console.log(`[telegram] respuesta cruda (${respuesta.status}): ${cuerpoCrudo.slice(0, 300)}`)
 
   return true
 }
