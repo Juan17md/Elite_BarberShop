@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { exportarFirestoreCompleto } from "@/lib/exportFirestore";
 import { subirRespaldoDrive, eliminarRespaldosViejos } from "@/lib/drive";
+import * as Sentry from "@sentry/nextjs";
 
 export const maxDuration = 60;
 
@@ -51,6 +52,7 @@ export async function GET(request: NextRequest) {
     });
   } catch (error) {
     console.error("Error en respaldo de Firestore:", error);
+    Sentry.captureException(error);
     return NextResponse.json(
       { error: error instanceof Error ? error.message : "Error interno" },
       { status: 500 }
