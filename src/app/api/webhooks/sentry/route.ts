@@ -18,7 +18,12 @@ export async function POST(request: Request) {
   }
 
   const secreto = process.env.SENTRY_WEBHOOK_SECRET;
-  if (!secreto || request.headers.get("x-webhook-secret") !== secreto) {
+  const headerSecreto = request.headers.get("x-webhook-secret");
+  // Diagnóstico temporal: no se registra el valor, solo la comparación
+  console.log(
+    `[webhook-sentry] secreto ${headerSecreto === secreto ? "COINCIDE" : "NO COINCIDE"} (header: ${headerSecreto?.length ?? 0} chars)`
+  );
+  if (!secreto || headerSecreto !== secreto) {
     return NextResponse.json({ error: "No autorizado" }, { status: 401 });
   }
 
@@ -28,6 +33,8 @@ export async function POST(request: Request) {
   } catch {
     return NextResponse.json({ error: "Payload inválido" }, { status: 400 });
   }
+
+  console.log(`[webhook-sentry] acción recibida: ${payload.action ?? "(sin action)"}`);
 
   if (!esAccionNotificable(payload)) {
     return NextResponse.json({ ok: true, ignorado: true });
