@@ -1,5 +1,4 @@
 import { NextResponse } from "next/server";
-import { createHash } from "crypto";
 import * as Sentry from "@sentry/nextjs";
 import { adminDb } from "@/lib/firebaseAdmin";
 import {
@@ -33,35 +32,22 @@ export async function POST(request: Request) {
   }
 
   const secreto = process.env.SENTRY_WEBHOOK_SECRET;
-  const headerSecreto = request.headers.get("x-webhook-secret");
-  const autorizado = Boolean(secreto) && headerSecreto === secreto;
+  if (!secreto || request.headers.get("x-webhook-secret") !== secreto) {
+    await registrarBitacora({ resultado: "no_autorizado" });
+    return NextResponse.json({ error: "No autorizado" }, { status: 401 });
+  }
 
-  let cuerpoCrudo = "";
-  let payload: PayloadSentry | null = null;
+  let payload: PayloadSentry;
   try {
-    cuerpoCrudo = await request.text();
-    payload = JSON.parse(cuerpoCrudo) as PayloadSentry;
+    payload = (await request.json()) as PayloadSentry;
   } catch {
-    await registrarBitacora({
-      resultado: "payload_invalido",
-      cuerpo: cuerpoCrudo.slice(0, 800),
-    });
+    await registrarBitacora({ resultado: "payload_invalido" });
     return NextResponse.json({ error: "Payload inválido" }, { status: 400 });
   }
 
   const accion = payload?.action ?? "(sin action)";
-  const tituloIssue = payload?.data?.issue?.title ?? "(sin issue)";
-  const huellaToken = createHash("sha256").update(tokenBot).digest("hex").slice(0, 12);
-
-  if (!autorizado) {
-    await registrarBitacora({
-      resultado: "no_autorizado",
-      secretoRecibidoLongitud: headerSecreto?.length ?? 0,
-      accion,
-      tituloIssue,
-    });
-    return NextResponse.json({ error: "No autorizado" }, { status: 401 });
-  }
+  const tituloIssue =
+    payload?.data?.issue?.title ?? payload?.data?.event?.message ?? "(sin título)";
 
   if (!esAccionNotificable(payload)) {
     await registrarBitacora({
@@ -69,7 +55,6 @@ export async function POST(request: Request) {
       motivo: "accion_no_notificable",
       accion,
       tituloIssue,
-      cuerpo: cuerpoCrudo.slice(0, 800),
     });
     return NextResponse.json({ ok: true, ignorado: true });
   }
@@ -80,7 +65,7 @@ export async function POST(request: Request) {
       resultado: "ignorado",
       motivo: "sin_titulo_formateable",
       accion,
-      cuerpo: cuerpoCrudo.slice(0, 800),
+      tituloIssue,
     });
     return NextResponse.json({ ok: true, ignorado: true });
   }
@@ -92,7 +77,6 @@ export async function POST(request: Request) {
       accion,
       tituloIssue,
       chatConfigurado: chatId,
-      huellaToken,
     });
   } catch (error) {
     await registrarBitacora({
