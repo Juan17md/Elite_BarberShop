@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { adminDb } from "@/lib/firebaseAdmin";
 import ImageKit from "@imagekit/nodejs";
 import * as admin from "firebase-admin";
+import * as Sentry from "@sentry/nextjs";
 
 const imagekit = new ImageKit({
   privateKey: process.env.IMAGEKIT_PRIVATE_KEY!,
@@ -55,6 +56,7 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ message: "OK", eliminadas });
   } catch (error) {
     console.error("Error en limpieza de capturas:", error);
+    Sentry.captureException(error);
     return NextResponse.json({ error: "Error interno" }, { status: 500 });
   }
 }

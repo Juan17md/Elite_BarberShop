@@ -10,6 +10,7 @@ import {
 } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import { r2 } from "@/lib/utils";
+import * as Sentry from "@sentry/nextjs";
 import { Check, Loader2, X, Edit3 } from "lucide-react";
 
 interface EditarPagoModalProps {
@@ -109,6 +110,7 @@ export default function EditarPagoModal({
       onClose();
     } catch (error) {
       console.error("Error al editar el pago:", error);
+      Sentry.captureException(error);
       setErrorMsg("Ocurrió un error al editar el pago. Intente de nuevo.");
       setGuardando(false);
     }

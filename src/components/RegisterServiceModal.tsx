@@ -16,6 +16,7 @@ import {
   runTransaction
 } from "firebase/firestore";
 import { db } from "@/lib/firebase";
+import * as Sentry from "@sentry/nextjs";
 import { Check, Loader2, X, Upload } from "lucide-react";
 import { Select } from "@/components/ui";
 import { getLocalDateString, r2 } from "@/lib/utils";
@@ -408,6 +409,7 @@ export default function RegisterServiceModal({ isOpen, onClose }: RegisterServic
         }
       } catch (objError) {
         console.error("Error al actualizar objetivos:", objError);
+        Sentry.captureException(objError);
       }
 
       toast.success("Servicio registrado exitosamente", { duration: 2000, closeButton: false });
@@ -415,7 +417,11 @@ export default function RegisterServiceModal({ isOpen, onClose }: RegisterServic
 
     } catch (error) {
       console.error("Error al registrar el servicio:", error);
-      alert("Hubo un error al registrar el servicio. Todos los cambios fueron revertidos automáticamente.");
+      Sentry.captureException(error);
+      toast.error(
+        "Hubo un error al registrar el servicio. Todos los cambios fueron revertidos automáticamente.",
+        { duration: 5000, closeButton: true }
+      );
     } finally {
       setIsSubmitting(false);
     }

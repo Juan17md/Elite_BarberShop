@@ -10,6 +10,7 @@ import {
   runTransaction
 } from "firebase/firestore";
 import { db } from "@/lib/firebase";
+import * as Sentry from "@sentry/nextjs";
 import { Check, Loader2, X, Wallet, ArrowDownRight, AlertTriangle } from "lucide-react";
 import { Select } from "@/components/ui";
 import { getLocalDateString, r2 } from "@/lib/utils";
@@ -178,6 +179,7 @@ export default function RegistrarPagoModal({
         setErrorMsg(`El pago ($${montoFinal.toFixed(2)}) supera el saldo disponible ($${saldoReal})`);
       } else {
         console.error("Error al registrar el pago:", error);
+        Sentry.captureException(error);
         setErrorMsg("Ocurrió un error al procesar el pago. Intente de nuevo.");
       }
       setGuardando(false);
