@@ -22,6 +22,7 @@ import EditarPagoModal from "@/components/EditarPagoModal";
 import BarberCommissionModal from "@/components/BarberCommissionModal";
 import type { BankTransaction } from "@/lib/types";
 import { DEFAULT_COMMISSION_RATE } from "@/lib/types";
+import * as Sentry from "@sentry/nextjs";
 
 interface BarberWithStats {
   uid: string;
@@ -256,6 +257,7 @@ export default function PersonalPage() {
       await deleteDoc(doc(db, "bank_transactions", pagoAEliminar.id));
       setPagoAEliminar(null);
     } catch (error) {
+      Sentry.captureException(error);
       console.error("Error al eliminar el pago:", error);
     } finally {
       setEliminando(false);

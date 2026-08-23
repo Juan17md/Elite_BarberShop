@@ -16,6 +16,7 @@ import { db } from "@/lib/firebase";
 import { TrendingUp, Scissors, DollarSign, Activity, CalendarDays, ChevronLeft, ChevronRight } from "lucide-react";
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from "@/components/ui";
 import { getPeriodFromPosition } from "@/lib/utils";
+import * as Sentry from "@sentry/nextjs";
 
 
 export default function EstadisticasPage() {
@@ -43,6 +44,7 @@ export default function EstadisticasPage() {
         
         setBarbersList(list);
       } catch (error) {
+        Sentry.captureException(error);
         console.error("Error al cargar barberos:", error);
       }
     };

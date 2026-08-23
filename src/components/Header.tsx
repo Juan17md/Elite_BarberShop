@@ -5,6 +5,7 @@ import { useAuth } from "@/context/AuthContext";
 import { useState, useEffect } from "react";
 import { doc, onSnapshot } from "firebase/firestore";
 import { db } from "@/lib/firebase";
+import * as Sentry from "@sentry/nextjs";
 
 const SEIS_HORAS = 6 * 60 * 60 * 1000;
 
@@ -51,6 +52,7 @@ export default function Header() {
           setBcvRate(Number(data.rate));
         }
       } catch (e) {
+        Sentry.captureException(e);
         console.error("Error fetching BCV rate:", e);
       }
     };

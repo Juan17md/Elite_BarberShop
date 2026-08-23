@@ -6,6 +6,7 @@ import { toast } from "sonner";
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell, Select } from "@/components/ui";
 import { db } from "@/lib/firebase";
 import { collection, onSnapshot, query, orderBy, addDoc, serverTimestamp } from "firebase/firestore";
+import * as Sentry from "@sentry/nextjs";
 
 interface Transaccion {
   id: string;
@@ -82,6 +83,7 @@ export default function ActasGastosPage() {
       setModalAbierto(false);
       setNuevaData({ concepto: "", especialista: "", monto: 0 });
     } catch (error) {
+      Sentry.captureException(error);
       console.error(error);
       toast.error("Error al crear el registro");
     } finally {

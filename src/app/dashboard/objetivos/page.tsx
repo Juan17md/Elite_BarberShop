@@ -22,6 +22,7 @@ import { db } from "@/lib/firebase";
 import { Plus, Pencil, Trash2, Target, Check, Calendar, Wallet } from "lucide-react";
 import { DatePicker } from "@/components/ui/date-picker";
 import { getLocalDateString, r2 } from "@/lib/utils";
+import * as Sentry from "@sentry/nextjs";
 
 function convertirFecha(valor: unknown): Date | undefined {
   if (!valor) return undefined;
@@ -140,6 +141,7 @@ export default function ObjetivosPage() {
       }
       cerrarModalObjetivo();
     } catch (error) {
+      Sentry.captureException(error);
       console.error("Error al guardar objetivo:", error);
       toast.error("Error al guardar el objetivo");
     }
@@ -172,6 +174,7 @@ export default function ObjetivosPage() {
       await deleteDoc(doc(db, "objectives", deletingId));
       setDeletingId(null);
     } catch (error) {
+      Sentry.captureException(error);
       console.error("Error al eliminar objetivo:", error);
       toast.error("Error al eliminar el objetivo");
     }
@@ -202,6 +205,7 @@ export default function ObjetivosPage() {
       });
       cerrarRegistroMonto();
     } catch (error) {
+      Sentry.captureException(error);
       console.error("Error al registrar monto:", error);
       toast.error("Error al registrar el monto");
     }

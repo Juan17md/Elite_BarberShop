@@ -11,6 +11,7 @@ import {
 import { db } from "@/lib/firebase";
 import { Check, Loader2, X, Percent } from "lucide-react";
 import { toast } from "sonner";
+import * as Sentry from "@sentry/nextjs";
 
 interface BarberCommissionModalProps {
   isOpen: boolean;
@@ -79,6 +80,7 @@ export default function BarberCommissionModal({
       });
       onClose();
     } catch (error) {
+      Sentry.captureException(error);
       console.error("Error al guardar la comisión:", error);
       toast.error("Error al guardar la comisión", { duration: 3000, closeButton: false });
     } finally {

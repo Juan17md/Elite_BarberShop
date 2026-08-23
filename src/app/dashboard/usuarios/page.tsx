@@ -19,6 +19,7 @@ import {
   Unlock,
 } from "lucide-react";
 import { Select } from "@/components/ui";
+import * as Sentry from "@sentry/nextjs";
 
 export default function UsuariosPage() {
   const { datosUsuario } = useAuth();
@@ -94,6 +95,7 @@ export default function UsuariosPage() {
         alert(datos.error || "Error al cambiar estado de bloqueo");
       }
     } catch (error) {
+      Sentry.captureException(error);
       console.error("Error cambiando bloqueo:", error);
       alert("Error al cambiar estado de bloqueo");
     }
@@ -174,6 +176,7 @@ export default function UsuariosPage() {
       setFormData({ email: "", password: "", name: "", phone: "", role: "barber" });
       setErrorMensaje(null);
     } catch (error) {
+      Sentry.captureException(error);
       console.error("Error guardando usuario:", error);
       setErrorMensaje("Error inesperado al guardar");
     } finally {
@@ -199,6 +202,7 @@ export default function UsuariosPage() {
       }
       setEliminandoUid(null);
     } catch (error) {
+      Sentry.captureException(error);
       console.error("Error eliminando usuario:", error);
       alert("Error al eliminar el usuario");
     } finally {

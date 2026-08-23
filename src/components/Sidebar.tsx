@@ -20,6 +20,7 @@ import { auth } from "@/lib/firebase";
 import { signOut } from "firebase/auth";
 import { useAuth } from "@/context/AuthContext";
 import { useEffect } from "react";
+import * as Sentry from "@sentry/nextjs";
 
 interface SidebarProps {
   collapsed: boolean;
@@ -38,6 +39,7 @@ export default function Sidebar({ collapsed, isOpen, onToggleCollapse, onClose }
       document.cookie = "firebase-token=; path=/; expires=Thu, 01 Jan 1970 00:00:00 UTC";
       window.location.href = "/login";
     } catch (error) {
+      Sentry.captureException(error);
       console.error("Error al cerrar sesión", error);
     }
   };

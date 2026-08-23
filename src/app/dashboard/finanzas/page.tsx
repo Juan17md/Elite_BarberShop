@@ -40,6 +40,7 @@ import { toast } from "sonner";
 import { getLocalDateString, getPeriodFromPosition, r2 } from "@/lib/utils";
 import RegisterServiceModal from "@/components/RegisterServiceModal";
 import RegistrarPagoModal from "@/components/RegistrarPagoModal";
+import * as Sentry from "@sentry/nextjs";
 
 interface Transaccion {
   id: string;
@@ -341,6 +342,7 @@ export default function FinanzasPage() {
       await deleteDoc(doc(db, "finances", record.id));
       toast.success("Servicio fiado eliminado", { duration: 2000, closeButton: false });
     } catch (error) {
+      Sentry.captureException(error);
       console.error("Error al eliminar:", error);
       toast.error("Error al eliminar el registro", { duration: 3000, closeButton: false });
     }
@@ -502,12 +504,14 @@ export default function FinanzasPage() {
           }
         }
       } catch (objError) {
+        Sentry.captureException(objError);
         console.error("Error al actualizar objetivos:", objError);
       }
 
       setFiadoACobrar(null);
       toast.success("Servicio cobrado exitosamente", { duration: 2000, closeButton: false });
     } catch (error) {
+      Sentry.captureException(error);
       console.error("Error al procesar el pago:", error);
       toast.error("Error al procesar el pago", { duration: 3000, closeButton: false });
     } finally {
