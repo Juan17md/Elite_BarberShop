@@ -1,6 +1,6 @@
-const CACHE_NAME = 'elite-barbershop-v1';
-const STATIC_CACHE = 'elite-static-v1';
-const API_CACHE = 'elite-api-v1';
+const CACHE_NAME = 'elite-barbershop-v2';
+const STATIC_CACHE = 'elite-static-v2';
+const API_CACHE = 'elite-api-v2';
 const OFFLINE_URL = '/offline.html';
 
 self.addEventListener('install', (event) => {
@@ -43,11 +43,19 @@ self.addEventListener('fetch', (event) => {
   }
 
   if (
-    request.destination === 'style' ||
     request.destination === 'script' ||
+    request.destination === 'style'
+  ) {
+    // networkFirst evita servir bundles JS/CSS desactualizados tras cada deploy
+    event.respondWith(networkFirst(request));
+    return;
+  }
+
+  if (
     request.destination === 'font' ||
     request.destination === 'image'
   ) {
+    // Los recursos estáticos con hash/caché HTTP larga pueden servirse primero desde caché
     event.respondWith(cacheFirst(request));
     return;
   }

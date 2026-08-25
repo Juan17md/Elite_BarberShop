@@ -227,7 +227,7 @@ function MobileNavSheet({
   }, [closing, onAnimEnd]);
 
   return (
-    <div className="fixed inset-0 z-40 lg:hidden">
+    <div className="fixed inset-0 z-[60] lg:hidden">
       <div
         className="absolute inset-0 bg-void/80 backdrop-blur-sm transition-opacity duration-300 ease-out"
         style={{ opacity: sheetVisible ? 1 : 0, pointerEvents: sheetVisible ? "auto" : "none" }}
