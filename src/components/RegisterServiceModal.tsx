@@ -461,7 +461,7 @@ export default function RegisterServiceModal({ isOpen, onClose }: RegisterServic
 
   return (
     <div className="fixed inset-0 bg-void/90 backdrop-blur-md z-50 flex items-center justify-center p-4">
-      <div className="card-premium p-8 w-full max-w-md border-primary/20 shadow-red-strong relative max-h-[90vh] overflow-y-auto no-scrollbar">
+      <div className="card-premium p-8 pb-32 lg:pb-8 w-full max-w-md border-primary/20 shadow-red-strong relative max-h-[90vh] overflow-y-auto no-scrollbar">
         <button 
           onClick={onClose}
           className="absolute top-4 right-4 p-1 rounded-md text-text-muted hover:text-white hover:bg-white/10 transition-colors"
