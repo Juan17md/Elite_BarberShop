@@ -90,7 +90,7 @@ service cloud.firestore {
         resource.data.barberId == request.auth.uid &&
         request.resource.data.barberId == request.auth.uid
       );
-      allow delete: if isAdmin();
+      allow delete: if isAdmin() || (isBarber() && resource.data.barberId == request.auth.uid);
     }
 
     // Banco (Billeteras de Barberos y Barbería)
