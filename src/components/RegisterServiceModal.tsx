@@ -443,6 +443,35 @@ export default function RegisterServiceModal({ isOpen, onClose }: RegisterServic
     } catch (error) {
       console.error("Error al registrar el servicio:", error);
       Sentry.captureException(error);
+
+      // Respaldo de telemetría: si el túnel de Sentry no sale de este
+      // dispositivo (red/caché dañada), el servidor reporta y avisa directo.
+      try {
+        const tokenRespaldo = await usuario?.getIdToken();
+        const err = error as { code?: string; message?: string; stack?: string };
+        await fetch("/api/reportar-error", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            ...(tokenRespaldo ? { Authorization: `Bearer ${tokenRespaldo}` } : {}),
+          },
+          body: JSON.stringify({
+            contexto: "registro-servicio",
+            codigo: err?.code ?? "sin-codigo",
+            mensaje: err?.message ?? String(error),
+            stack: err?.stack,
+            extra: {
+              barberId: esAdmin ? formData.barberId : datosUsuario?.uid,
+              paymentMethod: formData.paymentMethod,
+              esFiado,
+              conCaptura: Boolean(capturaFile),
+            },
+          }),
+        });
+      } catch (errorReporte) {
+        console.error("No se pudo enviar el reporte de respaldo:", errorReporte);
+      }
+
       toast.error(
         "Hubo un error al registrar el servicio. Todos los cambios fueron revertidos automáticamente.",
         { duration: 5000, closeButton: true }
