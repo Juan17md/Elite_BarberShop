@@ -77,6 +77,7 @@ export default function FinanzasPage() {
   const [cobroMontoPropina, setCobroMontoPropina] = useState("");
   const [cobroReferencia, setCobroReferencia] = useState("");
   const [cobroCapturaFile, setCobroCapturaFile] = useState<File | null>(null);
+  const [cobroCapturaBytes, setCobroCapturaBytes] = useState<ArrayBuffer | null>(null);
   const [cobroCapturaPreview, setCobroCapturaPreview] = useState("");
   const [cobroDragOver, setCobroDragOver] = useState(false);
   const [cobroBcvRate, setCobroBcvRate] = useState<number | null>(null);
@@ -179,14 +180,15 @@ export default function FinanzasPage() {
   }, [fiadoACobrar]);
 
   useEffect(() => {
-    if (!cobroCapturaFile) {
+    if (!cobroCapturaBytes) {
       setCobroCapturaPreview("");
       return;
     }
-    const url = URL.createObjectURL(cobroCapturaFile);
+    const blob = new Blob([cobroCapturaBytes], { type: cobroCapturaFile?.type || "image/jpeg" });
+    const url = URL.createObjectURL(blob);
     setCobroCapturaPreview(url);
     return () => URL.revokeObjectURL(url);
-  }, [cobroCapturaFile]);
+  }, [cobroCapturaBytes, cobroCapturaFile]);
 
   useEffect(() => {
     const q = query(collection(db, "transacciones"), orderBy("creadoAt", "desc"));
@@ -355,6 +357,7 @@ export default function FinanzasPage() {
     setCobroMontoPropina("");
     setCobroReferencia("");
     setCobroCapturaFile(null);
+    setCobroCapturaBytes(null);
     setCobroCapturaPreview("");
     setCobroBcvRate(null);
   };
@@ -362,7 +365,31 @@ export default function FinanzasPage() {
   const limpiarCobroCaptura = (e: React.MouseEvent) => {
     e.stopPropagation();
     setCobroCapturaFile(null);
+    setCobroCapturaBytes(null);
     setCobroCapturaPreview("");
+  };
+
+  // Lee los bytes al momento de seleccionar la imagen para evitar el
+  // NotReadableError de Android/PWA cuando la referencia al File se invalida
+  const cargarCobroCaptura = (file: File) => {
+    if (!file.type.startsWith("image/")) {
+      toast.error(`Tipo de archivo no soportado: "${file.type || "desconocido"}"`);
+      return;
+    }
+    if (file.size > 5 * 1024 * 1024) {
+      toast.error(`La imagen excede 5MB (${(file.size / 1024 / 1024).toFixed(1)}MB)`);
+      return;
+    }
+    const reader = new FileReader();
+    reader.onload = () => {
+      setCobroCapturaBytes(reader.result as ArrayBuffer);
+      setCobroCapturaFile(file);
+    };
+    reader.onerror = () => {
+      Sentry.captureException(reader.error);
+      toast.error("No se pudo leer la imagen seleccionada");
+    };
+    reader.readAsArrayBuffer(file);
   };
 
   const handleConfirmarCobro = async () => {
@@ -383,15 +410,14 @@ export default function FinanzasPage() {
       let capturaURL = "";
       let capturaFileId = "";
 
-      if (cobroCapturaFile) {
-        const cobroFileBytes = await cobroCapturaFile.arrayBuffer();
+      if (cobroCapturaBytes) {
         const res = await fetch("/api/upload-captura", {
           method: "POST",
           headers: {
-            "X-File-Type": cobroCapturaFile.type || "image/jpeg",
-            "X-File-Name": encodeURIComponent(cobroCapturaFile.name),
+            "X-File-Type": cobroCapturaFile?.type || "image/jpeg",
+            "X-File-Name": encodeURIComponent(cobroCapturaFile?.name || "captura.jpg"),
           },
-          body: cobroFileBytes,
+          body: cobroCapturaBytes,
         });
         if (res.ok) {
           const uploadResult = await res.json();
@@ -1133,7 +1159,7 @@ export default function FinanzasPage() {
                   e.preventDefault();
                   setCobroDragOver(false);
                   const file = e.dataTransfer.files?.[0];
-                  if (file?.type.startsWith("image/")) setCobroCapturaFile(file);
+                  if (file?.type.startsWith("image/")) cargarCobroCaptura(file);
                 }}
                 onClick={() => document.getElementById("cobro-captura-input")?.click()}
                 className={`
@@ -1153,7 +1179,10 @@ export default function FinanzasPage() {
                   type="file"
                   accept="image/*"
                   className="hidden"
-                  onChange={(e) => setCobroCapturaFile(e.target.files?.[0] || null)}
+                  onChange={(e) => {
+                    const file = e.target.files?.[0];
+                    if (file) cargarCobroCaptura(file);
+                  }}
                 />
                 {cobroCapturaFile ? (
                   <div className="flex items-center gap-4 w-full">
