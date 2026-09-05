@@ -48,6 +48,7 @@ export default function RegisterServiceModal({ isOpen, onClose }: RegisterServic
   const [bcvRateDb, setBcvRateDb] = useState<number | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [capturaFile, setCapturaFile] = useState<File | null>(null);
+  const [capturaBytes, setCapturaBytes] = useState<ArrayBuffer | null>(null);
   const [capturaSubiendo, setCapturaSubiendo] = useState(false);
   const [capturaPreview, setCapturaPreview] = useState<string>("");
   const [dragOver, setDragOver] = useState(false);
@@ -164,6 +165,7 @@ export default function RegisterServiceModal({ isOpen, onClose }: RegisterServic
         numeroReferencia: "",
       });
       setCapturaFile(null);
+      setCapturaBytes(null);
       setCapturaPreview("");
       setIncluyePropina(false);
       setMontoPropina("");
@@ -171,16 +173,18 @@ export default function RegisterServiceModal({ isOpen, onClose }: RegisterServic
     }
   }, [isOpen, esAdmin, datosUsuario]);
 
-  // Crear preview URL para la captura
+  // Crear preview URL a partir de los bytes ya leídos (la referencia al File
+  // puede invalidarse en Android, pero el ArrayBuffer cacheado es estable)
   useEffect(() => {
-    if (!capturaFile) {
+    if (!capturaBytes) {
       setCapturaPreview("");
       return;
     }
-    const url = URL.createObjectURL(capturaFile);
+    const blob = new Blob([capturaBytes], { type: capturaFile?.type || "image/jpeg" });
+    const url = URL.createObjectURL(blob);
     setCapturaPreview(url);
     return () => URL.revokeObjectURL(url);
-  }, [capturaFile]);
+  }, [capturaBytes, capturaFile]);
 
   // Resetear método de pago a BCV si el servicio no tiene divisa
   const rawPropina = incluyePropina ? (Number(montoPropina) || 0) : 0;
@@ -208,23 +212,52 @@ export default function RegisterServiceModal({ isOpen, onClose }: RegisterServic
     setDragOver(false);
   };
 
+  const MAX_CAPTURA_BYTES = 5 * 1024 * 1024;
+
+  // Lee los bytes al momento de seleccionar la imagen. En Android (PWA) la
+  // referencia al File puede invalidarse antes del submit, haciendo fallar
+  // capturaFile.arrayBuffer() con NotReadableError; cachear el ArrayBuffer
+  // elimina esa dependencia.
+  const cargarCaptura = (file: File) => {
+    if (!file.type.startsWith("image/")) {
+      toast.error(`Tipo de archivo no soportado: "${file.type || "desconocido"}"`);
+      return;
+    }
+    if (file.size > MAX_CAPTURA_BYTES) {
+      toast.error(`La imagen excede 5MB (${(file.size / 1024 / 1024).toFixed(1)}MB)`);
+      return;
+    }
+    const reader = new FileReader();
+    reader.onload = () => {
+      setCapturaBytes(reader.result as ArrayBuffer);
+      setCapturaFile(file);
+    };
+    reader.onerror = () => {
+      Sentry.captureException(reader.error);
+      toast.error("No se pudo leer la imagen seleccionada");
+    };
+    reader.readAsArrayBuffer(file);
+  };
+
   const handleDrop = (e: React.DragEvent) => {
     e.preventDefault();
     e.stopPropagation();
     setDragOver(false);
     const file = e.dataTransfer.files?.[0];
     if (file && file.type.startsWith("image/")) {
-      setCapturaFile(file);
+      cargarCaptura(file);
     }
   };
 
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setCapturaFile(e.target.files?.[0] || null);
+    const file = e.target.files?.[0];
+    if (file) cargarCaptura(file);
   };
 
   const limpiarCaptura = (e: React.MouseEvent) => {
     e.stopPropagation();
     setCapturaFile(null);
+    setCapturaBytes(null);
     setCapturaPreview("");
   };
 
@@ -257,18 +290,17 @@ export default function RegisterServiceModal({ isOpen, onClose }: RegisterServic
     try {
       let capturaURL = "";
       let capturaFileId = "";
-      if (capturaFile) {
+      if (capturaBytes) {
         setCapturaSubiendo(true);
-        const fileBytes = await capturaFile.arrayBuffer();
         const token = await usuario?.getIdToken();
         const res = await fetch("/api/upload-captura", {
           method: "POST",
           headers: {
             Authorization: `Bearer ${token}`,
-            "X-File-Type": capturaFile.type || "image/jpeg",
-            "X-File-Name": encodeURIComponent(capturaFile.name),
+            "X-File-Type": capturaFile?.type || "image/jpeg",
+            "X-File-Name": encodeURIComponent(capturaFile?.name || "captura.jpg"),
           },
-          body: fileBytes,
+          body: capturaBytes,
         });
         if (!res.ok) {
           const err = await res.json();
