@@ -3,22 +3,11 @@
 import { useState, useRef, useEffect } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import {
-  LayoutDashboard,
-  Wallet,
-  BarChart3,
-  UserCog,
-  Scissors,
-  Package,
-  History,
-  Target,
-  FileText,
-  Users,
-  ShieldCheck,
-  User,
-  ChevronDown,
-} from "lucide-react";
+import { LayoutDashboard, Wallet, BarChart3, UserCog, Scissors, Package, History, Target, FileText, Users, ShieldCheck, User, ChevronDown, LogOut } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
+import { signOut } from "firebase/auth";
+import * as Sentry from "@sentry/nextjs";
+import { auth } from "@/lib/firebase";
 
 interface NavItem {
   name: string;
@@ -49,6 +38,17 @@ export default function MobileBottomNav() {
   const rol = datosUsuario?.rol || "barber";
   const [sheetOpen, setSheetOpen] = useState(false);
   const [closing, setClosing] = useState(false);
+
+  const handleLogout = async () => {
+    try {
+      await signOut(auth);
+      document.cookie = "firebase-token=; path=/; expires=Thu, 01 Jan 1970 00:00:00 UTC";
+      window.location.href = "/login";
+    } catch (error) {
+      Sentry.captureException(error);
+      console.error("Error al cerrar sesión", error);
+    }
+  };
 
   const menuExpandido = sheetOpen && !closing;
 
@@ -153,6 +153,7 @@ export default function MobileBottomNav() {
           closing={closing}
           onClose={closeSheet}
           onAnimEnd={handleCloseAnimEnd}
+          onLogout={handleLogout}
         />
       )}
     </>
@@ -195,11 +196,13 @@ function MobileNavSheet({
   onClose,
   closing,
   onAnimEnd,
+  onLogout,
 }: {
   items: NavItem[];
   onClose: () => void;
   closing: boolean;
   onAnimEnd: () => void;
+  onLogout: () => void;
 }) {
   const pathname = usePathname();
   const sheetRef = useRef<HTMLDivElement>(null);
@@ -267,6 +270,15 @@ function MobileNavSheet({
               </Link>
             );
           })}
+        </div>
+        <div className="px-4 pb-4 border-t border-white/5 mt-4">
+          <button
+            onClick={onLogout}
+            className="flex items-center justify-center gap-2 w-full px-4 py-3 rounded-xl font-display text-[13px] tracking-widest uppercase text-red-500 hover:bg-red-500/10 transition-all border border-transparent hover:border-red-500/20"
+          >
+            <LogOut size={14} />
+            <span>Cerrar Sesión</span>
+          </button>
         </div>
       </div>
     </div>
