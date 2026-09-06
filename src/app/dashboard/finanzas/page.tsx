@@ -140,21 +140,16 @@ export default function FinanzasPage() {
   useEffect(() => {
     if (!datosUsuario?.uid) return;
 
-    // Acotar fiados pendientes a los últimos 30 días para no re-leer histórico
-    const hace30Dias = getLocalDateString(new Date(Date.now() - 30 * 86400 * 1000));
-
     const consulta = isAdmin
       ? query(
           collection(db, "finances"),
           where("estado", "==", "pendiente"),
-          where("date", ">=", hace30Dias),
           orderBy("date", "desc")
         )
       : query(
           collection(db, "finances"),
           where("barberId", "==", datosUsuario.uid),
           where("estado", "==", "pendiente"),
-          where("date", ">=", hace30Dias),
           orderBy("date", "desc")
         );
 

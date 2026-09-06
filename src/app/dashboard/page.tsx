@@ -45,19 +45,18 @@ export default function DashboardPage() {
   useEffect(() => {
     if (!datosUsuario?.uid) return;
 
-    const startOfMonthStr = getStartOfMonthString();
     let q;
     if (isAdmin) {
       q = query(
         collection(db, "finances"),
-        where("date", ">=", startOfMonthStr),
+        where("date", ">=", periodo.inicio),
         orderBy("date", "desc")
       );
     } else {
       q = query(
         collection(db, "finances"),
         where("barberId", "==", datosUsuario?.uid),
-        where("date", ">=", startOfMonthStr),
+        where("date", ">=", periodo.inicio),
         orderBy("date", "desc")
       );
     }
@@ -86,7 +85,7 @@ export default function DashboardPage() {
       unsubscribe();
       clearTimeout(timer);
     };
-  }, [isAdmin, datosUsuario?.uid]);
+  }, [isAdmin, datosUsuario?.uid, periodo.inicio]);
 
   // Fetch all records para ranking (solo barberos)
   useEffect(() => {
