@@ -103,11 +103,16 @@ export default function HistorialPage() {
     if (!datosUsuario?.uid) return;
     let q;
     if (esAdmin) {
-      q = query(collection(db, "finances"), orderBy("createdAt", "desc"));
+      q = query(
+        collection(db, "finances"),
+        where("date", ">=", periodo.inicio),
+        orderBy("createdAt", "desc")
+      );
     } else {
       q = query(
         collection(db, "finances"),
         where("barberId", "==", datosUsuario?.uid),
+        where("date", ">=", periodo.inicio),
         orderBy("createdAt", "desc")
       );
     }
@@ -127,7 +132,7 @@ export default function HistorialPage() {
       }
     );
     return () => unsubscribe();
-  }, [esAdmin, datosUsuario?.uid]);
+  }, [esAdmin, datosUsuario?.uid, periodo.inicio]);
 
   // Efecto para servicios disponibles (para el modal de edición)
   useEffect(() => {

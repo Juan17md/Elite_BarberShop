@@ -60,10 +60,15 @@ export default function EstadisticasPage() {
     }
 
     const consultaFinanzas = isAdmin
-      ? query(collection(db, "finances"), orderBy("date", "desc"))
+      ? query(
+          collection(db, "finances"),
+          where("date", ">=", periodo.inicio),
+          orderBy("date", "desc")
+        )
       : query(
           collection(db, "finances"),
           where("barberId", "==", datosUsuario.uid),
+          where("date", ">=", periodo.inicio),
           orderBy("date", "desc")
         );
 
@@ -83,7 +88,7 @@ export default function EstadisticasPage() {
     );
 
     return () => unsubscribe();
-  }, [isAdmin, authLoading, rolLoading, datosUsuario?.uid]);
+  }, [isAdmin, authLoading, rolLoading, datosUsuario?.uid, periodo.inicio]);
 
 
   // Registros filtrados por semana seleccionada (excluye fiados no cobrados)

@@ -3,8 +3,6 @@
 import { usePathname } from "next/navigation";
 import { useAuth } from "@/context/AuthContext";
 import { useState, useEffect } from "react";
-import { doc, onSnapshot } from "firebase/firestore";
-import { db } from "@/lib/firebase";
 import * as Sentry from "@sentry/nextjs";
 
 const SEIS_HORAS = 6 * 60 * 60 * 1000;
@@ -27,20 +25,6 @@ export default function Header() {
   const isAdmin = (datosUsuario?.rol === "admin" || datosUsuario?.rol === "superadmin");
 
   const [bcvRate, setBcvRate] = useState<number | null>(null);
-
-  useEffect(() => {
-    const unsub = onSnapshot(doc(db, "settings", "bcv"),
-      (snap) => {
-        if (snap.exists()) {
-          setBcvRate(snap.data().rate as number);
-        }
-      },
-      (error) => {
-        console.error("Error cargando tasa BCV:", error);
-      }
-    );
-    return () => unsub();
-  }, []);
 
   useEffect(() => {
     let mounted = true;

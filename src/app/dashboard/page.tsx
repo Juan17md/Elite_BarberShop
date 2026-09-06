@@ -44,14 +44,24 @@ export default function DashboardPage() {
 
   useEffect(() => {
     if (!datosUsuario?.uid) return;
-    
+
+    const startOfMonthStr = getStartOfMonthString();
     let q;
     if (isAdmin) {
-      q = query(collection(db, "finances"), orderBy("date", "desc"));
+      q = query(
+        collection(db, "finances"),
+        where("date", ">=", startOfMonthStr),
+        orderBy("date", "desc")
+      );
     } else {
-      q = query(collection(db, "finances"), where("barberId", "==", datosUsuario?.uid), orderBy("date", "desc"));
+      q = query(
+        collection(db, "finances"),
+        where("barberId", "==", datosUsuario?.uid),
+        where("date", ">=", startOfMonthStr),
+        orderBy("date", "desc")
+      );
     }
-    
+
     const timer = setTimeout(() => setLoading(false), 10000);
 
     const unsubscribe = onSnapshot(q,
@@ -82,7 +92,11 @@ export default function DashboardPage() {
   useEffect(() => {
     if (!datosUsuario?.uid || isAdmin) return;
 
-    const q = query(collection(db, "finances"), orderBy("date", "desc"));
+    const q = query(
+      collection(db, "finances"),
+      where("date", ">=", periodo.inicio),
+      orderBy("date", "desc")
+    );
     const unsubscribe = onSnapshot(q,
       (snapshot) => {
         const data = snapshot.docs.map(doc => ({
@@ -96,7 +110,7 @@ export default function DashboardPage() {
       }
     );
     return () => unsubscribe();
-  }, [isAdmin, datosUsuario?.uid]);
+  }, [isAdmin, datosUsuario?.uid, periodo.inicio]);
 
   // Resumen rápido (siempre período actual) — excluye fiados no cobrados
   const startOfMonthStr = getStartOfMonthString();

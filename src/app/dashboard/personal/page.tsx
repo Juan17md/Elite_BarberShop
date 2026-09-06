@@ -7,6 +7,7 @@ import {
   onSnapshot,
   query,
   orderBy,
+  where,
   deleteDoc,
   doc,
   getDoc,
@@ -153,7 +154,11 @@ export default function PersonalPage() {
   useEffect(() => {
     if (!isAdmin) return;
 
-    const q = query(collection(db, "finances"), orderBy("date", "desc"));
+    const q = query(
+      collection(db, "finances"),
+      where("date", ">=", periodo.inicio),
+      orderBy("date", "desc")
+    );
 
     const unsub = onSnapshot(q,
       (snap) => {
@@ -195,6 +200,7 @@ export default function PersonalPage() {
 
     const q = query(
       collection(db, "bank_transactions"),
+      where("createdAt", ">=", new Date(Date.now() - 90 * 86400 * 1000)),
       orderBy("createdAt", "desc")
     );
 
