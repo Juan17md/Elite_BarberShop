@@ -393,7 +393,7 @@ export default function PersonalPage() {
                   <span className="text-text-muted text-[10px] md:text-xs uppercase tracking-widest flex items-center gap-2">
                     <DollarSign size={12} className="md:size-[14px]" /> Ingresos
                   </span>
-                  <span className="font-display text-lg md:text-xl text-green-400">${(barber.periodEarnings || 0).toFixed(2)}</span>
+                  <span className="font-display text-lg md:text-xl text-green-400">${((barber.periodEarnings || 0) - (barber.periodPropina || 0)).toFixed(2)}</span>
                 </div>
                 <div className="flex justify-between items-center py-1.5 md:py-2 border-b border-white/5">
                   <span className="text-text-muted text-[10px] md:text-xs uppercase tracking-widest flex items-center gap-2">
@@ -414,7 +414,7 @@ export default function PersonalPage() {
                     <TrendingUp size={12} className="md:size-[14px] text-primary" /> Total Generado
                   </span>
                   <span className="font-display text-xl md:text-2xl text-white">
-                    ${((barber.periodEarnings || 0) + (barber.periodPropina || 0)).toFixed(2)}
+                    ${(barber.periodEarnings || 0).toFixed(2)}
                   </span>
                 </div>
               </div>

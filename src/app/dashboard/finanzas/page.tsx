@@ -337,7 +337,7 @@ export default function FinanzasPage() {
   }, [filteredRecords, barbers, isAdmin]);
 
   const maxBarValue = Math.max(
-    ...Object.entries(desgloseBarbers).flatMap(([, b]) => [b.barberShare, b.barberiaShare]),
+    ...Object.entries(desgloseBarbers).flatMap(([, b]) => [b.barberShare - b.propina, b.barberiaShare]),
     1
   );
 
@@ -809,11 +809,11 @@ export default function FinanzasPage() {
                     <div className="h-2.5 bg-void/40 rounded-full overflow-hidden border border-white/5 shadow-inner">
                       <div
                         className="h-full bg-linear-to-r from-emerald-600 to-emerald-400 rounded-full transition-all duration-1000 shadow-emerald-glow"
-                        style={{ width: `${maxBarValue > 0 ? (stats.barberShare / maxBarValue) * 100 : 0}%` }}
+                        style={{ width: `${maxBarValue > 0 ? ((stats.barberShare - stats.propina) / maxBarValue) * 100 : 0}%` }}
                       />
                     </div>
                     <span className="text-white font-display text-lg text-left md:text-right tracking-wider">
-                      ${stats.barberShare.toFixed(2)}
+                      ${(stats.barberShare - stats.propina).toFixed(2)}
                     </span>
                   </div>
 

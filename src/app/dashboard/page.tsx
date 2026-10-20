@@ -310,7 +310,7 @@ export default function DashboardPage() {
                     <div className="space-y-3 flex-1 mb-5">
                     <div className="flex justify-between items-center border-b border-white/5 pb-2">
                       <span className="text-text-secondary text-[11px] uppercase tracking-widest font-bold">Barbero</span>
-                      <span className="font-display text-xl text-emerald-400">${data.share.toFixed(2)}</span>
+                      <span className="font-display text-xl text-emerald-400">${(data.share - data.propina).toFixed(2)}</span>
                     </div>
                     <div className="flex justify-between items-center border-b border-amber-500/20 pb-2">
                       <span className="text-text-secondary text-[11px] uppercase tracking-widest font-bold">Propina</span>
