@@ -203,7 +203,7 @@ export default function EstadisticasPage() {
               <DollarSign size={16} className="text-emerald-400 md:w-[20px] md:h-[20px]" />
             </div>
             <span className="text-text-muted text-[8px] md:text-[10px] font-bold tracking-[0.15em] md:tracking-[0.2em] uppercase opacity-70 shrink-0 truncate">
-              Barbero
+              Barbero (+ propina)
             </span>
           </div>
           <p className="font-display text-3xl md:text-5xl text-white tracking-tight leading-none truncate">${ingresosBarbero.toFixed(2)}</p>
