@@ -57,13 +57,17 @@ export default function PersonalPage() {
   const [financeLoaded, setFinanceLoaded] = useState(false);
 
   const [position, setPosition] = useState(0);
+  const [posicionHistorial, setPosicionHistorial] = useState(0);
+  const [verUltimos15, setVerUltimos15] = useState(false);
   const [paginaHistorial, setPaginaHistorial] = useState(0);
   const ITEMS_POR_PAGINA = 10;
   const esPosicionActual = position === 0;
   const periodo = useMemo(() => getPeriodFromPosition(position), [position]);
+  const esHistorialActual = posicionHistorial === 0;
+  const periodoHistorial = useMemo(() => getPeriodFromPosition(posicionHistorial), [posicionHistorial]);
 
-  // Resetear paginación al cambiar de periodo
-  useEffect(() => { setPaginaHistorial(0); }, [position]);
+  // Resetear paginación al cambiar el periodo del historial o el modo últimos 15
+  useEffect(() => { setPaginaHistorial(0); }, [posicionHistorial, verUltimos15]);
 
   // Merge bank + finance stats into barbers
   const barbersWithBank = useMemo(() => {
@@ -230,9 +234,16 @@ export default function PersonalPage() {
   const transaccionesDelPeriodo = useMemo(() => {
     return transactions.filter((t) => {
       if (!t.date) return false;
-      return t.date >= periodo.inicio && t.date <= periodo.fin;
+      return t.date >= periodoHistorial.inicio && t.date <= periodoHistorial.fin;
     });
-  }, [transactions, periodo]);
+  }, [transactions, periodoHistorial]);
+
+  // En modo "últimos 15" se ignoran el selector de semana y se muestran los pagos más recientes
+  // (transactions ya viene filtrado por tipo "withdrawal" y ordenado de más reciente a más antiguo)
+  const pagosAMostrar = useMemo(
+    () => (verUltimos15 ? transactions.slice(0, 15) : transaccionesDelPeriodo),
+    [verUltimos15, transactions, transaccionesDelPeriodo]
+  );
 
   const confirmarEliminacionPago = async () => {
     if (!pagoAEliminar) return;
@@ -270,12 +281,12 @@ export default function PersonalPage() {
     }
   };
 
-  const totalPaginas = Math.max(1, Math.ceil(transaccionesDelPeriodo.length / ITEMS_POR_PAGINA));
+  const totalPaginas = Math.max(1, Math.ceil(pagosAMostrar.length / ITEMS_POR_PAGINA));
   const paginaSegura = Math.min(paginaHistorial, totalPaginas - 1);
   const transaccionesPaginadas = useMemo(() => {
     const inicio = paginaSegura * ITEMS_POR_PAGINA;
-    return transaccionesDelPeriodo.slice(inicio, inicio + ITEMS_POR_PAGINA);
-  }, [transaccionesDelPeriodo, paginaSegura]);
+    return pagosAMostrar.slice(inicio, inicio + ITEMS_POR_PAGINA);
+  }, [pagosAMostrar, paginaSegura]);
 
   if (!isAdmin) {
     return (
@@ -448,10 +459,50 @@ export default function PersonalPage() {
 
       {/* Historial de Pagos */}
       <div className="card-premium p-4 md:p-6">
-        <h3 className="font-display text-xl md:text-2xl text-white tracking-widest uppercase flex items-center gap-3 mb-4 md:mb-6">
-          <ArrowDownRight className="text-primary" size={20} />
-          Historial de Pagos
-        </h3>
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-4 md:mb-6">
+          <h3 className="font-display text-xl md:text-2xl text-white tracking-widest uppercase flex items-center gap-3">
+            <ArrowDownRight className="text-primary" size={20} />
+            Historial de Pagos
+          </h3>
+          <div className="flex items-center gap-2 self-start sm:self-auto">
+            <button
+              onClick={() => setVerUltimos15((v) => !v)}
+              className={`px-3 py-1.5 rounded-lg border text-xs font-bold tracking-wider uppercase transition-all ${
+                verUltimos15
+                  ? "bg-primary/10 border-primary/30 text-primary"
+                  : "border-white/10 text-text-muted hover:text-white hover:border-white/20 hover:bg-white/5 active:scale-95"
+              }`}
+            >
+              {verUltimos15 ? "Ver por semana" : "Últimos 15 pagos"}
+            </button>
+            {verUltimos15 ? (
+              <span className="px-3 py-1.5 rounded-lg bg-void/60 border border-white/5 text-primary text-xs font-bold tracking-wider uppercase whitespace-nowrap">
+                Últimos 15 pagos
+              </span>
+            ) : (
+              <>
+                <button
+                  onClick={() => setPosicionHistorial((p) => p + 1)}
+                  className="p-2 rounded-lg border border-white/10 text-text-muted hover:text-white hover:border-white/20 hover:bg-white/5 active:scale-95 transition-all"
+                  aria-label="Semana anterior"
+                >
+                  <ChevronLeft size={16} />
+                </button>
+                <span className="px-3 py-1.5 bg-void/60 rounded-lg border border-white/5 text-white text-xs tracking-wider whitespace-nowrap">
+                  {periodoHistorial.label}
+                </span>
+                <button
+                  onClick={() => setPosicionHistorial((p) => Math.max(0, p - 1))}
+                  disabled={esHistorialActual}
+                  className="p-2 rounded-lg border border-white/10 text-text-muted hover:text-white hover:border-white/20 hover:bg-white/5 active:scale-95 disabled:opacity-30 disabled:cursor-not-allowed transition-all"
+                  aria-label="Semana siguiente"
+                >
+                  <ChevronRight size={16} />
+                </button>
+              </>
+            )}
+          </div>
+        </div>
 
         {/* Tabla de pagos (escritorio) */}
         <div className="hidden md:block overflow-x-auto">
@@ -469,7 +520,7 @@ export default function PersonalPage() {
               {transaccionesPaginadas.length === 0 && (
                 <tr>
                   <td colSpan={5} className="py-8 text-center text-text-muted text-sm">
-                    No hay pagos registrados en este periodo
+                    {verUltimos15 ? "No hay pagos registrados recientemente" : "No hay pagos registrados en este periodo"}
                   </td>
                 </tr>
               )}
@@ -507,7 +558,7 @@ export default function PersonalPage() {
         <div className="md:hidden divide-y divide-white/5">
           {transaccionesPaginadas.length === 0 && (
             <div className="py-8 text-center text-text-muted text-sm">
-              No hay pagos registrados en este periodo
+              {verUltimos15 ? "No hay pagos registrados recientemente" : "No hay pagos registrados en este periodo"}
             </div>
           )}
           {transaccionesPaginadas.map((tx) => (
@@ -539,7 +590,7 @@ export default function PersonalPage() {
         </div>
 
         {/* Paginación */}
-        {transaccionesDelPeriodo.length > ITEMS_POR_PAGINA && (
+        {pagosAMostrar.length > ITEMS_POR_PAGINA && (
           <div className="flex items-center justify-center gap-3 mt-4 md:mt-6 pt-4 border-t border-white/5">
             <button
               onClick={() => setPaginaHistorial((p) => Math.max(0, p - 1))}
