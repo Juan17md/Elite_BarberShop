@@ -31,6 +31,13 @@ eslint_report.json
 *_report.json
 
 
+# Logs temporales del entorno de desarrollo
+firestore-debug.log
+
+# Directorios de herramientas/agentes locales
+/.omo/
+tsconfig.tsbuildinfo
+
 # ------------------------------
 # Logs y depuración
 # ------------------------------
